@@ -14,8 +14,8 @@ export function createTransfer(
 
   let entity = Transfer.create({
     id: `${blockNumber.toString()}-${index.toString()}`,
-    fromId: fromId.toString().toLowerCase(),
-    toId: toId.toString().toLowerCase(),
+    fromId: fromId.toString(),
+    toId: toId.toString(),
     value: (balance as Balance).toBigInt(),
     blockId: blockNumber.toString(),
     blockNumber: blockNumber,

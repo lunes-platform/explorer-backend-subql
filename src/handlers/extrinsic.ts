@@ -16,7 +16,7 @@ export function createExtrinsic(
     method: extrinsic.extrinsic.method.method,
     success: extrinsic.success,
     signerId: extrinsic.extrinsic.isSigned
-      ? extrinsic.extrinsic.signer.toString().toLowerCase()
+      ? extrinsic.extrinsic.signer.toString()
       : undefined,
   });
   entity.save();
