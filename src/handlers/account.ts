@@ -1,11 +1,10 @@
 import { Account } from "../types";
 
-export async function ensureAccount(recordId: string): Promise<Account> {
-  recordId = recordId.toLowerCase();
-  let entity  = await Account.get(recordId.toLowerCase());
+export async function ensureAccount(accountID: string): Promise<void> {
+  accountID = accountID.toLowerCase();
+  let entity = await Account.get(accountID);
   if (!entity) {
-    entity = Account.create({id:recordId});
+    entity = new Account(accountID);
     await entity.save();
   }
-  return entity;
 }

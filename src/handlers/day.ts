@@ -1,6 +1,12 @@
 import { Day } from "../types";
 
-export async function ensureDay(timestamp: Date): Promise<Day> {
+export async function updateDay(
+  timestamp: Date,
+  newExtrinsics: number,
+  newEvents: number,
+  newTransfers: number,
+  newTransferAmount: bigint
+): Promise<void> {
   const recordId = timestamp.toISOString().slice(0, 10);
   let entity = await Day.get(recordId);
   if (!entity) {
@@ -12,28 +18,13 @@ export async function ensureDay(timestamp: Date): Promise<Day> {
       extrinsics: 0,
       events: 0,
       transferCount: 0,
-      transferAmount: BigInt(0)
+      transferAmount: BigInt(0),
     });
-    await entity.save();
   }
-  return entity;
-}
+  entity.extrinsics += newExtrinsics;
+  entity.events += newEvents;
+  entity.transferCount += newTransfers;
+  entity.transferAmount += newTransferAmount;
 
-export async function addExtrinsicToDay(timestamp: Date): Promise<void> {
-  const day = await ensureDay(timestamp);
-  day.extrinsics += 1;
-  await day.save();
-}
-
-export async function addEventToDay(timestamp: Date): Promise<void> {
-  const day = await ensureDay(timestamp);
-  day.events += 1;
-  await day.save();
-}
-
-export async function addTransferToDay(timestamp: Date, value: bigint): Promise<void> {
-  const day = await ensureDay(timestamp);
-  day.transferCount += 1;
-  day.transferAmount += value;
-  await day.save();
+  await entity.save();
 }

@@ -49,7 +49,7 @@ const project: SubstrateProject = {
             kind: SubstrateHandlerKind.Block,
             handler: "handleBlock"
           },
-          {
+          /*{
             kind: SubstrateHandlerKind.Call,
             handler: "handleCall"
           },
@@ -60,7 +60,7 @@ const project: SubstrateProject = {
               module: "balances",
               method: "Deposit",
             },
-          },
+          },*/
         ],
       },
     },

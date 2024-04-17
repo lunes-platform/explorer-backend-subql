@@ -1,41 +1,42 @@
-import { SubstrateExtrinsic } from "@subql/types";
+import { SubstrateBlock, SubstrateExtrinsic } from "@subql/types";
 import { Extrinsic } from "../types";
-import { ensureBlock } from "./block";
-import { ensureAccount } from "./account";
-import { addExtrinsicToDay } from "./day";
 
-export async function ensureExtrinsic(
+export function createExtrinsic(
+  blockNumber: bigint,
   extrinsic: SubstrateExtrinsic
-): Promise<Extrinsic> {
-  const block = await ensureBlock(
-    extrinsic.block.block.header.number.toString()
-  );
-  const index = extrinsic.idx;
-  const recordId = `${block.id}-${index}`;
-  const hash = extrinsic.extrinsic.hash.toString();
-
-  let entity = await Extrinsic.get(recordId);
-  if (!entity) {
-    entity = new Extrinsic(recordId,hash,block.id,block.number,index);
-    await entity.save();
-  }
+): Extrinsic {
+  const entity = Extrinsic.create({
+    id: `${blockNumber.toString()}-${extrinsic.idx}`,
+    blockId: blockNumber.toString(),
+    blockNumber: blockNumber,
+    index: extrinsic.idx,
+    hash: extrinsic.extrinsic.hash.toString(),
+    isSigned: extrinsic.extrinsic.isSigned,
+    section: extrinsic.extrinsic.method.section,
+    method: extrinsic.extrinsic.method.method,
+    success: extrinsic.success,
+    signerId: extrinsic.extrinsic.isSigned
+      ? extrinsic.extrinsic.signer.toString().toLowerCase()
+      : undefined,
+  });
+  entity.save();
   return entity;
 }
 
-export async function createExtrinsic(
-  extrinsic: SubstrateExtrinsic
-): Promise<void> {
-  const entity = await ensureExtrinsic(extrinsic);
-  const isSigned = extrinsic.extrinsic.isSigned;
-  if (isSigned) {
-    const signerAccount = extrinsic.extrinsic.signer.toString();
-    const signer = await ensureAccount(signerAccount);
-    entity.signerId = signer.id;
-  }
-  entity.isSigned = isSigned;
-  entity.section = extrinsic.extrinsic.method.section;
-  entity.method = extrinsic.extrinsic.method.method;
-  entity.success = extrinsic.success;
-  await entity.save();
-  await addExtrinsicToDay(extrinsic.block.timestamp);
+export function wrapExtrinsics(
+  wrappedBlock: SubstrateBlock
+): SubstrateExtrinsic[] {
+  return wrappedBlock.block.extrinsics.map((extrinsic, idx) => {
+    const events = wrappedBlock.events.filter(
+      ({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eqn(idx)
+    );
+    return {
+      idx,
+      extrinsic,
+      block: wrappedBlock,
+      events,
+      success:
+        events.findIndex((evt) => evt.event.method === "ExtrinsicSuccess") > -1,
+    };
+  });
 }
