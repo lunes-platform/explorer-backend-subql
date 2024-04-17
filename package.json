@@ -1,0 +1,32 @@
+{
+  "name": "explorer-lunes-backend",
+  "version": "1.0.0",
+  "description": "This project can be used as a starting point for developing your SubQuery project",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "codegen": "./node_modules/.bin/subql codegen",
+    "start:docker": "docker-compose pull && docker-compose up --remove-orphans",
+    "dev": "subql codegen && subql build && docker-compose pull && docker-compose up --remove-orphans",
+    "prepack": "rm -rf dist && npm run build"
+  },
+  "homepage": "https://github.com/subquery/subql-starter",
+  "repository": "github:subquery/subql-starter",
+  "files": [
+    "dist",
+    "schema.graphql",
+    "project.yaml"
+  ],
+  "author": "LUNES NIGHTLY",
+  "license": "MIT",
+  "devDependencies": {
+    "@polkadot/api": "^10",
+    "@subql/cli": "latest",
+    "@subql/testing": "latest",
+    "@subql/types": "^3.4.0",
+    "typescript": "^5.2.2"
+  },
+  "resolutions": {
+    "ipfs-unixfs": "6.0.6"
+  }
+}
