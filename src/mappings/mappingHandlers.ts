@@ -6,6 +6,7 @@ import {
   createEvent,
   createExtrinsic,
   ensureAccount,
+  updateFeeBlock,
   wrapExtrinsics,
 } from "../handlers";
 import { Event, Transfer } from "../types";
@@ -35,21 +36,29 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     .map((evt, idx) =>
       createTransfer(block.block.header.number.toBigInt(), idx, evt)
     );
+    await block.events
+    .filter(
+      (e) => e.event.section === "transactionPayment" && e.event.method === "TransactionFeePaid"
+    )
+    .map(async (evt)  =>
+      await updateFeeBlock(block.block.header.number.toBigInt(), evt)
+    );
 
   // Process all calls in block
   const extrinsics = wrapExtrinsics(block).map((ext) =>
     createExtrinsic(block.block.header.number.toBigInt(), ext)
   );
 
-  const accountIDs = new Set<string>();
+  const accountIDs = new Set<(string)>();
   extrinsics.map((e) => (e.signerId ? accountIDs.add(e.signerId) : null));
   transfers.map((t) => {
     accountIDs.add(t.fromId);
     accountIDs.add(t.toId);
   });
 
-  accountIDs.forEach((id) => {
-    ensureAccount(id);
+  accountIDs.forEach(async (id)  => {
+    const data = await api.query.system.account(id)
+    ensureAccount(id, BigInt(data.data.free.toString()));
   });
 
   // Save all data

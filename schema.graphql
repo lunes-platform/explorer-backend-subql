@@ -7,7 +7,7 @@ type Block @entity {
   specVersion: Int
   stateRoot: String
   extrinsicsRoot: String
-
+  fee:  BigInt!
   extrinsics: [Extrinsic] @derivedFrom(field: "block")
   events: [Event] @derivedFrom(field: "block")
 }
@@ -40,7 +40,7 @@ type Transfer @entity {
   from: Account!
   to: Account!
   value: BigInt!
-  block: Block!
+  block: Block!  
   blockNumber: BigInt!
   extrinsicIndex: Int
   eventIndex: Int!
@@ -48,6 +48,7 @@ type Transfer @entity {
 
 type Account @entity {
   id: ID!
+  balance:  BigInt!
   extrinsics: [Extrinsic] @derivedFrom(field: "signer")
 }
 
