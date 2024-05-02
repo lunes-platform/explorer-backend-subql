@@ -9,9 +9,10 @@ import {
   updateFeeBlock,
   wrapExtrinsics,
 } from "../handlers";
-import { Event, Transfer } from "../types";
+import { Deposit, Event, Transfer } from "../types";
 import { createTransfer } from "../handlers/transfer";
 import { updateDay } from "../handlers/day";
+import { createDeposit } from "../handlers/deposit";
 
 export async function handleBlock(block: SubstrateBlock): Promise<void> {
   await createBlock(block);
@@ -43,6 +44,13 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     .map(async (evt)  =>
       await updateFeeBlock(block.block.header.number.toBigInt(), evt)
     );
+    const deposits: Deposit[] = block.events
+    .filter(
+      (e) => e.event.section === "balances" && e.event.method === "Deposit"
+    )
+    .map((evt, idx) =>
+      createDeposit(block.block.header.number.toBigInt(), idx, evt)
+    );
 
   // Process all calls in block
   const extrinsics = wrapExtrinsics(block).map((ext) =>
@@ -66,7 +74,7 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     updateDay(
       block.timestamp,
       extrinsics.length,
-      events.length,
+      events.length,      
       transfers.length,
       transfers.reduce((a, b) => a + b.value, BigInt(0))
     ),

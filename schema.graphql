@@ -62,3 +62,13 @@ type Day @entity {
   transferCount: Int!
   transferAmount: BigInt!
 }
+
+type Deposit @entity {
+  id: ID!
+  to: Account!
+  value: BigInt!
+  block: Block!  
+  blockNumber: BigInt!
+  extrinsicIndex: Int
+  eventIndex: Int!
+}
