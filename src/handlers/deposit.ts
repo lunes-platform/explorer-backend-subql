@@ -7,7 +7,7 @@ export function createDeposit(
   event: EventRecord
 ): Deposit {
   logger.info(
-    `createDeposit fee ${event} }`,
+    `createDeposit fee ${blockNumber} }`,
   );
   const {
     event: {

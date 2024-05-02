@@ -44,13 +44,6 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     .map(async (evt)  =>
       await updateFeeBlock(block.block.header.number.toBigInt(), evt)
     );
-    const deposits: Deposit[] = block.events
-    .filter(
-      (e) => e.event.section === "balances" && e.event.method === "Deposit"
-    )
-    .map((evt, idx) =>
-      createDeposit(block.block.header.number.toBigInt(), idx, evt)
-    );
 
   // Process all calls in block
   const extrinsics = wrapExtrinsics(block).map((ext) =>
@@ -68,7 +61,20 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     const data = await api.query.system.account(id)
     ensureAccount(id, BigInt(data.data.free.toString()));
   });
-
+  try{
+    await block.events
+    .filter(
+      (e) => e.event.section === "balances" && e.event.method === "Deposit"
+    )
+    .map((evt, idx) =>
+      createDeposit(block.block.header.number.toBigInt(), idx, evt)
+    );
+  }catch(error){
+    logger.info(
+      `createDeposit fee ${error} }`,
+    );
+  }
+  
   // Save all data
   await Promise.all([    
     updateDay(
