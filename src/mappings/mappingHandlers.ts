@@ -9,10 +9,11 @@ import {
   updateFeeBlock,
   wrapExtrinsics,
 } from "../handlers";
-import { Deposit, Event, Transfer } from "../types";
+import { Event, Transfer } from "../types";
 import { createTransfer } from "../handlers/transfer";
 import { updateDay } from "../handlers/day";
 import { createDeposit } from "../handlers/deposit";
+import { createAssetTransfer } from "../handlers/AssetTransfer";
 
 export async function handleBlock(block: SubstrateBlock): Promise<void> {
   await createBlock(block);
@@ -37,11 +38,22 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     .map((evt, idx) =>
       createTransfer(block.block.header.number.toBigInt(), idx, evt)
     );
+  try {
     await block.events
+      .filter(
+        (e) => e.event.section === "assets" && e.event.method === "Transferred"
+      )
+      .map(async (evt, idx) =>
+        await createAssetTransfer(block.block.header.number.toBigInt(), idx, evt)
+      );
+  } catch (error) {
+
+  }
+  await block.events
     .filter(
       (e) => e.event.section === "transactionPayment" && e.event.method === "TransactionFeePaid"
     )
-    .map(async (evt)  =>
+    .map(async (evt) =>
       await updateFeeBlock(block.block.header.number.toBigInt(), evt)
     );
 
@@ -57,30 +69,30 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     accountIDs.add(t.toId);
   });
 
-  accountIDs.forEach(async (id)  => {
+  accountIDs.forEach(async (id) => {
     const data = await api.query.system.account(id)
     ensureAccount(id, BigInt(data.data.free.toString()));
   });
-  try{
+  try {
     await block.events
-    .filter(
-      (e) => e.event.section === "balances" && e.event.method === "Deposit"
-    )
-    .map((evt, idx) =>
-      createDeposit(block.block.header.number.toBigInt(), idx, evt)
-    );
-  }catch(error){
+      .filter(
+        (e) => e.event.section === "balances" && e.event.method === "Deposit"
+      )
+      .map((evt, idx) =>
+        createDeposit(block.block.header.number.toBigInt(), idx, evt)
+      );
+  } catch (error) {
     logger.info(
       `createDeposit fee ${error} }`,
     );
   }
-  
+
   // Save all data
-  await Promise.all([    
+  await Promise.all([
     updateDay(
       block.timestamp,
       extrinsics.length,
-      events.length,      
+      events.length,
       transfers.length,
       transfers.reduce((a, b) => a + b.value, BigInt(0))
     ),
