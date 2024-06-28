@@ -79,7 +79,7 @@ type AssetTransfer @entity {
   blockNumber: BigInt!
   extrinsicIndex: Int
   eventIndex: Int!
-  assetId: Int!
+  asset: Asset!
   amount: BigInt!
   to: String!
   from: String!
@@ -87,6 +87,13 @@ type AssetTransfer @entity {
 type AssetAccount @entity {
   id: ID!
   account: String!
-  assetId: Int!
+  asset: Asset!
   balance: BigInt!
+}
+
+type Asset @entity {
+  id: ID!
+  name: String!
+  symbol: String!
+  decimals: Int!
 }

@@ -1,6 +1,6 @@
 import { AssetAccount } from "../types";
 
-export async function ensureAccountAsset(accountID: string, balance: bigint, assetId: number): Promise<void> {
+export async function ensureAccountAsset(accountID: string, balance: bigint, assetId: string): Promise<void> {
   let ID = `${accountID.toString()}-${assetId.toString()}`;
   let entity = await AssetAccount.get(ID);
 

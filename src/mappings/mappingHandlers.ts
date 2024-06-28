@@ -13,7 +13,7 @@ import { Event, Transfer } from "../types";
 import { createTransfer } from "../handlers/transfer";
 import { updateDay } from "../handlers/day";
 import { createDeposit } from "../handlers/deposit";
-import { createAssetTransfer } from "../handlers/asset";
+import { createAssetTransfer } from "../handlers/asset_transfer";
 
 export async function handleBlock(block: SubstrateBlock): Promise<void> {
   await createBlock(block);
