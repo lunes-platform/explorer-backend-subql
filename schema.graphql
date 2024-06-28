@@ -84,3 +84,9 @@ type AssetTransfer @entity {
   to: String!
   from: String!
 }
+type AssetAccount @entity {
+  id: ID!
+  account: String!
+  assetId: Int!
+  balance: BigInt!
+}
