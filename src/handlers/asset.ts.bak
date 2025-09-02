@@ -6,7 +6,7 @@ export async function ensureAsset(id: string): Promise<Asset> {
   if (!entity) {
     const data_ = await api.query.assets.metadata(id)
     const token: any = data_.toHuman()
-    entity = new Asset(id, "Unknown"); // Add assetType parameter
+    entity = new Asset(id);
     entity.name = token.name;
     entity.symbol = token.symbol;
     entity.decimals = token.decimals;

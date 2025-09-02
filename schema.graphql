@@ -1,99 +1,286 @@
 type Block @entity {
-  id: ID!
-  number: BigInt! @index(unique: true)
-  hash: String
-  timestamp: Date
-  parentHash: String
-  specVersion: Int
-  stateRoot: String
-  extrinsicsRoot: String
-  fee: BigInt!
-  extrinsics: [Extrinsic] @derivedFrom(field: "block")
-  events: [Event] @derivedFrom(field: "block")
-}
-
-type Extrinsic @entity {
-  id: ID!
+  id: ID! # Block hash
+  number: BigInt!
+  timestamp: BigInt
   hash: String!
-  block: Block!
-  blockNumber: BigInt! @index(unique: false)
-  index: Int!
-  isSigned: Boolean
-  signer: Account
-  section: String
-  method: String
-  success: Boolean
-}
-
-type Event @entity {
-  id: ID!
-  block: Block!
-  blockNumber: BigInt! @index(unique: false)
-  index: Int!
-  section: String
-  method: String
-  extrinsic: Extrinsic
-}
-
-type Transfer @entity {
-  id: ID!
-  from: Account!
-  to: Account!
-  value: BigInt!
-  block: Block!
-  blockNumber: BigInt!
-  extrinsicIndex: Int
-  eventIndex: Int!
+  parentHash: String!
+  specVersion: Int
 }
 
 type Account @entity {
-  id: ID!
+  id: ID! # Account address
   balance: BigInt!
-  extrinsics: [Extrinsic] @derivedFrom(field: "signer")
+  sentTransfersCount: Int!
+  receivedTransfersCount: Int!
+  lastTransferBlock: BigInt
+  assetBalances: [AssetAccount] @derivedFrom(field: "account")
+  nftBalances: [NftAccount] @derivedFrom(field: "account")
+  contractInteractions: [ContractCall] @derivedFrom(field: "caller")
 }
 
-type Day @entity {
-  id: ID!
-  year: Int!
-  month: Int!
-  date: Int!
-  extrinsics: Int!
-  events: Int!
-  transferCount: Int!
-  transferAmount: BigInt!
-}
-
-type Deposit @entity {
-  id: ID!
-  to: Account!
+type Transfer @entity {
+  id: ID! # Block-EventIndex
+  fromId: String!
+  toId: String!
+  amount: BigInt!
   value: BigInt!
-  block: Block!
+  blockId: String!
   blockNumber: BigInt!
-  extrinsicIndex: Int
   eventIndex: Int!
+  timestamp: BigInt
+  date: Date
+}
+
+# PSP22 Token (Fungible Tokens)
+type Psp22Token @entity {
+  id: ID! # Contract Address
+  contractAddress: String!
+  name: String
+  symbol: String
+  decimals: Int
+  totalSupply: BigInt
+  creator: String
+  createdAt: BigInt
+  createdAtBlock: BigInt
+  standard: String! # "PSP22"
+  metadata: String # JSON metadata
+  verified: Boolean
+}
+
+type Psp22Transfer @entity {
+  id: ID! # Block-EventIndex
+  token: Psp22Token!
+  from: Account!
+  to: Account!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt
+  transactionHash: String
+  eventIndex: Int!
+}
+
+type Psp22Account @entity {
+  id: ID! # TokenAddress-AccountAddress
+  token: Psp22Token!
+  account: Account!
+  balance: BigInt!
+  allowances: [Psp22Allowance] @derivedFrom(field: "owner")
+}
+
+type Psp22Allowance @entity {
+  id: ID! # TokenAddress-OwnerAddress-SpenderAddress
+  token: Psp22Token!
+  owner: Psp22Account!
+  spender: String!
+  amount: BigInt!
+  blockNumber: BigInt!
+}
+
+# PSP34 NFT (Non-Fungible Tokens)
+type Psp34Collection @entity {
+  id: ID! # Contract Address
+  contractAddress: String!
+  name: String
+  symbol: String
+  creator: String
+  createdAt: BigInt
+  createdAtBlock: BigInt
+  totalSupply: BigInt
+  standard: String! # "PSP34"
+  metadata: String # JSON metadata
+  baseUri: String
+  verified: Boolean
+}
+
+type Psp34Token @entity {
+  id: ID! # ContractAddress-TokenId
+  collection: Psp34Collection!
+  tokenId: String!
+  owner: Account
+  metadata: String # JSON metadata
+  tokenUri: String
+  mintedAt: BigInt
+  mintedAtBlock: BigInt
+}
+
+type Psp34Transfer @entity {
+  id: ID! # Block-EventIndex
+  collection: Psp34Collection!
+  token: Psp34Token
+  from: Account
+  to: Account!
+  blockNumber: BigInt!
+  timestamp: BigInt
+  transactionHash: String
+  eventIndex: Int!
+}
+
+type NftAccount @entity {
+  id: ID! # CollectionAddress-AccountAddress
+  collection: Psp34Collection!
+  account: Account!
+  tokenCount: Int!
+  tokens: [Psp34Token] @derivedFrom(field: "owner")
+}
+
+# PSP37 Multi-Token (Fungible and Non-Fungible)
+type Psp37Contract @entity {
+  id: ID! # Contract Address
+  contractAddress: String!
+  name: String
+  creator: String
+  createdAt: BigInt
+  createdAtBlock: BigInt
+  standard: String! # "PSP37"
+  metadata: String # JSON metadata
+  verified: Boolean
+}
+
+type Psp37Token @entity {
+  id: ID! # ContractAddress-TokenId
+  contract: Psp37Contract!
+  tokenId: String!
+  tokenType: String! # "Fungible" or "NonFungible"
+  totalSupply: BigInt
+  metadata: String # JSON metadata
+  tokenUri: String
+  createdAt: BigInt
+  createdAtBlock: BigInt
+}
+
+type Psp37Transfer @entity {
+  id: ID! # Block-EventIndex
+  contract: Psp37Contract!
+  token: Psp37Token!
+  from: Account
+  to: Account!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt
+  transactionHash: String
+  eventIndex: Int!
+}
+
+type Psp37Account @entity {
+  id: ID! # ContractAddress-TokenId-AccountAddress
+  contract: Psp37Contract!
+  token: Psp37Token!
+  account: Account!
+  balance: BigInt!
+}
+
+# Smart Contracts
+type SmartContract @entity {
+  id: ID! # Contract Address
+  contractAddress: String!
+  deployer: Account!
+  codeHash: String
+  standard: String # PSP22, PSP34, PSP37, Custom, etc.
+  name: String
+  version: String
+  deployedAt: BigInt!
+  deployedAtBlock: BigInt!
+  isVerified: Boolean!
+  sourceCode: String
+  abi: String # JSON ABI
+  metadata: String # JSON metadata
+  lastInteraction: BigInt
+  callCount: Int!
+}
+
+type ContractCall @entity {
+  id: ID! # Block-ExtrinsicIndex
+  contract: SmartContract!
+  caller: Account!
+  method: String!
+  args: String # JSON encoded arguments
+  success: Boolean!
+  gasUsed: BigInt
+  value: BigInt
+  blockNumber: BigInt!
+  timestamp: BigInt
+  transactionHash: String
+  extrinsicIndex: Int!
+}
+
+type ContractEvent @entity {
+  id: ID! # Block-EventIndex
+  contract: SmartContract
+  eventName: String!
+  eventData: String! # JSON encoded event data
+  blockNumber: BigInt!
+  timestamp: BigInt
+  transactionHash: String
+  eventIndex: Int!
+}
+
+# Generic Asset for backward compatibility
+type Asset @entity {
+  id: ID! # Asset ID or Contract Address
+  assetType: String! # "PSP22", "PSP34", "PSP37", "Native", "Unknown"
+  contractAddress: String
+  name: String
+  symbol: String
+  decimals: Int
+  totalSupply: BigInt
+  metadata: String
+  verified: Boolean
 }
 
 type AssetTransfer @entity {
-  id: ID!
-  block: Block!
-  blockNumber: BigInt!
-  extrinsicIndex: Int
-  eventIndex: Int!
+  id: ID! # Block-EventIndex
   asset: Asset!
+  fromId: String!
+  toId: String!
   amount: BigInt!
-  to: String!
-  from: String!
+  blockNumber: BigInt!
+  timestamp: BigInt
+  eventIndex: Int!
 }
+
 type AssetAccount @entity {
-  id: ID!
-  account: String!
+  id: ID! # AssetId-AccountId
   asset: Asset!
+  account: Account!
   balance: BigInt!
 }
 
-type Asset @entity {
-  id: ID!
-  name: String!
-  symbol: String!
-  decimals: Int!
+# Events and Extrinsics
+type Event @entity {
+  id: ID! # Block-EventIndex
+  blockNumber: BigInt!
+  eventIndex: Int!
+  section: String!
+  method: String!
+  data: String!
+  contract: SmartContract
+}
+
+type Extrinsic @entity {
+  id: ID! # Block-ExtrinsicIndex
+  blockNumber: BigInt!
+  extrinsicIndex: Int!
+  isSigned: Boolean!
+  method: String!
+  section: String!
+  signer: String
+  signature: String
+  tip: BigInt
+  fee: BigInt
+  success: Boolean!
+  contract: SmartContract
+}
+
+# Analytics
+type DailyStats @entity {
+  id: ID! # YYYY-MM-DD
+  date: Date!
+  transfersCount: Int!
+  totalVolume: BigInt!
+  uniqueAccounts: Int!
+  contractCalls: Int!
+  psp22Transfers: Int!
+  psp34Transfers: Int!
+  psp37Transfers: Int!
+  newContracts: Int!
 }

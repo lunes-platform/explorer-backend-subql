@@ -16,6 +16,7 @@ export function createTransfer(
     id: `${blockNumber.toString()}-${index.toString()}`,
     fromId: fromId.toString(),
     toId: toId.toString(),
+    amount: (balance as Balance).toBigInt(),
     value: (balance as Balance).toBigInt(),
     blockId: blockNumber.toString(),
     blockNumber: blockNumber,

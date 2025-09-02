@@ -5,7 +5,7 @@ export async function ensureAccountAsset(accountID: string, balance: bigint, ass
   let entity = await AssetAccount.get(ID);
 
   if (!entity) {
-    entity = new AssetAccount(ID, assetId, accountID, balance); // Correct parameters
+    entity = new AssetAccount(ID, assetId, accountID, balance);
   } else {
     entity.balance = balance;
   }

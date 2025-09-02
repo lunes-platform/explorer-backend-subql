@@ -1,10 +1,9 @@
 import { Account } from "../types";
 
 export async function ensureAccount(accountID: string, balance: bigint): Promise<void> {
-  accountID = accountID;
   let entity = await Account.get(accountID);
   if (!entity) {
-    entity = new Account(accountID, balance);
+    entity = new Account(accountID, balance, 0, 0);
   } else {
     entity.balance = balance;
   }

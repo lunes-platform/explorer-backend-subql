@@ -1,0 +1,25 @@
+import { Day } from "../types";
+
+export async function updateDay(
+  timestamp: Date,
+  newTransfers: number,
+  newTransferAmount: bigint,
+  uniqueAccounts: number
+): Promise<void> {
+  const recordId = timestamp.toISOString().slice(0, 10);
+  let entity = await Day.get(recordId);
+  if (!entity) {
+    entity = Day.create({
+      id: recordId,
+      date: timestamp,
+      transfersCount: 0,
+      totalVolume: BigInt(0),
+      uniqueAccounts: 0,
+    });
+  }
+  entity.transfersCount += newTransfers;
+  entity.totalVolume += newTransferAmount;
+  entity.uniqueAccounts = uniqueAccounts;
+
+  await entity.save();
+}

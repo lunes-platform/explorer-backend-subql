@@ -23,6 +23,7 @@ export async function createAssetTransfer(
     fromId: from.toString(),
     toId: to.toString(),
     amount: (amount as Balance).toBigInt(),
+    blockId: blockNumber.toString(),
     blockNumber: blockNumber,
     eventIndex: index,
   });

@@ -1,0 +1,135 @@
+{
+  "timestamp": "2025-09-02T00:40:06.875Z",
+  "totalContracts": 9,
+  "typeDistribution": {
+    "Unknown": 9
+  },
+  "contracts": [
+    {
+      "address": "5FvVZvbGau6Ec7d8qPCdesbBp8JdUFfzR6frko1QUG5RCnjf",
+      "index": 1,
+      "isActive": true,
+      "info": {
+        "trieId": "0xc183517867b7e61f9cdece5f0e8688e9c4d12ceab852582dfdf64b3b2f9a8faf",
+        "codeHash": "0x5a3cec06b77e8e410d154bb92646470b41c1a75b0d1705628368bb42a5d8a4aa",
+        "storageDeposit": "N/A",
+        "codeSize": 23851
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    },
+    {
+      "address": "5HMbbcEXJTY7ek4UrhNYuKyjP4zQKfqBfhCMVujxq7rBz8nx",
+      "index": 2,
+      "isActive": true,
+      "info": {
+        "trieId": "0x5d10a8e5f59948ffb184e765e96a4603153711911e0d2a8ff4b56e114623f010",
+        "codeHash": "0x9904224e71747192d21a4a7f98235bc29cc2b31da28cde55b83171a0259091ba",
+        "storageDeposit": "N/A",
+        "codeSize": 13007
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    },
+    {
+      "address": "5EJNfbBhBFws7n2EVykQfigK3U2XjkE6kd27NnPFN1rYseNQ",
+      "index": 3,
+      "isActive": true,
+      "info": {
+        "trieId": "0x2c6b7ea567b76ffc1f6072c0c7ceb25b4ec830423af130808e3866367f36fb28",
+        "codeHash": "0x87e903dbb1851900f8d719d2742369151d872d92e665db2b69a984c76e96333d",
+        "storageDeposit": "N/A",
+        "codeSize": 33467
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    },
+    {
+      "address": "5DfVHWSb2w7x1qaALsmUbrRcgfQ3MqJnNgD2mKXq3aKVGp7W",
+      "index": 4,
+      "isActive": true,
+      "info": {
+        "trieId": "0xe8292b51b6cc257aeefce6629a05eb97896703a570bdd25568753c4099b152c2",
+        "codeHash": "0x4585126310c27a551965277577e20f86accc074d50db4b7528b852b58aeee78d",
+        "storageDeposit": "N/A",
+        "codeSize": 43139
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    },
+    {
+      "address": "5FNPC1CB4kZpoVYjbj9Pv82xZg6WGDDSaHoH9nppvtamNpar",
+      "index": 5,
+      "isActive": true,
+      "info": {
+        "trieId": "0x11ed058ed05d2c278b4fc11dcc871c6b22335f1be6bd7013b084a19c372859c1",
+        "codeHash": "0xe84d2af62742d3d19d8e829eb84074343b41cc10824e7b35552afd480c2a68a5",
+        "storageDeposit": "N/A",
+        "codeSize": 17245
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    },
+    {
+      "address": "5Ebt6yiZEKYFwRxGgBU8wyHg7b2X1e19wvfcn7F9SbH8QXTh",
+      "index": 6,
+      "isActive": true,
+      "info": {
+        "trieId": "0xfe810d86cc733dc7e6d8b5bab6ed117e00e4c9e34a009a95a574ac0eaac69bc2",
+        "codeHash": "0x1da9b51dcdfc92c17b25f5c8da86eaa4e267446ceece0f7bd314724e62e4656f",
+        "storageDeposit": "N/A",
+        "codeSize": 38535
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    },
+    {
+      "address": "5Gx2WbBHnfMEFnpqQcmyGZ6Z9WY6LZqQJ9CUtoxZUELtjKAf",
+      "index": 7,
+      "isActive": true,
+      "info": {
+        "trieId": "0xa668274954d2ef735ca75347dfe3b63efa18fa0aeb4b233fece7260e0f6f3f4b",
+        "codeHash": "0x9904224e71747192d21a4a7f98235bc29cc2b31da28cde55b83171a0259091ba",
+        "storageDeposit": "N/A",
+        "codeSize": 13007
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    },
+    {
+      "address": "5CNUWeLmycyEoGmsMZdbgbTq5tmFkfDQKTaj2jV9zcaSyFds",
+      "index": 8,
+      "isActive": true,
+      "info": {
+        "trieId": "0xe834b9b86518f8f09b1f4109cb72de8761d6b950d603450cac330dba22a63a40",
+        "codeHash": "0x14b4095cb710c56ef9778c914f2cb9c7d37ecae4207a88f6c21125d965c70be8",
+        "storageDeposit": "N/A",
+        "codeSize": 14211
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    },
+    {
+      "address": "5D6XpyPLmy1zP2vFNwysdYpCWTqk4z4s7Yw7V2iJGry6r8ZW",
+      "index": 9,
+      "isActive": true,
+      "info": {
+        "trieId": "0x57f22584f3868978be67dadd84efb5d74e6040a010334630c8f10dcfa531311f",
+        "codeHash": "0x507e3741861e186b2692f5ae007a61250826b9a3cc1a83e60ca5749bda0ddaf7",
+        "storageDeposit": "N/A",
+        "codeSize": 13475
+      },
+      "metadata": {},
+      "events": [],
+      "detectedType": "Unknown"
+    }
+  ]
+}

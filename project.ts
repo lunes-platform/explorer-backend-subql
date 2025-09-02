@@ -49,9 +49,14 @@ const project: SubstrateProject = {
             kind: SubstrateHandlerKind.Block,
             handler: "handleBlock"
           },
-          /*{
-            kind: SubstrateHandlerKind.Call,
-            handler: "handleCall"
+          // Native balance events
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "balances",
+              method: "Transfer",
+            },
           },
           {
             kind: SubstrateHandlerKind.Event,
@@ -60,7 +65,100 @@ const project: SubstrateProject = {
               module: "balances",
               method: "Deposit",
             },
-          },*/
+          },
+          // Assets events
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "assets",
+              method: "Transferred",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "assets",
+              method: "Created",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "assets",
+              method: "Issued",
+            },
+          },
+          // Contract events
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "contracts",
+              method: "ContractEmitted",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "contracts",
+              method: "Instantiated",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "contracts",
+              method: "Terminated",
+            },
+          },
+          // NFT/Uniques events (if available)
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "uniques",
+              method: "Transferred",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "uniques",
+              method: "Issued",
+            },
+          },
+          // Transaction payment events
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "transactionPayment",
+              method: "TransactionFeePaid",
+            },
+          },
+          // Contract calls
+          {
+            kind: SubstrateHandlerKind.Call,
+            handler: "handleCall",
+            filter: {
+              module: "contracts",
+              method: "call",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Call,
+            handler: "handleCall",
+            filter: {
+              module: "contracts",
+              method: "instantiateWithCode",
+            },
+          },
         ],
       },
     },

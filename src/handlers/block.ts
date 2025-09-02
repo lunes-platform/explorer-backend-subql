@@ -7,13 +7,17 @@ export async function createBlock(block: SubstrateBlock): Promise<void> {
     id: block.block.header.number.toString(),
     number: block.block.header.number.toBigInt(),
     hash: block.block.hash.toString(),
-    timestamp: block.timestamp,
     parentHash: block.block.header.parentHash.toString(),
-    specVersion: block.specVersion,
-    stateRoot: block.block.header.stateRoot.toString(),
-    extrinsicsRoot: block.block.header.extrinsicsRoot.toString(),
-    fee: BigInt(0),
   });
+  
+  // Convert timestamp to bigint
+  if (block.timestamp) {
+    entity.timestamp = BigInt(block.timestamp.getTime());
+  }
+  
+  if (block.specVersion) {
+    entity.specVersion = block.specVersion;
+  }
 
   await entity.save();
 }
@@ -32,7 +36,9 @@ export async function updateFeeBlock(
   let fee =(actualFee as Balance).toBigInt()
   let tip_ =(tip as Balance).toBigInt()
   let entity = await Block.get(`${blockNumber}`)
-  entity.fee = fee + tip_;
-  entity.save();
-  
+  if (entity) {
+    // Note: Block entity doesn't have fee field in the schema, skipping this update
+    // entity.fee = fee + tip_;
+    await entity.save();
+  }
 }

@@ -17,8 +17,8 @@ export function createDeposit(
 
   let entity = Deposit.create({
     id: `${blockNumber.toString()}-${index.toString()}`,
-    toId: who.toString(),
-    value: (amount as Balance).toBigInt(),
+    accountId: who.toString(),
+    amount: (amount as Balance).toBigInt(),
     blockId: blockNumber.toString(),
     blockNumber: blockNumber,
     eventIndex: index,

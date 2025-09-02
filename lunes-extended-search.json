@@ -1,0 +1,425 @@
+{
+  "timestamp": "2025-09-02T00:30:37.464Z",
+  "blockRange": "7124886-7134886",
+  "searchMethod": "extended",
+  "totalAddressesFound": 0,
+  "validContracts": 9,
+  "invalidAddresses": 0,
+  "totalEvents": 213,
+  "contracts": [
+    "5FvVZvbGau6Ec7d8qPCdesbBp8JdUFfzR6frko1QUG5RCnjf",
+    "5HMbbcEXJTY7ek4UrhNYuKyjP4zQKfqBfhCMVujxq7rBz8nx",
+    "5EJNfbBhBFws7n2EVykQfigK3U2XjkE6kd27NnPFN1rYseNQ",
+    "5DfVHWSb2w7x1qaALsmUbrRcgfQ3MqJnNgD2mKXq3aKVGp7W",
+    "5FNPC1CB4kZpoVYjbj9Pv82xZg6WGDDSaHoH9nppvtamNpar",
+    "5Ebt6yiZEKYFwRxGgBU8wyHg7b2X1e19wvfcn7F9SbH8QXTh",
+    "5Gx2WbBHnfMEFnpqQcmyGZ6Z9WY6LZqQJ9CUtoxZUELtjKAf",
+    "5CNUWeLmycyEoGmsMZdbgbTq5tmFkfDQKTaj2jV9zcaSyFds",
+    "5D6XpyPLmy1zP2vFNwysdYpCWTqk4z4s7Yw7V2iJGry6r8ZW"
+  ],
+  "eventSummary": {
+    "system.ExtrinsicSuccess": 213
+  },
+  "sampleEvents": [
+    {
+      "block": 7124886,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7124886,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":4837500512,\"proofSize\":21602},\"class\":\"Operational\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7124936,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7124986,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125036,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125086,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125136,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125186,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125236,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125286,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125336,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125386,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125436,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125486,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125536,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125586,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125636,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125686,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125736,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125786,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125786,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":4837500512,\"proofSize\":21602},\"class\":\"Operational\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125836,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125886,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125936,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7125986,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126036,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126086,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126136,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126186,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126236,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126286,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126336,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126386,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126436,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126486,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126536,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126586,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126636,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126686,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126686,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":4837500512,\"proofSize\":21602},\"class\":\"Operational\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126736,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126786,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126836,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126886,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126936,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7126986,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7127036,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7127086,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7127136,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    },
+    {
+      "block": 7127186,
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        "{\"weight\":{\"refTime\":259098000,\"proofSize\":1006},\"class\":\"Mandatory\",\"paysFee\":\"Yes\"}"
+      ]
+    }
+  ]
+}
