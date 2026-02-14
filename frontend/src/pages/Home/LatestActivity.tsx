@@ -4,6 +4,22 @@ import Card from '../../components/common/Card';
 import classes from './Home.module.css';
 import { useRecentBlocks, useRecentTransfers } from '../../hooks/useChainData';
 
+type DataMetaProps = {
+    loading: boolean;
+    updatedAt: string | null;
+};
+
+const DataMeta = ({ loading, updatedAt }: DataMetaProps) => {
+    if (loading) return null;
+
+    return (
+        <div className={classes.statMeta}>
+            <span className={classes.sourceBadge}>RPC</span>
+            <span className={classes.freshnessText}>{updatedAt ? `Updated ${updatedAt}` : 'Updated now'}</span>
+        </div>
+    );
+};
+
 function timeAgo(ts: number): string {
     const diff = Math.floor((Date.now() - ts) / 1000);
     if (diff < 60) return `${diff}s ago`;
@@ -20,6 +36,8 @@ function shortAddr(addr: string): string {
 const LatestActivity = () => {
     const { data: blocks, loading: blocksLoading } = useRecentBlocks(8);
     const { data: transfers, loading: transfersLoading } = useRecentTransfers(8);
+    const blocksUpdatedAt = !blocksLoading && blocks ? new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : null;
+    const transfersUpdatedAt = !transfersLoading && transfers ? new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : null;
 
     return (
         <div className={classes.latestGrid}>
@@ -27,7 +45,7 @@ const LatestActivity = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Box size={20} /> Latest Blocks
                 </div>
-            }>
+            } action={<DataMeta loading={blocksLoading} updatedAt={blocksUpdatedAt} />}>
                 <div className={classes.listContainer}>
                     {blocksLoading && (
                         <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
@@ -66,7 +84,7 @@ const LatestActivity = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Activity size={20} /> Recent Transfers
                 </div>
-            }>
+            } action={<DataMeta loading={transfersLoading} updatedAt={transfersUpdatedAt} />}>
                 <div className={classes.listContainer}>
                     {transfersLoading && (
                         <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>

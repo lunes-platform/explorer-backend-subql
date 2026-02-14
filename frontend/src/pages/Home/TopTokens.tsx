@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Loader2, Coins, FolderOpen } from 'lucide-react';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
@@ -23,14 +23,28 @@ const TopTokens: React.FC = () => {
 
     const loading = priceLoading || assetsLoading || statsLoading;
     const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
+    const assetsUpdatedAt = useMemo(() => {
+        if (!assets && !chainStats) return null;
+        return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }, [assets, chainStats]);
 
     return (
         <div className={classes.topTokensSection}>
             <div className={classes.sectionHeader}>
-                <h2 className={classes.sectionTitle}>
-                    <Coins size={22} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                    Tokens & Assets on Lunes
-                </h2>
+                <div>
+                    <h2 className={classes.sectionTitle}>
+                        <Coins size={22} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                        Tokens & Assets on Lunes
+                    </h2>
+                    {!loading && (
+                        <div className={classes.statMeta}>
+                            <span className={classes.sourceBadge}>RPC + API</span>
+                            <span className={classes.freshnessText}>
+                                {assetsUpdatedAt ? `Updated ${assetsUpdatedAt}` : 'Updated now'}
+                            </span>
+                        </div>
+                    )}
+                </div>
                 <Link to="/assets" className={classes.viewAllLink}>
                     Ver Tudo <ArrowRight size={16} />
                 </Link>

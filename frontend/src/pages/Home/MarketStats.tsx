@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TrendingUp, TrendingDown, Activity, Box, Shield, Layers, Code2 } from 'lucide-react';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
@@ -18,9 +18,11 @@ interface StatProps {
     isPositive?: boolean;
     loading?: boolean;
     icon?: React.ReactNode;
+    source?: 'RPC' | 'API' | 'STATIC';
+    freshness?: string;
 }
 
-const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon, loading }) => (
+const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon, loading, source, freshness }) => (
     <div className={classes.statCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className={classes.statLabel}>{label}</span>
@@ -35,12 +37,23 @@ const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon,
                 {change}
             </div>
         )}
+
+        {(source || freshness) && !loading && (
+            <div className={classes.statMeta}>
+                {source && <span className={classes.sourceBadge}>{source}</span>}
+                {freshness && <span className={classes.freshnessText}>{freshness}</span>}
+            </div>
+        )}
     </div>
 );
 
 const MarketStats: React.FC = () => {
     const { price, change24h, loading: priceLoading } = useLunesPrice();
     const { data: chainStats, loading: chainLoading } = useDashboardStats();
+    const chainUpdatedAt = useMemo(() => {
+        if (!chainStats) return null;
+        return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }, [chainStats]);
 
     const latestBlock = chainStats?.latestBlock || 0;
     const totalAssets = chainStats?.totalAssets || 0;
@@ -69,12 +82,16 @@ const MarketStats: React.FC = () => {
                     value={marketCap}
                     loading={priceLoading || chainLoading}
                     icon={<Activity size={20} />}
+                    source="RPC"
+                    freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
                 />
                 <StatCard
                     label="Latest Block"
                     value={`#${latestBlock.toLocaleString()}`}
                     loading={chainLoading}
                     icon={<Box size={20} />}
+                    source="RPC"
+                    freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
                 />
                 <StatCard
                     label="Current Era"
@@ -83,6 +100,8 @@ const MarketStats: React.FC = () => {
                     isPositive={true}
                     loading={chainLoading}
                     icon={<Shield size={20} />}
+                    source="RPC"
+                    freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
                 />
                 <StatCard
                     label="Initial Supply"
@@ -96,6 +115,8 @@ const MarketStats: React.FC = () => {
                     isPositive={true}
                     loading={chainLoading}
                     icon={<LunesLogo size={20} />}
+                    source="RPC"
+                    freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
                 />
                 <StatCard
                     label="Burn Target"
@@ -110,18 +131,24 @@ const MarketStats: React.FC = () => {
                     value={totalAssets.toLocaleString()}
                     loading={chainLoading}
                     icon={<Layers size={20} />}
+                    source="RPC"
+                    freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
                 />
                 <StatCard
                     label="NFT Collections"
                     value={totalNftCollections.toLocaleString()}
                     loading={chainLoading}
                     icon={<Box size={20} />}
+                    source="RPC"
+                    freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
                 />
                 <StatCard
                     label="Smart Contracts"
                     value={totalContracts.toLocaleString()}
                     loading={chainLoading}
                     icon={<Code2 size={20} />}
+                    source="RPC"
+                    freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
                 />
             </div>
         </div>

@@ -66,6 +66,31 @@
     gap: 4px;
 }
 
+.statMeta {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.sourceBadge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-brand-300);
+    border: 1px solid rgba(108, 56, 255, 0.45);
+    background: rgba(108, 56, 255, 0.12);
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.freshnessText {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
 .positive {
     color: var(--color-success);
 }
