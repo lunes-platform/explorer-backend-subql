@@ -13,6 +13,7 @@ import {
 import { useRichList } from '../../hooks/useChainData';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { LunesLogo } from '../../components/common/LunesLogo';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import type { RichListAccount } from '../../services/chain';
 import styles from './RichList.module.css';
 
@@ -107,6 +108,7 @@ const RichList: React.FC = () => {
         <p className={styles.subtitle}>
           Top wallets by balance on the Lunes blockchain — {totalAccounts.toLocaleString()} accounts with balance
         </p>
+        <DataSourceBadge source="RPC" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
       </div>
 
       {/* Summary stats */}

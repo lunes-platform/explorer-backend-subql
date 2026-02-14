@@ -6,6 +6,7 @@ import { SkeletonRows } from '../../components/common/Skeleton';
 import { Pagination } from '../../components/common/Pagination';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import EmptyState from '../../components/common/EmptyState';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import type { Extrinsic, GetExtrinsicsResponse } from '../../types';
 import classes from '../Blocks/Blocks.module.css';
 
@@ -25,10 +26,11 @@ const Extrinsics: React.FC = () => {
     return (
         <div className={classes.container}>
             <h1 className={classes.title}>Extrinsics (Transações)</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 8 }}>
                 {totalCount > 0 ? `${totalCount.toLocaleString()} extrinsics indexed` : 'Loading indexed data...'}
                 {' · '}Persistent data from SubQuery indexer
             </p>
+            <DataSourceBadge source="INDEXER" updatedAt={!loading && extrinsics.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
 
             <div className={classes.card}>
                 <div className={classes.tableContainer}>

@@ -11,6 +11,7 @@ import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import EmptyState from '../../components/common/EmptyState';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import styles from './Assets.module.css';
 
 function formatSupply(supply: number, decimals: number = 2): string {
@@ -49,6 +50,7 @@ const Assets: React.FC = () => {
         <p className={styles.subtitle}>
           All native and pallet-assets registered on the Lunes blockchain (real-time RPC data)
         </p>
+        <DataSourceBadge source="RPC" updatedAt={!loading && assets ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
       </div>
 
       {/* Stats */}

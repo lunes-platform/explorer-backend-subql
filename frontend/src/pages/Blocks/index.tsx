@@ -11,6 +11,7 @@ import { useBlocksPage } from '../../hooks/useChainData';
 import { SkeletonRows } from '../../components/common/Skeleton';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import EmptyState from '../../components/common/EmptyState';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import classes from './Blocks.module.css';
 
 const PAGE_SIZE = 25;
@@ -42,6 +43,7 @@ const Blocks: React.FC = () => {
               Latest block: #{latestBlock.toLocaleString()} — Showing page {page + 1}
             </p>
           )}
+          <DataSourceBadge source="RPC" updatedAt={!loading && blocks.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <StatPill icon={<Box size={14} />} label="Latest" value={`#${latestBlock.toLocaleString()}`} />

@@ -19,6 +19,7 @@ import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { StakingModal } from '../../components/staking/StakingModal';
 import { useStakingOverview, useAccountStaking } from '../../hooks/useChainData';
 import { useWalletAuth } from '../../context/WalletAuthContext';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import type { ValidatorInfo } from '../../services/chain';
 import styles from './Staking.module.css';
 
@@ -70,6 +71,7 @@ const Staking: React.FC = () => {
             Earn rewards by nominating active validators on the Lunes network.
             Bond your tokens, choose a validator, and earn staking rewards every era.
           </p>
+          <DataSourceBadge source="RPC" updatedAt={!loading && stakingData ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
           <div className={styles.heroStats}>
             <div className={styles.heroStat}>
               <span className={styles.heroStatValue}>

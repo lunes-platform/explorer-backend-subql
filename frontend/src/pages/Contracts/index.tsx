@@ -4,6 +4,7 @@ import { Code2, Loader2, Copy, ExternalLink, FolderOpen } from 'lucide-react';
 import { useContracts } from '../../hooks/useChainData';
 import { getContractInfo } from '../../data/knownContracts';
 import { getProjectByContract } from '../../data/knownProjects';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import classes from './Contracts.module.css';
 
 function shortAddr(addr: string): string {
@@ -22,6 +23,7 @@ const Contracts: React.FC = () => {
                      contracts ? `${contracts.length} Ink! smart contracts deployed on Lunes Network` :
                      'Ink! smart contracts deployed on Lunes.'}
                 </p>
+                <DataSourceBadge source="RPC" updatedAt={!loading && contracts ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
             </div>
 
             <div className={classes.tableContainer}>

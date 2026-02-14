@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Image, Loader2 } from 'lucide-react';
 import { useNftCollections } from '../../hooks/useChainData';
 import EmptyState from '../../components/common/EmptyState';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import classes from './NFTs.module.css';
 
 const NFTs: React.FC = () => {
@@ -14,6 +15,7 @@ const NFTs: React.FC = () => {
             <p className={classes.subtitle}>
                 Non-fungible token collections on Lunes — real-time data from pallet-nfts via RPC
             </p>
+            <DataSourceBadge source="RPC" updatedAt={!loading && collections ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
 
             {loading ? (
                 <div style={{ textAlign: 'center', padding: 48 }}>
