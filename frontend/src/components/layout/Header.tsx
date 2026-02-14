@@ -25,6 +25,19 @@ const Header: React.FC = () => {
 
     const totalTransfers = statsData?.transfers?.totalCount || 0;
     const currentSupply = chainStats?.totalIssuanceFormatted || 0;
+    const rpcLatestBlock = chainStats?.latestBlock || 0;
+    const indexerLatestBlock = statsData?.blocks?.nodes?.[0]?.number || 0;
+    const indexerLag = rpcLatestBlock > 0 && indexerLatestBlock > 0
+        ? Math.max(rpcLatestBlock - indexerLatestBlock, 0)
+        : null;
+    const indexerLagStatus =
+        indexerLag === null
+            ? { label: 'Syncing...', color: 'var(--text-muted)' }
+            : indexerLag <= 5
+                ? { label: `Healthy (+${indexerLag})`, color: 'var(--color-success)' }
+                : indexerLag <= 50
+                    ? { label: `Delay (+${indexerLag})`, color: 'var(--color-warning)' }
+                    : { label: `Lagging (+${indexerLag})`, color: 'var(--color-critical)' };
     const marketCap = price > 0 && currentSupply > 0
         ? (price * currentSupply).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
         : '—';
@@ -52,6 +65,9 @@ const Header: React.FC = () => {
                     </div>
                     <div className={classes.tickerItem}>
                         Transactions: <span>{totalTransfers.toLocaleString()}</span>
+                    </div>
+                    <div className={classes.tickerItem}>
+                        Indexer Lag: <span style={{ color: indexerLagStatus.color }}>{indexerLagStatus.label}</span>
                     </div>
                     <div className={classes.tickerItem} style={{ marginLeft: 'auto' }}>
                         Network: <span style={{ color: 'var(--color-success)' }}>● Mainnet Harmony</span>
