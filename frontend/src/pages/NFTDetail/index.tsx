@@ -22,6 +22,7 @@ import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Skeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import type { NFTCollection, GetProjectResponse } from '../../types';
 import styles from './NFTDetail.module.css';
 
@@ -112,6 +113,7 @@ const NFTDetail: React.FC = () => {
             <h1 className={styles.collectionName}>{collection.name || 'Unnamed Collection'}</h1>
             <span className={styles.collectionSymbol}>{collection.symbol || '???'}</span>
           </div>
+          <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
           <div className={styles.collectionStats}>
             <div className={styles.stat}>
               <Layers size={16} />

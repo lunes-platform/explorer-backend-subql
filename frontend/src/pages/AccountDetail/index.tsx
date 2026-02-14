@@ -22,6 +22,7 @@ import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Skeleton, CardSkeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import { useAccountInfo, useAccountStaking, useAccountTransfers } from '../../hooks/useChainData';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { 
@@ -207,6 +208,7 @@ const AccountDetail: React.FC = () => {
           <Wallet size={24} />
           Account Details
         </h1>
+        <DataSourceBadge source="RPC + API" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
       </div>
 
       {/* Address Card */}

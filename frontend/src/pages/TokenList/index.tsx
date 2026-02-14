@@ -5,6 +5,7 @@ import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { formatAbbreviatedNumber } from '../../data/tokenomics';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import classes from './TokenList.module.css';
 
 function formatSupply(supply: number): string {
@@ -28,6 +29,7 @@ const TokenList: React.FC = () => {
                 <div>
                     <h1 className={classes.title}>Tokens & Assets</h1>
                     <p className={classes.subtitle}>All tokens and assets on Lunes Blockchain — real-time data from RPC.</p>
+                    <DataSourceBadge source="RPC + API" updatedAt={!(priceLoading || assetsLoading || statsLoading) ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={priceLoading && assetsLoading && statsLoading} />
                 </div>
             </div>
 

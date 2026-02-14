@@ -16,6 +16,7 @@ import {
 import { useBlockDetail } from '../../hooks/useChainData';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import Card from '../../components/common/Card';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import { Skeleton } from '../../components/common/Skeleton';
 
 const BlockDetail: React.FC = () => {
@@ -83,6 +84,7 @@ const BlockDetail: React.FC = () => {
           }}>
             Block #{block.number.toLocaleString()}
           </h1>
+          <DataSourceBadge source="RPC" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
         </div>
 
         <div style={{ display: 'flex', gap: 6 }}>

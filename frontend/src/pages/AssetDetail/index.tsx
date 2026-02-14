@@ -24,6 +24,7 @@ import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Skeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 import type { GetAssetDetailResponse, GetProjectResponse, Asset } from '../../types';
 import styles from './AssetDetail.module.css';
 
@@ -145,6 +146,7 @@ const AssetDetail: React.FC = () => {
             )}
           </div>
           <span className={styles.assetSymbol}>{asset.symbol || '???'}</span>
+          <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
           <span 
             className={styles.assetType}
             style={{ 

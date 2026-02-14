@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import { GET_EXTRINSIC_DETAIL } from '../../services/graphql/queries';
 import Card from '../../components/common/Card';
+import DataSourceBadge from '../../components/common/DataSourceBadge';
 
 const TxDetail = () => {
     const { id } = useParams();
@@ -18,9 +19,12 @@ const TxDetail = () => {
 
     return (
         <div>
-            <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h2 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 Transaction <span style={{ color: 'var(--text-secondary)', fontSize: '1.25rem' }}>Details</span>
             </h2>
+            <div style={{ marginBottom: '1.5rem' }}>
+                <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+            </div>
 
             <Card title="Overview">
                 <div style={{ display: 'grid', gap: '1rem' }}>
