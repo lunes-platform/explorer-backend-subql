@@ -41,7 +41,7 @@ const project: SubstrateProject = {
   dataSources: [
     {
       kind: SubstrateDatasourceKind.Runtime,
-      startBlock: 1,
+      startBlock: 9400000,
       mapping: {
         file: "./dist/index.js",
         handlers: [
@@ -116,12 +116,12 @@ const project: SubstrateProject = {
               method: "Terminated",
             },
           },
-          // NFT/Uniques events (if available)
+          // NFT events (nfts pallet)
           {
             kind: SubstrateHandlerKind.Event,
             handler: "handleEvent",
             filter: {
-              module: "uniques",
+              module: "nfts",
               method: "Transferred",
             },
           },
@@ -129,8 +129,74 @@ const project: SubstrateProject = {
             kind: SubstrateHandlerKind.Event,
             handler: "handleEvent",
             filter: {
-              module: "uniques",
+              module: "nfts",
               method: "Issued",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "nfts",
+              method: "Created",
+            },
+          },
+          // Assets metadata/destroyed
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "assets",
+              method: "MetadataSet",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "assets",
+              method: "Destroyed",
+            },
+          },
+          // Staking events
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "staking",
+              method: "Bonded",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "staking",
+              method: "Unbonded",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "staking",
+              method: "Withdrawn",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "staking",
+              method: "Rewarded",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleEvent",
+            filter: {
+              module: "staking",
+              method: "Slashed",
             },
           },
           // Transaction payment events

@@ -1,0 +1,126 @@
+/* Blocks and Extrinsics List Styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.card {
+    background: var(--color-surface);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.tableContainer {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.table th {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table td {
+    padding: 16px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.table tr:hover td {
+    background: rgba(108, 56, 255, 0.05);
+}
+
+.link {
+    color: var(--color-brand-400);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.link:hover {
+    color: var(--color-brand-300);
+}
+
+.hash {
+    font-family: 'monospace';
+    opacity: 0.8;
+    font-size: 12px;
+}
+
+.statusSuccess {
+    color: var(--color-success);
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(0, 255, 127, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.statusError {
+    color: var(--color-critical);
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255, 59, 48, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.method {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'monospace';
+}
+
+.pagination {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pageButton {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.pageButton:hover:not(:disabled) {
+    background: var(--color-brand-600);
+}
+
+.pageButton:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}

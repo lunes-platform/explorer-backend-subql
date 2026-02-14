@@ -1,0 +1,111 @@
+.container {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.container:focus-within {
+    border-color: var(--color-brand-800);
+    box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.6), 0px 0px 0px 4px rgba(108, 56, 255, 0.3);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-family-body);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.balance {
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.inputRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 56px;
+}
+
+.input {
+    flex: 1;
+    background: none;
+    border: none;
+    font-family: var(--font-family-display);
+    font-weight: 500;
+    font-size: 24px;
+    color: var(--text-primary);
+    width: 100%;
+    outline: none;
+}
+
+.input::placeholder {
+    color: var(--text-muted);
+}
+
+.maxButton {
+    background-color: var(--color-brand-800);
+    border-radius: 8px;
+    padding: 4px 8px;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.maxButton:hover {
+    opacity: 0.9;
+}
+
+.tokenButton {
+    background-color: #2A2A2C;
+    /* Surface hover/lighter */
+    border-radius: 16px;
+    padding: 8px 12px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    min-width: 120px;
+    justify-content: space-between;
+    color: var(--text-primary);
+}
+
+.tokenButton:hover {
+    background-color: var(--bg-surface-hover);
+}
+
+.tokenButton.selected {
+    background-color: var(--bg-surface-hover);
+    /* Or brand color if design implies */
+}
+
+.tokenInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.chevron {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+}

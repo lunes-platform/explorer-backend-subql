@@ -1,0 +1,105 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal {
+    background-color: var(--bg-surface);
+    width: 320px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-default);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-family: var(--font-family-display);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.closeButton:hover {
+    color: var(--text-primary);
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sectionTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.optionsRow {
+    display: flex;
+    gap: 8px;
+}
+
+.optionButton {
+    flex: 1;
+    background-color: var(--bg-surface-hover);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 8px;
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.optionButton:hover {
+    border-color: var(--color-brand-800);
+}
+
+.optionButton.selected {
+    background-color: var(--color-brand-800);
+    color: white;
+    border-color: var(--color-brand-800);
+}
+
+.inputInput {
+    flex: 1;
+    background-color: #1A1A1A;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    color: var(--text-primary);
+    text-align: right;
+    outline: none;
+}
+
+.inputInput:focus {
+    border-color: var(--color-brand-800);
+}

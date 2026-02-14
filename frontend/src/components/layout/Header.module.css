@@ -1,0 +1,237 @@
+/* Header.module.css */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: rgba(12, 12, 14, 0.7);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.topBar {
+    height: 32px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.tickerContainer {
+    display: flex;
+    gap: 20px;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    width: 100%;
+}
+
+.tickerItem span {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.tickerPositive {
+    color: var(--color-success) !important;
+}
+
+.tickerNegative {
+    color: var(--color-critical) !important;
+}
+
+.content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    flex-wrap: nowrap;
+    gap: 1rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 1;
+}
+
+.navLink {
+    font-family: var(--font-family-body);
+    font-weight: 500;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    padding: 6px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.navLink:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.navLink.active {
+    color: var(--text-primary);
+}
+
+/* Dropdown container */
+.dropdown {
+    position: relative;
+}
+
+.dropdownTrigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    outline: none;
+}
+
+.dropdownTrigger svg {
+    opacity: 0.5;
+    transition: transform 0.2s ease;
+}
+
+.dropdown:hover .dropdownTrigger svg {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+.dropdown:hover .dropdownTrigger {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Dropdown panel */
+.dropdownMenu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 160px;
+    background: rgba(18, 18, 22, 0.95);
+    backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 6px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(4px);
+    transition: all 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    z-index: 100;
+}
+
+.dropdown:hover .dropdownMenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.dropdownItem {
+    display: block;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.dropdownItem:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.dropdownItem.active {
+    color: var(--color-brand-400);
+    background: rgba(108, 56, 255, 0.08);
+}
+
+.search {
+    width: 220px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
+.searchWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.searchLoader {
+    position: absolute;
+    right: 12px;
+    color: var(--color-brand-400);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.searchInput {
+    width: 100%;
+    height: 40px;
+    padding: 0 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 13px;
+    transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+    outline: none;
+}
+
+.searchInput:focus {
+    border-color: var(--color-brand-600);
+    box-shadow: 0 0 0 2px rgba(108, 56, 255, 0.2);
+}
+
+/* Actions container for search + wallet button */
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}

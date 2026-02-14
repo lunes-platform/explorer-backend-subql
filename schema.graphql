@@ -284,3 +284,82 @@ type DailyStats @entity {
   psp37Transfers: Int!
   newContracts: Int!
 }
+
+# Staking
+type StakingPosition @entity {
+  id: ID! # Account address
+  account: Account!
+  stakedAmount: BigInt!
+  rewards: BigInt!
+  apy: Float # Annual Percentage Yield
+  lastClaimedAt: BigInt
+  stakedAt: BigInt!
+  lockPeriod: Int # Lock period in days
+  status: String! # "Active", "Unbonding", "Withdrawable"
+  unbondingAmount: BigInt
+  unbondingEnd: BigInt
+}
+
+type StakingReward @entity {
+  id: ID! # Block-EventIndex
+  account: Account!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  type: String! # "Era", "Bonus", "Referral"
+}
+
+type StakingPool @entity {
+  id: ID! # Pool ID
+  name: String!
+  totalStaked: BigInt!
+  totalRewards: BigInt!
+  apy: Float!
+  lockPeriod: Int # Lock period in days
+  minStake: BigInt!
+  maxStake: BigInt
+  participantCount: Int!
+  createdAt: BigInt!
+  status: String! # "Active", "Paused", "Closed"
+}
+
+# Project registration for assets/tokens/NFTs
+type Project @entity {
+  id: ID! # Asset contract address or collection ID
+  name: String!
+  description: String
+  category: String! # "Token", "NFT", "DeFi", "Gaming", "Infrastructure", etc.
+  website: String
+  whitepaper: String
+  github: String
+  twitter: String
+  discord: String
+  telegram: String
+  logoUrl: String
+  bannerUrl: String
+  createdAt: BigInt!
+  updatedAt: BigInt
+  verified: Boolean!
+  verifiedAt: BigInt
+  createdBy: String! # Creator wallet address
+}
+
+type ProjectTeamMember @entity {
+  id: ID! # ProjectId-MemberIndex
+  projectId: String!
+  name: String!
+  role: String!
+  linkedin: String
+  twitter: String
+  avatarUrl: String
+}
+
+type ProjectRoadmap @entity {
+  id: ID! # ProjectId-ItemIndex
+  projectId: String!
+  quarter: String! # Q1 2024, Q2 2024, etc.
+  title: String!
+  description: String
+  status: String! # "Completed", "In Progress", "Upcoming"
+  completedAt: BigInt
+}

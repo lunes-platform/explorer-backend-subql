@@ -20,6 +20,7 @@ import {
   handleContractEvent,
   handleContractInstantiated,
   detectContractStandard,
+  handleStakingEvent,
 } from "../handlers";
 import { Event, Transfer } from "../types";
 import { SubstrateEvent, SubstrateExtrinsic } from "@subql/types";

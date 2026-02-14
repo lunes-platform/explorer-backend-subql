@@ -1,0 +1,139 @@
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 100px);
+    /* Adjust based on header/footer */
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background blob effect */
+.blob {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(108, 56, 255, 0.15) 0%, rgba(26, 26, 26, 0) 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(80px);
+    /* Enhance the blur */
+}
+
+.swapCard {
+    background-color: rgba(26, 26, 26, 0.6);
+    /* Semi-transparent base */
+    backdrop-filter: blur(40px);
+    /* Glassmorphism */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    width: 480px;
+    max-width: 100%;
+    z-index: 1;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 0 8px;
+}
+
+.title {
+    font-family: var(--font-family-display);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.settingsButton {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+    padding: 8px;
+    border-radius: 50%;
+}
+
+.settingsButton:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+    transform: rotate(45deg);
+}
+
+.inputsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+}
+
+.switchButton {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--bg-surface);
+    border: 4px solid rgba(26, 26, 26, 0.6);
+    /* Match card bg for "cutout" effect */
+    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    z-index: 2;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.switchButton:hover {
+    background-color: var(--bg-surface-hover);
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.swapButton {
+    margin-top: 16px;
+    background: linear-gradient(90deg, #6C38FF 0%, #5228DB 100%);
+    border: none;
+    border-radius: var(--radius-lg);
+    height: 56px;
+    color: white;
+    font-family: var(--font-family-display);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(108, 56, 255, 0.3);
+}
+
+.swapButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(108, 56, 255, 0.4);
+    filter: brightness(1.1);
+}
+
+.swapButton:active {
+    transform: translateY(0);
+}
+
+.infoRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 8px;
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
