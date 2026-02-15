@@ -6,6 +6,7 @@ import { LunesLogo } from '../../components/common/LunesLogo';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { formatAbbreviatedNumber } from '../../data/tokenomics';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import classes from './TokenList.module.css';
 
 function formatSupply(supply: number): string {
@@ -20,6 +21,8 @@ const TokenList: React.FC = () => {
     const { price, change24h, volume24h, loading: priceLoading } = useLunesPrice();
     const { data: assets, loading: assetsLoading } = useAssets();
     const { data: chainStats, loading: statsLoading } = useDashboardStats();
+    const health = useHealthStatus();
+    const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
     const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
 
@@ -29,7 +32,7 @@ const TokenList: React.FC = () => {
                 <div>
                     <h1 className={classes.title}>Tokens & Assets</h1>
                     <p className={classes.subtitle}>All tokens and assets on Lunes Blockchain — real-time data from RPC.</p>
-                    <DataSourceBadge source="RPC + API" updatedAt={!(priceLoading || assetsLoading || statsLoading) ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={priceLoading && assetsLoading && statsLoading} />
+                    <DataSourceBadge source="RPC + API" updatedAt={!(priceLoading || assetsLoading || statsLoading) ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={priceLoading && assetsLoading && statsLoading} health={rpcHealth} />
                 </div>
             </div>
 

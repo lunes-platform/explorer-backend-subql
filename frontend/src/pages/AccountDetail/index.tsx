@@ -23,6 +23,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { Skeleton, CardSkeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { useAccountInfo, useAccountStaking, useAccountTransfers } from '../../hooks/useChainData';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { 
@@ -55,6 +56,7 @@ function timeAgo(ts: number): string {
 const AccountDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const health = useHealthStatus();
 
   // Real-time data from blockchain RPC
   const { data: chainAccount, loading: chainLoading, error: chainError } = useAccountInfo(id || null);
@@ -208,7 +210,7 @@ const AccountDetail: React.FC = () => {
           <Wallet size={24} />
           Account Details
         </h1>
-        <DataSourceBadge source="RPC + API" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <DataSourceBadge source="RPC + API" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={health.rpc.status === 'connected' ? 'healthy' : health.rpc.status === 'connecting' ? 'delayed' : 'disconnected'} />
       </div>
 
       {/* Address Card */}

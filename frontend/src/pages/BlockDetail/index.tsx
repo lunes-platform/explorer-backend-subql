@@ -17,12 +17,15 @@ import { useBlockDetail } from '../../hooks/useChainData';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import Card from '../../components/common/Card';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { Skeleton } from '../../components/common/Skeleton';
 
 const BlockDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: block, loading, error } = useBlockDetail(id);
+  const health = useHealthStatus();
+  const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
   if (loading) {
     return (
@@ -84,7 +87,7 @@ const BlockDetail: React.FC = () => {
           }}>
             Block #{block.number.toLocaleString()}
           </h1>
-          <DataSourceBadge source="RPC" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+          <DataSourceBadge source="RPC" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={rpcHealth} />
         </div>
 
         <div style={{ display: 'flex', gap: 6 }}>
