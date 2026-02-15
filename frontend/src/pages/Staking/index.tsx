@@ -20,6 +20,7 @@ import { StakingModal } from '../../components/staking/StakingModal';
 import { useStakingOverview, useAccountStaking } from '../../hooks/useChainData';
 import { useWalletAuth } from '../../context/WalletAuthContext';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import type { ValidatorInfo } from '../../services/chain';
 import styles from './Staking.module.css';
 
@@ -37,6 +38,8 @@ function formatStake(planck: string): string {
 
 const Staking: React.FC = () => {
   const { data: stakingData, loading, error } = useStakingOverview();
+  const health = useHealthStatus();
+  const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
   const { isConnected, wallet } = useWalletAuth();
   const { data: myStaking, loading: myStakingLoading } = useAccountStaking(
     isConnected ? wallet?.account?.address || null : null
@@ -71,7 +74,7 @@ const Staking: React.FC = () => {
             Earn rewards by nominating active validators on the Lunes network.
             Bond your tokens, choose a validator, and earn staking rewards every era.
           </p>
-          <DataSourceBadge source="RPC" updatedAt={!loading && stakingData ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
+          <DataSourceBadge source="RPC" updatedAt={!loading && stakingData ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
           <div className={styles.heroStats}>
             <div className={styles.heroStat}>
               <span className={styles.heroStatValue}>

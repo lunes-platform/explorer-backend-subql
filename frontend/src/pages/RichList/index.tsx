@@ -14,6 +14,7 @@ import { useRichList } from '../../hooks/useChainData';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import type { RichListAccount } from '../../services/chain';
 import styles from './RichList.module.css';
 
@@ -33,6 +34,7 @@ function formatBalance(val: number): string {
 
 const RichList: React.FC = () => {
   const { data, loading, error, refetch } = useRichList();
+  const health = useHealthStatus();
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
 
@@ -108,7 +110,7 @@ const RichList: React.FC = () => {
         <p className={styles.subtitle}>
           Top wallets by balance on the Lunes blockchain — {totalAccounts.toLocaleString()} accounts with balance
         </p>
-        <DataSourceBadge source="RPC" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <DataSourceBadge source="RPC" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={health.rpc.status === 'connected' ? 'healthy' : health.rpc.status === 'connecting' ? 'delayed' : 'disconnected'} />
       </div>
 
       {/* Summary stats */}

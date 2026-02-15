@@ -5,6 +5,7 @@ import { useContracts } from '../../hooks/useChainData';
 import { getContractInfo } from '../../data/knownContracts';
 import { getProjectByContract } from '../../data/knownProjects';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import classes from './Contracts.module.css';
 
 function shortAddr(addr: string): string {
@@ -13,6 +14,8 @@ function shortAddr(addr: string): string {
 
 const Contracts: React.FC = () => {
     const { data: contracts, loading, error } = useContracts();
+    const health = useHealthStatus();
+    const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
     return (
         <div className={classes.pageContainer}>
@@ -23,7 +26,7 @@ const Contracts: React.FC = () => {
                      contracts ? `${contracts.length} Ink! smart contracts deployed on Lunes Network` :
                      'Ink! smart contracts deployed on Lunes.'}
                 </p>
-                <DataSourceBadge source="RPC" updatedAt={!loading && contracts ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
+                <DataSourceBadge source="RPC" updatedAt={!loading && contracts ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
             </div>
 
             <div className={classes.tableContainer}>

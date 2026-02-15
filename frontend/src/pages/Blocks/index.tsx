@@ -12,6 +12,7 @@ import { SkeletonRows } from '../../components/common/Skeleton';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import classes from './Blocks.module.css';
 
 const PAGE_SIZE = 25;
@@ -28,6 +29,8 @@ function timeAgo(ts: number): string {
 const Blocks: React.FC = () => {
   const [page, setPage] = useState(0);
   const { data, loading, error, refetch } = useBlocksPage(page, PAGE_SIZE);
+  const health = useHealthStatus();
+  const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
   const blocks = data?.blocks || [];
   const latestBlock = data?.latestBlock || 0;
@@ -43,7 +46,7 @@ const Blocks: React.FC = () => {
               Latest block: #{latestBlock.toLocaleString()} — Showing page {page + 1}
             </p>
           )}
-          <DataSourceBadge source="RPC" updatedAt={!loading && blocks.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
+          <DataSourceBadge source="RPC" updatedAt={!loading && blocks.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <StatPill icon={<Box size={14} />} label="Latest" value={`#${latestBlock.toLocaleString()}`} />

@@ -4,10 +4,13 @@ import { Image, Loader2 } from 'lucide-react';
 import { useNftCollections } from '../../hooks/useChainData';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import classes from './NFTs.module.css';
 
 const NFTs: React.FC = () => {
     const { data: collections, loading, error, refetch } = useNftCollections();
+    const health = useHealthStatus();
+    const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
     return (
         <div className={classes.pageContainer}>
@@ -15,7 +18,7 @@ const NFTs: React.FC = () => {
             <p className={classes.subtitle}>
                 Non-fungible token collections on Lunes — real-time data from pallet-nfts via RPC
             </p>
-            <DataSourceBadge source="RPC" updatedAt={!loading && collections ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
+            <DataSourceBadge source="RPC" updatedAt={!loading && collections ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
 
             {loading ? (
                 <div style={{ textAlign: 'center', padding: 48 }}>

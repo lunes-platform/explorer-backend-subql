@@ -12,6 +12,7 @@ import { LunesLogo } from '../../components/common/LunesLogo';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import styles from './Assets.module.css';
 
 function formatSupply(supply: number, decimals: number = 2): string {
@@ -26,6 +27,8 @@ const Assets: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: assets, loading, error, refetch } = useAssets();
   const { data: chainStats, loading: statsLoading } = useDashboardStats();
+  const health = useHealthStatus();
+  const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
   const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
 
@@ -50,7 +53,7 @@ const Assets: React.FC = () => {
         <p className={styles.subtitle}>
           All native and pallet-assets registered on the Lunes blockchain (real-time RPC data)
         </p>
-        <DataSourceBadge source="RPC" updatedAt={!loading && assets ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
+        <DataSourceBadge source="RPC" updatedAt={!loading && assets ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
       </div>
 
       {/* Stats */}
