@@ -8,6 +8,7 @@ import { GET_HOME_STATS } from '../../services/graphql/queries';
 import { useGlobalSearch } from '../../hooks/useGlobalSearch';
 import { WalletButton } from '../wallet/WalletButton';
 import { Search, Loader2, ChevronDown } from 'lucide-react';
+import SearchResults from '../common/SearchResults';
 import { LunesLogo } from '../common/LunesLogo';
 import { LunesWordmark } from '../common/LunesWordmark';
 import type { HomeStats } from '../../types';
@@ -30,7 +31,7 @@ const Header: React.FC = () => {
     const { data: statsData } = useQuery<HomeStats>(GET_HOME_STATS);
     const { data: chainStats } = useDashboardStats();
     const health = useHealthStatus();
-    const { query, setQuery, handleSearch, isSearching } = useGlobalSearch();
+    const { query, setQuery, results, showResults, handleSearch, selectResult, dismissResults, isSearching } = useGlobalSearch();
 
     const totalTransfers = statsData?.transfers?.totalCount || 0;
     const currentSupply = chainStats?.totalIssuanceFormatted || 0;
@@ -129,7 +130,7 @@ const Header: React.FC = () => {
                 </nav>
 
                 <div className={classes.actions} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                    <div className={classes.search}>
+                    <div className={classes.search} style={{ position: 'relative' }}>
                         <div className={classes.searchWrapper}>
                             <Search size={16} className={classes.searchIcon} />
                             <input
@@ -142,6 +143,14 @@ const Header: React.FC = () => {
                             />
                             {isSearching && <Loader2 size={14} className={classes.searchLoader} />}
                         </div>
+                        <SearchResults
+                            results={results}
+                            show={showResults}
+                            isSearching={isSearching}
+                            query={query}
+                            onSelect={selectResult}
+                            onDismiss={dismissResults}
+                        />
                     </div>
                     <div style={{ flexShrink: 0 }}>
                         <WalletButton />

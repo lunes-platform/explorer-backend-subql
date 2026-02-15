@@ -4,10 +4,11 @@ import MarketStats from './MarketStats';
 import TopTokens from './TopTokens';
 import LatestActivity from './LatestActivity';
 import { useGlobalSearch } from '../../hooks/useGlobalSearch';
+import SearchResults from '../../components/common/SearchResults';
 import classes from './Home.module.css';
 
 const Home = () => {
-    const { query, setQuery, handleSearch, isSearching } = useGlobalSearch();
+    const { query, setQuery, results, showResults, handleSearch, selectResult, dismissResults, isSearching } = useGlobalSearch();
 
     return (
         <div className={classes.pageContainer}>
@@ -47,6 +48,14 @@ const Home = () => {
                             }} 
                         />
                     )}
+                    <SearchResults
+                        results={results}
+                        show={showResults}
+                        isSearching={isSearching}
+                        query={query}
+                        onSelect={selectResult}
+                        onDismiss={dismissResults}
+                    />
                 </div>
             </div>
 
