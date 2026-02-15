@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Activity, Box, Shield, Layers, Code2 } from 'lucide-react';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
@@ -11,6 +11,8 @@ import {
     formatAbbreviatedNumber,
 } from '../../data/tokenomics';
 import classes from './Home.module.css';
+import DegradedBanner from '../../components/common/DegradedBanner';
+import { runAllChecks } from '../../utils/sanityChecks';
 
 type HealthLevel = 'healthy' | 'delayed' | 'lagging' | 'disconnected';
 
@@ -76,11 +78,33 @@ const MarketStats: React.FC = () => {
     const currentEra = chainStats?.currentEra || 0;
     const currentSupply = chainStats?.totalIssuanceFormatted || 0;
 
+    const sanity = useMemo(() => {
+        if (!chainStats) return { valid: true, warnings: [] };
+        return runAllChecks({
+            totalIssuanceFormatted: chainStats.totalIssuanceFormatted,
+            chainDecimals: chainStats.tokenDecimals,
+            latestBlock: chainStats.latestBlock,
+        });
+    }, [chainStats]);
+
+    useEffect(() => {
+        if (sanity.warnings.length > 0) {
+            sanity.warnings.forEach(w => console.warn('[SanityCheck]', w));
+        }
+    }, [sanity]);
+
     const marketCap = (price * currentSupply).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
     return (
         <div className={classes.heroSection}>
             <div className={classes.heroBlob} />
+            {!sanity.valid && !chainLoading && (
+                <DegradedBanner
+                    level="warning"
+                    source="RPC Data"
+                    message={sanity.warnings[0]}
+                />
+            )}
             <div className={classes.marketStatsGrid}>
                 <StatCard
                     label="Lunes Price"
