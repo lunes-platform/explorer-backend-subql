@@ -3,6 +3,7 @@ import { useQuery } from '@apollo/client/react';
 import classes from './Header.module.css';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { useDashboardStats } from '../../hooks/useChainData';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { GET_HOME_STATS } from '../../services/graphql/queries';
 import { useGlobalSearch } from '../../hooks/useGlobalSearch';
 import { WalletButton } from '../wallet/WalletButton';
@@ -16,28 +17,35 @@ import {
     formatLunesAmount,
 } from '../../data/tokenomics';
 
+function getIndexerLagStatus(lag: number | null) {
+    if (lag === null) return { label: 'Syncing...', color: 'var(--text-muted)' };
+    if (lag <= 5) return { label: `Healthy (+${lag})`, color: 'var(--color-success)' };
+    if (lag <= 50) return { label: `Delay (+${lag})`, color: 'var(--color-warning)' };
+    return { label: `Lagging (+${lag})`, color: 'var(--color-critical)' };
+}
+
 const Header: React.FC = () => {
     const location = useLocation();
     const { price, change24h } = useLunesPrice();
     const { data: statsData } = useQuery<HomeStats>(GET_HOME_STATS);
     const { data: chainStats } = useDashboardStats();
+    const health = useHealthStatus();
     const { query, setQuery, handleSearch, isSearching } = useGlobalSearch();
 
     const totalTransfers = statsData?.transfers?.totalCount || 0;
     const currentSupply = chainStats?.totalIssuanceFormatted || 0;
-    const rpcLatestBlock = chainStats?.latestBlock || 0;
+    const rpcLatestBlock = health.rpc.latestBlock || chainStats?.latestBlock || 0;
     const indexerLatestBlock = statsData?.blocks?.nodes?.[0]?.number || 0;
     const indexerLag = rpcLatestBlock > 0 && indexerLatestBlock > 0
         ? Math.max(rpcLatestBlock - indexerLatestBlock, 0)
         : null;
-    const indexerLagStatus =
-        indexerLag === null
-            ? { label: 'Syncing...', color: 'var(--text-muted)' }
-            : indexerLag <= 5
-                ? { label: `Healthy (+${indexerLag})`, color: 'var(--color-success)' }
-                : indexerLag <= 50
-                    ? { label: `Delay (+${indexerLag})`, color: 'var(--color-warning)' }
-                    : { label: `Lagging (+${indexerLag})`, color: 'var(--color-critical)' };
+    const indexerLagStatus = getIndexerLagStatus(indexerLag);
+    const rpcStatusLabel = health.rpc.status === 'connected' ? '● Mainnet Harmony'
+        : health.rpc.status === 'connecting' ? '◌ Connecting...'
+        : '○ RPC Offline';
+    const rpcStatusColor = health.rpc.status === 'connected' ? 'var(--color-success)'
+        : health.rpc.status === 'connecting' ? 'var(--color-warning)'
+        : 'var(--color-critical)';
     const marketCap = price > 0 && currentSupply > 0
         ? (price * currentSupply).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
         : '—';
@@ -70,7 +78,7 @@ const Header: React.FC = () => {
                         Indexer Lag: <span style={{ color: indexerLagStatus.color }}>{indexerLagStatus.label}</span>
                     </div>
                     <div className={classes.tickerItem} style={{ marginLeft: 'auto' }}>
-                        Network: <span style={{ color: 'var(--color-success)' }}>● Mainnet Harmony</span>
+                        Network: <span style={{ color: rpcStatusColor }}>{rpcStatusLabel}</span>
                     </div>
                 </div>
             </div>
