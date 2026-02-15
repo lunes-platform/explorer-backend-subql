@@ -9,6 +9,21 @@ const WS_ENDPOINTS = [
 
 let api: ApiPromise | null = null;
 let connectionPromise: Promise<ApiPromise> | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+const RECONNECT_DELAY = 3_000;
+
+export type ConnectionListener = (connected: boolean) => void;
+const connectionListeners = new Set<ConnectionListener>();
+
+export function onConnectionChange(listener: ConnectionListener): () => void {
+  connectionListeners.add(listener);
+  return () => { connectionListeners.delete(listener); };
+}
+
+function notifyListeners(connected: boolean) {
+  connectionListeners.forEach(fn => { try { fn(connected); } catch { /* ignore */ } });
+}
 
 export async function getApi(): Promise<ApiPromise> {
   if (api && api.isConnected) return api;
@@ -17,8 +32,28 @@ export async function getApi(): Promise<ApiPromise> {
 
   connectionPromise = (async () => {
     try {
-      const provider = new WsProvider(WS_ENDPOINTS);
-      api = await ApiPromise.create({ provider });
+      if (api) {
+        try { await api.disconnect(); } catch { /* ignore */ }
+        api = null;
+      }
+      const provider = new WsProvider(WS_ENDPOINTS, RECONNECT_DELAY);
+      const instance = await ApiPromise.create({ provider });
+
+      instance.on('connected', () => {
+        console.info('[Chain] RPC connected');
+        notifyListeners(true);
+      });
+      instance.on('disconnected', () => {
+        console.warn('[Chain] RPC disconnected — will auto-reconnect');
+        notifyListeners(false);
+        scheduleReconnect();
+      });
+      instance.on('error', (err: Error) => {
+        console.error('[Chain] RPC error:', err.message);
+      });
+
+      api = instance;
+      notifyListeners(true);
       return api;
     } finally {
       connectionPromise = null;
@@ -26,6 +61,19 @@ export async function getApi(): Promise<ApiPromise> {
   })();
 
   return connectionPromise;
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  reconnectTimer = setTimeout(async () => {
+    reconnectTimer = null;
+    try {
+      await getApi();
+    } catch (err) {
+      console.warn('[Chain] Reconnect attempt failed, retrying...', err);
+      scheduleReconnect();
+    }
+  }, RECONNECT_DELAY);
 }
 
 export async function disconnectApi(): Promise<void> {
