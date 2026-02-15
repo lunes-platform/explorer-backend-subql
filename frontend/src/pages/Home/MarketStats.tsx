@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Activity, Box, Shield, Layers, Code2 } from '
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { useDashboardStats } from '../../hooks/useChainData';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
 import {
     LUNES_BURN_TARGET,
     LUNES_INITIAL_SUPPLY,
@@ -10,6 +11,15 @@ import {
     formatAbbreviatedNumber,
 } from '../../data/tokenomics';
 import classes from './Home.module.css';
+
+type HealthLevel = 'healthy' | 'delayed' | 'lagging' | 'disconnected';
+
+const healthBadgeStyles: Record<HealthLevel, React.CSSProperties> = {
+    healthy: { color: 'var(--color-brand-300)', border: '1px solid rgba(108, 56, 255, 0.45)', background: 'rgba(108, 56, 255, 0.12)' },
+    delayed: { color: 'var(--color-warning, #f59e0b)', border: '1px solid rgba(245, 158, 11, 0.45)', background: 'rgba(245, 158, 11, 0.12)' },
+    lagging: { color: 'var(--color-critical, #ef4444)', border: '1px solid rgba(239, 68, 68, 0.45)', background: 'rgba(239, 68, 68, 0.12)' },
+    disconnected: { color: 'var(--text-muted, #888)', border: '1px solid rgba(136, 136, 136, 0.45)', background: 'rgba(136, 136, 136, 0.12)' },
+};
 
 interface StatProps {
     label: string;
@@ -20,9 +30,10 @@ interface StatProps {
     icon?: React.ReactNode;
     source?: 'RPC' | 'API' | 'STATIC';
     freshness?: string;
+    healthLevel?: HealthLevel;
 }
 
-const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon, loading, source, freshness }) => (
+const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon, loading, source, freshness, healthLevel = 'healthy' }) => (
     <div className={classes.statCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className={classes.statLabel}>{label}</span>
@@ -40,7 +51,7 @@ const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon,
 
         {(source || freshness) && !loading && (
             <div className={classes.statMeta}>
-                {source && <span className={classes.sourceBadge}>{source}</span>}
+                {source && <span className={classes.sourceBadge} style={healthBadgeStyles[healthLevel]}>{source}</span>}
                 {freshness && <span className={classes.freshnessText}>{freshness}</span>}
             </div>
         )}
@@ -50,6 +61,8 @@ const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon,
 const MarketStats: React.FC = () => {
     const { price, change24h, loading: priceLoading } = useLunesPrice();
     const { data: chainStats, loading: chainLoading } = useDashboardStats();
+    const health = useHealthStatus();
+    const rpcHealth: HealthLevel = health.rpc.status === 'connected' ? 'healthy' : health.rpc.status === 'connecting' ? 'delayed' : 'disconnected';
     const chainUpdatedAt = useMemo(() => {
         if (!chainStats) return null;
         return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -84,6 +97,7 @@ const MarketStats: React.FC = () => {
                     icon={<Activity size={20} />}
                     source="RPC"
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
+                    healthLevel={rpcHealth}
                 />
                 <StatCard
                     label="Latest Block"
@@ -92,6 +106,7 @@ const MarketStats: React.FC = () => {
                     icon={<Box size={20} />}
                     source="RPC"
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
+                    healthLevel={rpcHealth}
                 />
                 <StatCard
                     label="Current Era"
@@ -102,6 +117,7 @@ const MarketStats: React.FC = () => {
                     icon={<Shield size={20} />}
                     source="RPC"
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
+                    healthLevel={rpcHealth}
                 />
                 <StatCard
                     label="Initial Supply"
@@ -117,6 +133,7 @@ const MarketStats: React.FC = () => {
                     icon={<LunesLogo size={20} />}
                     source="RPC"
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
+                    healthLevel={rpcHealth}
                 />
                 <StatCard
                     label="Burn Target"
@@ -133,6 +150,7 @@ const MarketStats: React.FC = () => {
                     icon={<Layers size={20} />}
                     source="RPC"
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
+                    healthLevel={rpcHealth}
                 />
                 <StatCard
                     label="NFT Collections"
@@ -141,6 +159,7 @@ const MarketStats: React.FC = () => {
                     icon={<Box size={20} />}
                     source="RPC"
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
+                    healthLevel={rpcHealth}
                 />
                 <StatCard
                     label="Smart Contracts"
@@ -149,6 +168,7 @@ const MarketStats: React.FC = () => {
                     icon={<Code2 size={20} />}
                     source="RPC"
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
+                    healthLevel={rpcHealth}
                 />
             </div>
         </div>
