@@ -18,18 +18,24 @@ import {
   Clock,
   Target
 } from 'lucide-react';
-import { GET_ASSET_DETAIL, GET_PROJECT } from '../../services/graphql/queries';
+import { GET_ASSET_DETAIL, GET_PROJECT, GET_HOME_STATS } from '../../services/graphql/queries';
 import Card from '../../components/common/Card';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Skeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
-import type { GetAssetDetailResponse, GetProjectResponse, Asset } from '../../types';
+import DegradedBanner from '../../components/common/DegradedBanner';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { getIndexerDegradedLevel, degradedToHealth } from '../../utils/indexerHealth';
+import type { GetAssetDetailResponse, GetProjectResponse, Asset, HomeStats } from '../../types';
 import styles from './AssetDetail.module.css';
 
 const AssetDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const health = useHealthStatus();
+  const { data: homeStats } = useQuery<HomeStats>(GET_HOME_STATS);
+  const indexerBlock = homeStats?.blocks?.nodes?.[0]?.number || 0;
   
   const { data: assetData, loading: assetLoading, error: assetError } = 
     useQuery<GetAssetDetailResponse>(GET_ASSET_DETAIL, {
@@ -146,7 +152,7 @@ const AssetDetail: React.FC = () => {
             )}
           </div>
           <span className={styles.assetSymbol}>{asset.symbol || '???'}</span>
-          <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+          <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={degradedToHealth(getIndexerDegradedLevel(health.rpc.latestBlock, indexerBlock, !!assetError))} />
           <span 
             className={styles.assetType}
             style={{ 

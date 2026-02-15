@@ -1,14 +1,22 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
-import { GET_EXTRINSIC_DETAIL } from '../../services/graphql/queries';
+import { GET_EXTRINSIC_DETAIL, GET_HOME_STATS } from '../../services/graphql/queries';
 import Card from '../../components/common/Card';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import DegradedBanner from '../../components/common/DegradedBanner';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { getIndexerDegradedLevel, degradedToHealth } from '../../utils/indexerHealth';
+import type { HomeStats } from '../../types';
 
 const TxDetail = () => {
     const { id } = useParams();
     const { loading, error, data } = useQuery(GET_EXTRINSIC_DETAIL, {
         variables: { id }
     });
+    const health = useHealthStatus();
+    const { data: statsData } = useQuery<HomeStats>(GET_HOME_STATS);
+    const indexerBlock = statsData?.blocks?.nodes?.[0]?.number || 0;
+    const degradedLevel = getIndexerDegradedLevel(health.rpc.latestBlock, indexerBlock, !!error);
 
     if (loading) return <div className="container" style={{ padding: '2rem' }}>Loading Transaction...</div>;
     if (error) return <div className="container" style={{ padding: '2rem', color: 'var(--color-critical)' }}>Error: {error.message}</div>;
@@ -22,9 +30,12 @@ const TxDetail = () => {
             <h2 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 Transaction <span style={{ color: 'var(--text-secondary)', fontSize: '1.25rem' }}>Details</span>
             </h2>
-            <div style={{ marginBottom: '1.5rem' }}>
-                <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+            <div style={{ marginBottom: '1rem' }}>
+                <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={degradedToHealth(degradedLevel)} />
             </div>
+            {degradedLevel && (
+                <DegradedBanner level={degradedLevel} source="SubQuery Indexer" onRetry={() => window.location.reload()} />
+            )}
 
             <Card title="Overview">
                 <div style={{ display: 'grid', gap: '1rem' }}>

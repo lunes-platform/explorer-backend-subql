@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
 import { Link } from 'react-router-dom';
-import { GET_EXTRINSICS } from '../../services/graphql/queries';
+import { GET_EXTRINSICS, GET_HOME_STATS } from '../../services/graphql/queries';
 import { SkeletonRows } from '../../components/common/Skeleton';
 import { Pagination } from '../../components/common/Pagination';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
-import type { Extrinsic, GetExtrinsicsResponse } from '../../types';
+import DegradedBanner from '../../components/common/DegradedBanner';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { getIndexerDegradedLevel, degradedToHealth } from '../../utils/indexerHealth';
+import type { Extrinsic, GetExtrinsicsResponse, HomeStats } from '../../types';
 import classes from '../Blocks/Blocks.module.css';
 
 const PAGE_SIZE = 25;
@@ -18,6 +21,10 @@ const Extrinsics: React.FC = () => {
         variables: { first: PAGE_SIZE, offset: page * PAGE_SIZE },
         pollInterval: 6000,
     });
+    const health = useHealthStatus();
+    const { data: statsData } = useQuery<HomeStats>(GET_HOME_STATS);
+    const indexerBlock = statsData?.blocks?.nodes?.[0]?.number || 0;
+    const degradedLevel = getIndexerDegradedLevel(health.rpc.latestBlock, indexerBlock, !!error);
 
     const extrinsics = data?.extrinsics?.nodes || [];
     const totalCount = data?.extrinsics?.totalCount || 0;
@@ -30,7 +37,15 @@ const Extrinsics: React.FC = () => {
                 {totalCount > 0 ? `${totalCount.toLocaleString()} extrinsics indexed` : 'Loading indexed data...'}
                 {' · '}Persistent data from SubQuery indexer
             </p>
-            <DataSourceBadge source="INDEXER" updatedAt={!loading && extrinsics.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} />
+            <DataSourceBadge source="INDEXER" updatedAt={!loading && extrinsics.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={degradedToHealth(degradedLevel)} />
+
+            {degradedLevel && (
+                <DegradedBanner
+                    level={degradedLevel}
+                    source="SubQuery Indexer"
+                    onRetry={() => window.location.reload()}
+                />
+            )}
 
             <div className={classes.card}>
                 <div className={classes.tableContainer}>
