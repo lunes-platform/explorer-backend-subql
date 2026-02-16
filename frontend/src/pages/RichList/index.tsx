@@ -14,7 +14,10 @@ import { useRichList } from '../../hooks/useChainData';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import EmptyState from '../../components/common/EmptyState';
+import { ExportButton } from '../../components/common/ExportButton';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import type { RichListAccount } from '../../services/chain';
 import styles from './RichList.module.css';
 
@@ -33,6 +36,7 @@ function formatBalance(val: number): string {
 }
 
 const RichList: React.FC = () => {
+  usePageTitle('Rich List', 'Top LUNES holders ranked by balance. View the wealthiest accounts on the Lunes blockchain.');
   const { data, loading, error, refetch } = useRichList();
   const health = useHealthStatus();
   const [page, setPage] = useState(0);
@@ -80,21 +84,7 @@ const RichList: React.FC = () => {
         <div className={styles.header}>
           <h1 className={styles.title}>Rich List</h1>
         </div>
-        <div className={styles.loadingContainer}>
-          <AlertCircle size={40} />
-          <span>Failed to load account data</span>
-          <span style={{ fontSize: '12px', opacity: 0.6 }}>{error}</span>
-          <button
-            onClick={refetch}
-            style={{
-              padding: '8px 20px', borderRadius: '8px', border: 'none',
-              background: 'var(--color-brand-600)', color: 'white', cursor: 'pointer',
-              fontWeight: 600, marginTop: '8px',
-            }}
-          >
-            Try Again
-          </button>
-        </div>
+        <EmptyState type="error" message={error} action={{ label: 'Try Again', onClick: refetch }} />
       </div>
     );
   }
@@ -111,6 +101,19 @@ const RichList: React.FC = () => {
           Top wallets by balance on the Lunes blockchain — {totalAccounts.toLocaleString()} accounts with balance
         </p>
         <DataSourceBadge source="RPC" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={health.rpc.status === 'connected' ? 'healthy' : health.rpc.status === 'connecting' ? 'delayed' : 'disconnected'} />
+        {accounts.length > 0 && (
+          <ExportButton
+            data={accounts}
+            filename={`richlist-${new Date().toISOString().split('T')[0]}`}
+            columns={[
+              { key: 'address', label: 'Address' },
+              { key: 'freeFormatted', label: 'Free Balance' },
+              { key: 'reservedFormatted', label: 'Reserved' },
+              { key: 'totalFormatted', label: 'Total Balance' },
+            ]}
+            label="Export Rich List"
+          />
+        )}
       </div>
 
       {/* Summary stats */}

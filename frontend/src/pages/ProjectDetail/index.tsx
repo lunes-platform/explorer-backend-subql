@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Globe,
@@ -29,19 +29,20 @@ import {
 } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
+import ProjectTokenStats from '../../components/common/ProjectTokenStats';
 import { VerifiedBadge } from '../../components/common/VerifiedBadge';
+import { SimilarProjects } from '../../components/common/SimilarProjects';
 import { SocialActions } from '../../components/social/SocialActions';
 import { DonateModal } from '../../components/social/DonateModal';
 import { useSocialInteractions, getProjectSocialData } from '../../hooks/useSocialInteractions';
 import { useWalletAuth } from '../../context/WalletAuthContext';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import {
-  getProjectBySlug,
-  getAllProjects,
   VERIFICATION_RECEIVER,
   type KnownProject,
   type ProjectLink,
 } from '../../data/knownProjects';
+import { useProjects, useProject } from '../../hooks/useProjects';
 import styles from './ProjectDetail.module.css';
 
 const XIcon = () => (
@@ -78,11 +79,12 @@ function shortAddr(addr: string): string {
 
 // Project detail view
 const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => {
+  const navigate = useNavigate();
   const { wallet, isConnected } = useWalletAuth();
   const userAddr = isConnected ? wallet?.account?.address : null;
   const {
     socialData, userInteractions, toggleLike, toggleLove,
-    toggleFollow, recordDonation, addComment, isConnected: socialConnected,
+    toggleFollow, recordDonation, addComment, addCommentReaction, isConnected: socialConnected,
   } = useSocialInteractions(project.id, userAddr);
   const [showDonate, setShowDonate] = useState(false);
 
@@ -95,10 +97,14 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Link to="/projects" className={styles.backLink}>
+        <button 
+          onClick={() => navigate(-1)}
+          className={styles.backLink}
+          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+        >
           <ArrowLeft size={16} />
-          All Projects
-        </Link>
+          Voltar
+        </button>
 
         <div className={styles.projectHeader}>
           <div className={styles.projectLogo}>
@@ -139,6 +145,11 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
         </div>
       </div>
 
+      {/* Token Stats — if project has an associated token */}
+      {project.tokenSymbol && (
+        <ProjectTokenStats tokenSymbol={project.tokenSymbol} />
+      )}
+
       {/* About */}
       <Card title="About" icon={<FileText size={18} />}>
         <p className={styles.description}>
@@ -159,11 +170,13 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
           socialData={socialData}
           userInteractions={userInteractions}
           isConnected={socialConnected}
+          userAddress={userAddr || undefined}
           onLike={toggleLike}
           onLove={toggleLove}
           onFollow={toggleFollow}
           onDonate={() => setShowDonate(true)}
           onComment={addComment}
+          onCommentReaction={addCommentReaction}
         />
       </Card>
 
@@ -279,6 +292,10 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
           </div>
         </Card>
       )}
+
+      {/* Similar Projects */}
+      <SimilarProjects currentProject={project} />
+
     </div>
   );
 };
@@ -302,7 +319,7 @@ function getTractionScore(data: ReturnType<typeof getProjectSocialData>): number
 
 // Projects list view
 const ProjectsList: React.FC = () => {
-  const projects = getAllProjects();
+  const { projects } = useProjects();
   const [sortBy, setSortBy] = useState<SortKey>('traction');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -568,39 +585,6 @@ const MetricPill: React.FC<{ icon: React.ReactNode; value: number; label?: strin
   </div>
 );
 
-// Social stats shown on project cards
-const ProjectCardStats: React.FC<{ projectId: string }> = ({ projectId }) => {
-  const data = getProjectSocialData(projectId);
-  if (data.likes === 0 && data.loves === 0 && data.followers === 0 && data.donatedAmount === 0) return null;
-
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12, paddingTop: 8,
-      borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 4,
-      fontSize: 11, color: 'var(--text-muted)',
-    }}>
-      {data.likes > 0 && (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <ThumbsUp size={11} /> {data.likes}
-        </span>
-      )}
-      {data.loves > 0 && (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <Heart size={11} /> {data.loves}
-        </span>
-      )}
-      {data.followers > 0 && (
-        <span>{data.followers} followers</span>
-      )}
-      {data.donatedAmount > 0 && (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 'auto' }}>
-          <LunesLogo size={10} /> {data.donatedAmount} LUNES
-        </span>
-      )}
-    </div>
-  );
-};
-
 // Main component: route to list or detail
 const ProjectDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -609,7 +593,20 @@ const ProjectDetail: React.FC = () => {
     return <ProjectsList />;
   }
 
-  const project = getProjectBySlug(slug);
+  return <ProjectDetailBySlug slug={slug} />;
+};
+
+const ProjectDetailBySlug: React.FC<{ slug: string }> = ({ slug }) => {
+  const { project, loading } = useProject(slug);
+
+  if (loading) {
+    return (
+      <div className={styles.container} style={{ textAlign: 'center', padding: 60 }}>
+        <div style={{ width: 24, height: 24, border: '3px solid rgba(108,56,255,0.2)', borderTopColor: 'var(--color-brand-400)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+        <p style={{ marginTop: 12, color: 'var(--text-muted)', fontSize: 13 }}>Loading project...</p>
+      </div>
+    );
+  }
 
   if (!project) {
     return (

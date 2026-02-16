@@ -18,7 +18,7 @@ import {
   Clock,
   Target
 } from 'lucide-react';
-import { GET_ASSET_DETAIL, GET_PROJECT, GET_HOME_STATS } from '../../services/graphql/queries';
+import { GET_ASSET_DETAIL, GET_PROJECT } from '../../services/graphql/queries';
 import Card from '../../components/common/Card';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -26,16 +26,17 @@ import { Skeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import DegradedBanner from '../../components/common/DegradedBanner';
+import { WatchlistButton } from '../../components/common/WatchlistButton';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { useWatchlist } from '../../hooks/useWatchlist';
 import { getIndexerDegradedLevel, degradedToHealth } from '../../utils/indexerHealth';
-import type { GetAssetDetailResponse, GetProjectResponse, Asset, HomeStats } from '../../types';
+import type { GetAssetDetailResponse, GetProjectResponse, Asset } from '../../types';
 import styles from './AssetDetail.module.css';
 
 const AssetDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const health = useHealthStatus();
-  const { data: homeStats } = useQuery<HomeStats>(GET_HOME_STATS);
-  const indexerBlock = homeStats?.blocks?.nodes?.[0]?.number || 0;
+  const { isWatched, toggleItem } = useWatchlist();
   
   const { data: assetData, loading: assetLoading, error: assetError } = 
     useQuery<GetAssetDetailResponse>(GET_ASSET_DETAIL, {
@@ -117,14 +118,25 @@ const AssetDetail: React.FC = () => {
     }
   };
 
+  const degradedLevel = getIndexerDegradedLevel(health.rpc.latestBlock, health.indexer.latestBlock, !!assetError);
+
   return (
     <div className={styles.container}>
+      {degradedLevel && (
+        <DegradedBanner level={degradedLevel} source="Indexer" />
+      )}
       {/* Header */}
       <div className={styles.header}>
         <Link to="/assets" className={styles.backLink}>
           <ArrowLeft size={18} />
           Back to Assets
         </Link>
+        {id && (
+          <WatchlistButton
+            isWatched={isWatched(id, 'token')}
+            onToggle={() => toggleItem({ id, type: 'token', name: asset?.name || undefined, symbol: asset?.symbol || undefined })}
+          />
+        )}
       </div>
 
       {/* Asset Hero */}

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApolloClient } from '@apollo/client/react';
 import { SEARCH_GLOBAL } from '../services/graphql/queries';
+import { logSearchQuery, logSearchSelect, logSearchAbandon } from '../utils/searchTelemetry';
+import { fuzzyScore } from '../utils/fuzzySearch';
 
 // ── Pattern matchers (BL-SEARCH-001: exact match first) ──────────────
 
@@ -35,6 +37,55 @@ export interface SearchResult {
     label: string;
     sublabel?: string;
     path: string;
+    score?: number;
+}
+
+// ── Scoring (BL-SEARCH-001: exact match first, ranked by relevance) ──
+
+const CATEGORY_BASE_SCORE: Record<SearchCategory, number> = {
+    account: 100,
+    block: 100,
+    tx: 100,
+    token: 60,
+    nft: 40,
+    contract: 30,
+};
+
+function scoreResult(result: SearchResult, query: string): number {
+    const q = query.toLowerCase();
+    const label = result.label.toLowerCase();
+    let score = CATEGORY_BASE_SCORE[result.category] || 0;
+
+    // Exact match bonus
+    if (label === q) score += 50;
+    // Starts-with bonus
+    else if (label.startsWith(q)) score += 30;
+    // Contains bonus
+    else if (label.includes(q)) score += 10;
+
+    // Symbol exact match (from sublabel like "Token · LUNES")
+    if (result.sublabel) {
+        const parts = result.sublabel.split(' · ');
+        if (parts.length > 1 && parts[1].toLowerCase() === q) score += 40;
+    }
+
+    // Fuzzy score bonus — rewards approximate matches
+    const fScore = fuzzyScore(q, label);
+    if (fScore > 0) score += Math.floor(fScore * 0.3);
+
+    // Also check sublabel for fuzzy match (e.g. symbol)
+    if (result.sublabel) {
+        const subFScore = fuzzyScore(q, result.sublabel);
+        if (subFScore > 0) score += Math.floor(subFScore * 0.2);
+    }
+
+    return score;
+}
+
+function rankResults(results: SearchResult[], query: string): SearchResult[] {
+    return results
+        .map(r => ({ ...r, score: scoreResult(r, query) }))
+        .sort((a, b) => (b.score || 0) - (a.score || 0));
 }
 
 // ── Classify input into instant results ──────────────────────────────
@@ -74,21 +125,28 @@ function getInstantResults(term: string): SearchResult[] {
 
     if (isBlockOrTxHash(term)) {
         results.push({
+            category: 'tx',
+            id: term,
+            label: `${term.slice(0, 10)}...${term.slice(-6)}`,
+            sublabel: 'Transaction hash',
+            path: `/tx/${term}`,
+        });
+        results.push({
             category: 'block',
             id: term,
             label: `${term.slice(0, 10)}...${term.slice(-6)}`,
-            sublabel: 'Hash lookup',
+            sublabel: 'Block hash',
             path: `/block/${term}`,
         });
     }
 
     if (term.startsWith('0x') && term.length > 10 && !isBlockOrTxHash(term)) {
         results.push({
-            category: 'block',
+            category: 'tx',
             id: term,
             label: `${term.slice(0, 10)}...`,
-            sublabel: 'Partial hash',
-            path: `/block/${term}`,
+            sublabel: 'Partial tx hash',
+            path: `/tx/${term}`,
         });
     }
 
@@ -110,9 +168,15 @@ export const useGlobalSearch = () => {
     const [results, setResults] = useState<SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showResults, setShowResults] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(-1);
     const navigate = useNavigate();
     const client = useApolloClient();
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Reset selection when results change
+    useEffect(() => {
+        setSelectedIndex(-1);
+    }, [results]);
 
     // Debounced live search: runs 300ms after user stops typing
     useEffect(() => {
@@ -180,8 +244,10 @@ export const useGlobalSearch = () => {
                         });
                     });
 
-                    setResults([...instant, ...graphqlResults]);
+                    const ranked = rankResults([...instant, ...graphqlResults], term);
+                    setResults(ranked);
                     setShowResults(true);
+                    logSearchQuery(term, ranked.length);
                 } catch (err) {
                     console.error('[Search] GraphQL error:', err);
                     // Still show instant results if GraphQL fails
@@ -202,11 +268,22 @@ export const useGlobalSearch = () => {
         };
     }, [query, client]);
 
-    // Navigate on Enter: picks first result or best guess
+    // Navigate on Enter / ArrowUp / ArrowDown
     const handleSearch = useCallback((e: React.FormEvent | React.KeyboardEvent) => {
         if ('key' in e) {
             if (e.key === 'Escape') {
                 setShowResults(false);
+                setSelectedIndex(-1);
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev < results.length - 1 ? prev + 1 : 0));
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev > 0 ? prev - 1 : results.length - 1));
                 return;
             }
             if (e.key !== 'Enter') return;
@@ -215,12 +292,14 @@ export const useGlobalSearch = () => {
         const term = query.trim();
         if (!term) return;
 
-        // Use first result if available
-        if (results.length > 0) {
-            navigate(results[0].path);
+        // Use selected result or first result
+        const targetIndex = selectedIndex >= 0 ? selectedIndex : 0;
+        if (results.length > 0 && targetIndex < results.length) {
+            navigate(results[targetIndex].path);
             setQuery('');
             setResults([]);
             setShowResults(false);
+            setSelectedIndex(-1);
             return;
         }
 
@@ -228,7 +307,7 @@ export const useGlobalSearch = () => {
         if (isSubstrateAddress(term)) { navigate(`/account/${term}`); }
         else if (isBlockNumber(term)) { navigate(`/block/${term}`); }
         else if (isExtrinsicId(term)) { navigate(`/tx/${term}`); }
-        else if (isBlockOrTxHash(term) || (term.startsWith('0x') && term.length > 10)) { navigate(`/block/${term}`); }
+        else if (isBlockOrTxHash(term) || (term.startsWith('0x') && term.length > 10)) { navigate(`/tx/${term}`); }
         else { navigate('/tokens'); }
 
         setQuery('');
@@ -237,15 +316,19 @@ export const useGlobalSearch = () => {
     }, [query, results, navigate]);
 
     const selectResult = useCallback((result: SearchResult) => {
+        logSearchSelect(query, result.category, results.indexOf(result));
         navigate(result.path);
         setQuery('');
         setResults([]);
         setShowResults(false);
-    }, [navigate]);
+    }, [navigate, query, results]);
 
     const dismissResults = useCallback(() => {
+        if (showResults && results.length > 0 && query.trim().length >= 2) {
+            logSearchAbandon(query, results.length);
+        }
         setShowResults(false);
-    }, []);
+    }, [showResults, results, query]);
 
     return {
         query,
@@ -256,5 +339,6 @@ export const useGlobalSearch = () => {
         selectResult,
         dismissResults,
         isSearching,
+        selectedIndex,
     };
 };

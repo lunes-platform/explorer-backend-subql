@@ -60,7 +60,10 @@ const ProjectVerify: React.FC = () => {
   const [txHash, setTxHash] = useState('');
 
   const projects = getAllProjects();
-  const unverifiedProjects = projects.filter(p => p.verification.status === 'unverified');
+  const ownedUnverifiedProjects = projects.filter(
+    p => p.verification.status === 'unverified' && 
+    p.ownerAddress?.toLowerCase() === wallet?.account?.address?.toLowerCase()
+  );
 
   const handleProjectSelect = (project: KnownProject) => {
     setSelectedProject(project);
@@ -187,14 +190,22 @@ const ProjectVerify: React.FC = () => {
       {/* Step 1: Select Project */}
       {step === 'select' && (
         <Card title="Select Project" icon={<FileText size={18} />}>
-          {unverifiedProjects.length === 0 ? (
+          {!isConnected ? (
+            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+              <AlertCircle size={32} color="var(--color-warning)" style={{ marginBottom: '8px' }} />
+              <p>Connect your wallet to see your projects</p>
+            </div>
+          ) : ownedUnverifiedProjects.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
               <ShieldCheck size={32} color="#26d07c" style={{ marginBottom: '8px' }} />
-              <p>All projects are already verified!</p>
+              <p>You have no unverified projects to verify.</p>
+              <p style={{ fontSize: '12px', marginTop: '8px' }}>
+                Only the project owner can submit verification.
+              </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {unverifiedProjects.map(project => (
+              {ownedUnverifiedProjects.map(project => (
                 <button
                   key={project.id}
                   onClick={() => handleProjectSelect(project)}

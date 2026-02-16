@@ -43,7 +43,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
       const api = await ApiPromise.create({ provider });
       const injector = await web3FromAddress(wallet.account.address);
 
-      const planckAmount = BigInt(Math.floor(num * 1e12));
+      const planckAmount = BigInt(Math.floor(num * 1e8));
       const tx = api.tx.balances.transferKeepAlive(receiverAddress, planckAmount);
 
       await new Promise<void>((resolve, reject) => {

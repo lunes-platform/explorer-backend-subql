@@ -9,6 +9,7 @@ interface SearchResultsProps {
     query: string;
     onSelect: (result: SearchResult) => void;
     onDismiss: () => void;
+    selectedIndex?: number;
 }
 
 const categoryIcons: Record<SearchCategory, React.ReactNode> = {
@@ -36,8 +37,17 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     query,
     onSelect,
     onDismiss,
+    selectedIndex = -1,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+    // Scroll selected item into view
+    useEffect(() => {
+        if (selectedIndex >= 0 && itemRefs.current[selectedIndex]) {
+            itemRefs.current[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+        }
+    }, [selectedIndex]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -103,9 +113,12 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
             {results.length > 0 && (
                 <div style={{ padding: '6px 0' }}>
-                    {results.map((result, index) => (
+                    {results.map((result, index) => {
+                        const isSelected = index === selectedIndex;
+                        return (
                         <button
                             key={`${result.category}-${result.id}-${index}`}
+                            ref={el => { itemRefs.current[index] = el; }}
                             onClick={() => onSelect(result)}
                             style={{
                                 display: 'flex',
@@ -114,7 +127,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                                 width: '100%',
                                 padding: '10px 16px',
                                 border: 'none',
-                                background: 'transparent',
+                                background: isSelected ? 'rgba(108, 56, 255, 0.12)' : 'transparent',
                                 cursor: 'pointer',
                                 textAlign: 'left',
                                 color: 'var(--text-primary, #fff)',
@@ -122,10 +135,10 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                                 transition: 'background 0.15s',
                             }}
                             onMouseEnter={(e) => {
-                                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+                                if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
                             }}
                             onMouseLeave={(e) => {
-                                (e.currentTarget as HTMLElement).style.background = 'transparent';
+                                (e.currentTarget as HTMLElement).style.background = isSelected ? 'rgba(108, 56, 255, 0.12)' : 'transparent';
                             }}
                         >
                             <span style={{
@@ -174,7 +187,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                                 {result.category}
                             </span>
                         </button>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 

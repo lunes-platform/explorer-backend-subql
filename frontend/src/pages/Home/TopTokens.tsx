@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, Coins, FolderOpen } from 'lucide-react';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { formatAbbreviatedNumber } from '../../data/tokenomics';
 import { getProjectByAssetId } from '../../data/knownProjects';
 import { LunesLogo } from '../../components/common/LunesLogo';
+import { WatchlistButton } from '../../components/common/WatchlistButton';
+import { useWatchlist } from '../../hooks/useWatchlist';
 import classes from './Home.module.css';
 
 function formatSupply(supply: number, decimals: number = 2): string {
@@ -17,9 +19,13 @@ function formatSupply(supply: number, decimals: number = 2): string {
 }
 
 const TopTokens: React.FC = () => {
+    const navigate = useNavigate();
     const { price, change24h, volume24h, loading: priceLoading } = useLunesPrice();
     const { data: assets, loading: assetsLoading } = useAssets();
     const { data: chainStats, loading: statsLoading } = useDashboardStats();
+    const { isWatched, toggleItem } = useWatchlist();
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
 
     const loading = priceLoading || assetsLoading || statsLoading;
     const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
@@ -27,6 +33,12 @@ const TopTokens: React.FC = () => {
         if (!assets && !chainStats) return null;
         return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     }, [assets, chainStats]);
+
+    // Pagination logic
+    const totalAssets = assets?.length || 0;
+    const totalPages = Math.ceil(totalAssets / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedAssets = assets?.slice(startIndex, startIndex + itemsPerPage) || [];
 
     return (
         <div className={classes.topTokensSection}>
@@ -62,11 +74,15 @@ const TopTokens: React.FC = () => {
                             <th style={{ textAlign: 'right' }}>Volume(24h)</th>
                             <th style={{ textAlign: 'right' }}>Supply</th>
                             <th style={{ textAlign: 'right' }}>Type</th>
+                            <th style={{ textAlign: 'center' }}>Watch</th>
                         </tr>
                     </thead>
                     <tbody>
                         {/* LUNES native token - always first */}
-                        <tr>
+                        <tr 
+                            className={classes.clickableRow}
+                            onClick={() => navigate('/token/lunes')}
+                        >
                             <td className={classes.rankCell}>1</td>
                             <td>
                                 <div className={classes.tokenInfo}>
@@ -112,22 +128,35 @@ const TopTokens: React.FC = () => {
                                     color: 'var(--color-success)'
                                 }}>Substrate</span>
                             </td>
+                            <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                <WatchlistButton
+                                    isWatched={isWatched('LUNES', 'token')}
+                                    onToggle={() => toggleItem({ id: 'LUNES', type: 'token', symbol: 'LUNES', name: 'Lunes' })}
+                                    size="sm"
+                                />
+                            </td>
                         </tr>
 
                         {/* Chain assets from RPC */}
                         {assetsLoading && (
                             <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', padding: '20px' }}>
+                                <td colSpan={9} style={{ textAlign: 'center', padding: '20px' }}>
                                     <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-brand-400)' }} />
                                     <span style={{ marginLeft: '8px', color: 'var(--text-muted)' }}>Loading assets from blockchain...</span>
                                 </td>
                             </tr>
                         )}
-                        {assets && assets.map((asset, index) => {
+                        {paginatedAssets.map((asset, index) => {
                             const project = getProjectByAssetId(asset.id);
+                            const rowDestination = project ? `/project/${project.slug}` : `/asset/${asset.id}`;
+                            const actualIndex = startIndex + index;
                             return (
-                            <tr key={asset.id}>
-                                <td className={classes.rankCell}>{index + 2}</td>
+                            <tr 
+                                key={asset.id}
+                                className={classes.clickableRow}
+                                onClick={() => navigate(rowDestination)}
+                            >
+                                <td className={classes.rankCell}>{actualIndex + 2}</td>
                                 <td>
                                     <div className={classes.tokenInfo}>
                                         <div className={classes.tokenIconPlaceholder} style={{ 
@@ -150,6 +179,7 @@ const TopTokens: React.FC = () => {
                                             {project && (
                                                 <Link
                                                     to={`/project/${project.slug}`}
+                                                    onClick={(e) => e.stopPropagation()}
                                                     style={{ fontSize: '11px', color: 'var(--color-brand-400)', display: 'inline-flex', alignItems: 'center', gap: '3px', textDecoration: 'none' }}
                                                 >
                                                     <FolderOpen size={10} />
@@ -177,11 +207,70 @@ const TopTokens: React.FC = () => {
                                         color: '#00a3ff'
                                     }}>pallet-assets</span>
                                 </td>
+                                <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                    <WatchlistButton
+                                        isWatched={isWatched(asset.id, 'token')}
+                                        onToggle={() => toggleItem({ id: asset.id, type: 'token', symbol: asset.symbol, name: asset.name })}
+                                        size="sm"
+                                    />
+                                </td>
                             </tr>
                             );
                         })}
                     </tbody>
                 </table>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        gap: '12px', 
+                        marginTop: '20px',
+                        padding: '16px 0'
+                    }}>
+                        <button
+                            onClick={() => setCurrentPage((p: number) => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            style={{
+                                padding: '8px 16px',
+                                border: '1px solid var(--border-default)',
+                                borderRadius: '8px',
+                                background: currentPage === 1 ? 'var(--bg-surface-hover)' : 'var(--bg-surface)',
+                                color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                            }}
+                        >
+                            ← Anterior
+                        </button>
+                        <span style={{ 
+                            fontSize: '14px', 
+                            color: 'var(--text-muted)',
+                            fontWeight: 500
+                        }}>
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage((p: number) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            style={{
+                                padding: '8px 16px',
+                                border: '1px solid var(--border-default)',
+                                borderRadius: '8px',
+                                background: currentPage === totalPages ? 'var(--bg-surface-hover)' : 'var(--bg-surface)',
+                                color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                            }}
+                        >
+                            Próxima →
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

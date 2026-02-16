@@ -15,6 +15,18 @@ services:
       timeout: 5s
       retries: 5
 
+  backend-py:
+    build: ./backend-py
+    ports:
+      - 8000:8000
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+      - SECRET_KEY=dev-secret-key-change-me
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "python seed.py && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
   subquery-node:
     image: onfinality/subql-node:latest
     depends_on:
@@ -32,8 +44,8 @@ services:
     command:
       - -f=/app
       - --db-schema=app
-      - --batch-size=30
-      - --workers=2
+      - --batch-size=100
+      - --workers=4
       - --disable-historical
 
   graphql-engine:

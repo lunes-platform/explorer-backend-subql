@@ -49,6 +49,7 @@ export interface KnownProject {
   longDescription?: string;
   status: 'active' | 'development' | 'beta' | 'deprecated';
   launchDate?: string;
+  ownerAddress?: string; // Wallet address that created/owns this project
   links: ProjectLink[];
   team: ProjectTeam[];
   milestones: ProjectMilestone[];
@@ -58,6 +59,8 @@ export interface KnownProject {
   tokenIds: string[];
   nftCollectionIds: string[];
   assetIds: string[];
+  // Token association — links this project to a token page (e.g. 'lunes' for native, or asset ID)
+  tokenSymbol?: string;
   // Verification
   verification: VerificationData;
 }
@@ -106,6 +109,7 @@ base para aplicações descentralizadas no ecossistema brasileiro e latino-ameri
     tokenIds: [],
     nftCollectionIds: [],
     assetIds: [],
+    tokenSymbol: 'lunes',
     verification: { status: 'verified', verifiedAt: '2023-01-01' },
   },
   {
@@ -137,7 +141,7 @@ criado via pallet-assets, o que garante maior performance e menor custo de trans
     contractAddresses: [],
     tokenIds: [],
     nftCollectionIds: [],
-    assetIds: ['1'],
+    assetIds: ['2'],
     verification: { status: 'verified', verifiedAt: '2024-01-15' },
   },
   {
@@ -154,6 +158,7 @@ O objetivo é criar uma plataforma de comunicação resistente a censura,
 onde os usuários têm total controle sobre seus dados e identidade digital.`,
     status: 'development',
     launchDate: '2024-06-01',
+    ownerAddress: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', // Example owner address
     links: [
       { type: 'website', url: 'https://pidchat.io', label: 'PidChat.io' },
       { type: 'telegram', url: 'https://t.me/pidchat', label: 'Telegram' },
@@ -170,7 +175,7 @@ onde os usuários têm total controle sobre seus dados e identidade digital.`,
     contractAddresses: [],
     tokenIds: [],
     nftCollectionIds: [],
-    assetIds: ['2'],
+    assetIds: ['1'],
     verification: { status: 'unverified' },
   },
 ];

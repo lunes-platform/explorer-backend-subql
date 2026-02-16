@@ -5,7 +5,11 @@ import { useContracts } from '../../hooks/useChainData';
 import { getContractInfo } from '../../data/knownContracts';
 import { getProjectByContract } from '../../data/knownProjects';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { ExportButton } from '../../components/common/ExportButton';
+import { WatchlistButton } from '../../components/common/WatchlistButton';
+import { useWatchlist } from '../../hooks/useWatchlist';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import EmptyState from '../../components/common/EmptyState';
 import classes from './Contracts.module.css';
 
 function shortAddr(addr: string): string {
@@ -15,18 +19,36 @@ function shortAddr(addr: string): string {
 const Contracts: React.FC = () => {
     const { data: contracts, loading, error } = useContracts();
     const health = useHealthStatus();
+    const { isWatched, toggleItem } = useWatchlist();
     const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
     return (
         <div className={classes.pageContainer}>
             <div className={classes.header}>
-                <h1 className={classes.title}>Smart Contracts</h1>
-                <p className={classes.subtitle}>
-                    {loading ? 'Loading contracts from blockchain...' : 
-                     contracts ? `${contracts.length} Ink! smart contracts deployed on Lunes Network` :
-                     'Ink! smart contracts deployed on Lunes.'}
-                </p>
-                <DataSourceBadge source="RPC" updatedAt={!loading && contracts ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
+                <div>
+                    <h1 className={classes.title}>Smart Contracts</h1>
+                    <p className={classes.subtitle}>
+                        {loading ? 'Loading contracts from blockchain...' : 
+                         contracts ? `${contracts.length} smart contracts deployed on Lunes Network` :
+                         'Smart contracts deployed on Lunes.'}
+                    </p>
+                    <DataSourceBadge source="RPC" updatedAt={!loading && contracts ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
+                </div>
+                {contracts && contracts.length > 0 && (
+                    <div className={classes.actions}>
+                        <ExportButton
+                            data={contracts}
+                            filename={`contracts-${new Date().toISOString().split('T')[0]}`}
+                            columns={[
+                                { key: 'address', label: 'Address' },
+                                { key: 'codeHash', label: 'Code Hash' },
+                                { key: 'storageBytes', label: 'Storage (bytes)' },
+                                { key: 'owner', label: 'Owner' },
+                            ]}
+                            label="Export Contracts"
+                        />
+                    </div>
+                )}
             </div>
 
             <div className={classes.tableContainer}>
@@ -38,12 +60,13 @@ const Contracts: React.FC = () => {
                             <th>Code Hash</th>
                             <th>Storage</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
+                            <th style={{ textAlign: 'center' }}>Watch</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
                             <tr>
-                                <td colSpan={5} style={{ textAlign: 'center', padding: '40px' }}>
+                                <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
                                     <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-brand-400)' }} />
                                     <div style={{ marginTop: '8px', color: 'var(--text-muted)' }}>
                                         Loading contracts from blockchain...
@@ -52,14 +75,14 @@ const Contracts: React.FC = () => {
                             </tr>
                         ) : error ? (
                             <tr>
-                                <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-critical)' }}>
-                                    Error: {error}
+                                <td colSpan={6}>
+                                    <EmptyState type="error" message={error} action={{ label: 'Try Again', onClick: () => window.location.reload() }} />
                                 </td>
                             </tr>
                         ) : (!contracts || contracts.length === 0) ? (
                             <tr>
-                                <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                                    No contracts found
+                                <td colSpan={6}>
+                                    <EmptyState type="no-data" message="No smart contracts found on the blockchain" />
                                 </td>
                             </tr>
                         ) : (
@@ -118,6 +141,13 @@ const Contracts: React.FC = () => {
                                                 <ExternalLink size={14} />
                                                 View
                                             </Link>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <WatchlistButton
+                                                isWatched={isWatched(contract.address, 'contract')}
+                                                onToggle={() => toggleItem({ id: contract.address, type: 'contract' })}
+                                                size="sm"
+                                            />
                                         </td>
                                     </tr>
                                 );

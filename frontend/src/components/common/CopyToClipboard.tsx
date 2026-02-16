@@ -7,6 +7,7 @@ interface CopyToClipboardProps {
   label?: string;
   truncate?: boolean;
   truncateLength?: number;
+  showText?: boolean;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export const CopyToClipboard: React.FC<CopyToClipboardProps> = ({
   label,
   truncate = false,
   truncateLength = 12,
+  showText = true,
   className = ''
 }) => {
   const [copied, setCopied] = useState(false);
@@ -36,9 +38,11 @@ export const CopyToClipboard: React.FC<CopyToClipboardProps> = ({
   return (
     <span className={`${styles.container} ${className}`}>
       {label && <span className={styles.label}>{label}</span>}
-      <span className={styles.text} title={text}>
-        {displayText}
-      </span>
+      {showText && (
+        <span className={styles.text} title={text}>
+          {displayText}
+        </span>
+      )}
       <button
         onClick={handleCopy}
         className={styles.copyButton}

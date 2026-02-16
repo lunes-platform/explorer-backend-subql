@@ -1,0 +1,144 @@
+.tokenStatsContainer {
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(108, 56, 255, 0.06), rgba(38, 208, 124, 0.04));
+  border: 1px solid rgba(108, 56, 255, 0.12);
+  overflow: hidden;
+}
+
+.tokenPriceBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tokenPriceLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tokenIcon {
+  color: var(--color-brand-400);
+}
+
+.tokenLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: rgba(108, 56, 255, 0.12);
+}
+
+.tokenPriceValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-family-display, inherit);
+}
+
+.tokenChange {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.positive {
+  color: #26d07c;
+  background: rgba(38, 208, 124, 0.1);
+}
+
+.negative {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.tokenLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: rgba(108, 56, 255, 0.1);
+  border: 1px solid rgba(108, 56, 255, 0.2);
+  color: var(--color-brand-400);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.tokenLink:hover {
+  background: rgba(108, 56, 255, 0.18);
+  border-color: rgba(108, 56, 255, 0.35);
+}
+
+.tokenGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+.tokenStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tokenStat:last-child {
+  border-right: none;
+}
+
+.tokenStatLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tokenStatValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.loadingText {
+  padding: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .tokenGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tokenStat:nth-child(2) {
+    border-right: none;
+  }
+
+  .tokenStat:nth-child(3),
+  .tokenStat:nth-child(4) {
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .tokenPriceBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tokenPriceValue {
+    font-size: 18px;
+  }
+}

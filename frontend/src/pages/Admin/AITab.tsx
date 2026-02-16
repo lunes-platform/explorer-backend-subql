@@ -1,0 +1,384 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Brain, Key, Save, TestTube, Loader2, CheckCircle, AlertTriangle,
+  Eye, EyeOff, RefreshCw, Zap, ZapOff, Settings2, MessageSquare
+} from 'lucide-react';
+import { useAdminAuth } from '../../context/AdminAuthContext';
+import Card from '../../components/common/Card';
+
+const API = 'http://localhost:4000/api';
+
+interface AIConfig {
+  provider: 'openrouter' | 'none';
+  apiKey: string;
+  model: string;
+  systemPrompt: string;
+  maxTokens: number;
+  temperature: number;
+  enabled: boolean;
+  lastUpdated: string;
+  updatedBy: string;
+}
+
+interface FreeModel {
+  id: string;
+  name: string;
+}
+
+export default function AITab() {
+  const { token } = useAdminAuth();
+  const [config, setConfig] = useState<AIConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showKey, setShowKey] = useState(false);
+  const [newApiKey, setNewApiKey] = useState('');
+  const [freeModels, setFreeModels] = useState<FreeModel[]>([]);
+  const [detectedModels, setDetectedModels] = useState<string[]>([]);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const getHeaders = () => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
+
+  useEffect(() => {
+    if (!token) return;
+    fetchConfig();
+    fetchModels();
+  }, [token]);
+
+  async function fetchConfig() {
+    try {
+      const res = await fetch(`${API}/admin/ai/config`, { headers: getHeaders() });
+      if (res.ok) setConfig(await res.json());
+    } catch { /* ignore */ }
+    setLoading(false);
+  }
+
+  async function fetchModels() {
+    try {
+      const res = await fetch(`${API}/admin/ai/models`, { headers: getHeaders() });
+      if (res.ok) setFreeModels(await res.json());
+    } catch { /* ignore */ }
+  }
+
+  async function handleSave() {
+    if (!config) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const body: any = { ...config };
+      if (newApiKey) body.apiKey = newApiKey;
+      const res = await fetch(`${API}/admin/ai/config`, {
+        method: 'PUT', headers: getHeaders(), body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setConfig(updated);
+        setNewApiKey('');
+        setMessage({ type: 'success', text: 'Configuração salva com sucesso!' });
+      } else {
+        setMessage({ type: 'error', text: 'Erro ao salvar configuração' });
+      }
+    } catch { setMessage({ type: 'error', text: 'Erro de conexão' }); }
+    setSaving(false);
+  }
+
+  async function handleTestKey() {
+    const key = newApiKey || '';
+    if (!key && !config?.apiKey) {
+      setTestResult({ success: false, message: 'Insira uma API key primeiro' });
+      return;
+    }
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch(`${API}/admin/ai/test-key`, {
+        method: 'POST', headers: getHeaders(), body: JSON.stringify({ apiKey: key || config?.apiKey }),
+      });
+      const result = await res.json();
+      setTestResult(result);
+      if (result.models) setDetectedModels(result.models);
+    } catch { setTestResult({ success: false, message: 'Erro de conexão' }); }
+    setTesting(false);
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+        <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-brand-400)' }} />
+      </div>
+    );
+  }
+
+  if (!config) return <div>Erro ao carregar configuração</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Status Banner */}
+      <div style={{
+        padding: '16px 20px', borderRadius: 12,
+        background: config.enabled ? 'rgba(38,208,124,0.06)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${config.enabled ? 'rgba(38,208,124,0.2)' : 'rgba(255,255,255,0.08)'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {config.enabled ? <Zap size={20} color="#26d07c" /> : <ZapOff size={20} color="var(--text-muted)" />}
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14, color: config.enabled ? '#26d07c' : 'var(--text-muted)' }}>
+              {config.enabled ? 'IA Ativa — OpenRouter' : 'IA Desativada — Modo Local'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+              {config.enabled
+                ? `Modelo: ${config.model} • Atualizado por ${config.updatedBy}`
+                : 'Explicações são geradas por templates locais. Ative para usar LLM.'}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setConfig({ ...config, enabled: !config.enabled, provider: !config.enabled ? 'openrouter' : 'none' })}
+          style={{
+            padding: '8px 20px', borderRadius: 8, border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+            background: config.enabled ? 'rgba(255,40,76,0.1)' : 'rgba(38,208,124,0.15)',
+            color: config.enabled ? '#ff284c' : '#26d07c',
+          }}
+        >
+          {config.enabled ? 'Desativar' : 'Ativar IA'}
+        </button>
+      </div>
+
+      {/* API Key */}
+      <Card title="API Key — OpenRouter" icon={<Key size={18} />}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+            Crie uma conta gratuita em{' '}
+            <a href="https://openrouter.ai" target="_blank" rel="noreferrer"
+              style={{ color: 'var(--color-brand-400)', textDecoration: 'none' }}>
+              openrouter.ai
+            </a>{' '}
+            e gere uma API key. Modelos gratuitos não cobram nada.
+          </p>
+
+          {config.apiKey && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Key atual: <code style={{ color: 'var(--text-primary)' }}>{config.apiKey}</code>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={newApiKey}
+                onChange={e => setNewApiKey(e.target.value)}
+                placeholder="sk-or-v1-..."
+                style={{
+                  width: '100%', padding: '10px 40px 10px 14px', borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)',
+                  color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-mono)',
+                  outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              <button
+                onClick={() => setShowKey(!showKey)}
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex',
+                }}
+              >
+                {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <button
+              onClick={handleTestKey}
+              disabled={testing}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 8,
+                border: '1px solid rgba(108,56,255,0.3)', background: 'rgba(108,56,255,0.08)',
+                color: 'var(--color-brand-400)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              {testing ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <TestTube size={14} />}
+              Testar
+            </button>
+          </div>
+
+          {testResult && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
+              background: testResult.success ? 'rgba(38,208,124,0.06)' : 'rgba(255,40,76,0.06)',
+              border: `1px solid ${testResult.success ? 'rgba(38,208,124,0.2)' : 'rgba(255,40,76,0.2)'}`,
+              color: testResult.success ? '#26d07c' : '#ff284c',
+            }}>
+              {testResult.success ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+              {testResult.message}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Model Selection */}
+      <Card title="Modelo LLM" icon={<Brain size={18} />}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+            Selecione um modelo gratuito do OpenRouter. Modelos maiores dão respostas melhores mas são mais lentos.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {(detectedModels.length > 0 ? detectedModels : freeModels.map(m => m.id)).map(modelId => {
+              const knownModel = freeModels.find(m => m.id === modelId);
+              return (
+                <label key={modelId} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
+                  background: config.model === modelId ? 'rgba(108,56,255,0.08)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${config.model === modelId ? 'rgba(108,56,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                  transition: 'all 0.15s',
+                }}>
+                  <input
+                    type="radio" name="model" checked={config.model === modelId}
+                    onChange={() => setConfig({ ...config, model: modelId })}
+                    style={{ accentColor: 'var(--color-brand-400)' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                      {knownModel?.name || modelId}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      {modelId}
+                    </div>
+                  </div>
+                  {modelId.includes(':free') && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+                      background: 'rgba(38,208,124,0.1)', color: '#26d07c', textTransform: 'uppercase',
+                    }}>FREE</span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+
+          {detectedModels.length > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              <RefreshCw size={10} style={{ verticalAlign: -1, marginRight: 4 }} />
+              {detectedModels.length} modelos gratuitos detectados da sua conta
+            </div>
+          )}
+
+          {/* Custom model input */}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+              Ou insira um model ID personalizado:
+            </label>
+            <input
+              type="text"
+              value={config.model}
+              onChange={e => setConfig({ ...config, model: e.target.value })}
+              placeholder="provider/model-name:free"
+              style={{
+                width: '100%', padding: '8px 12px', borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)',
+                color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-mono)',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Advanced Settings */}
+      <Card title="Configurações Avançadas" icon={<Settings2 size={18} />}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
+          {/* System Prompt */}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <MessageSquare size={12} /> System Prompt
+            </label>
+            <textarea
+              value={config.systemPrompt}
+              onChange={e => setConfig({ ...config, systemPrompt: e.target.value })}
+              rows={5}
+              style={{
+                width: '100%', padding: '10px 14px', borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)',
+                color: 'var(--text-primary)', fontSize: 13, lineHeight: 1.6, resize: 'vertical',
+                outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {/* Max Tokens */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                Max Tokens: {config.maxTokens}
+              </label>
+              <input
+                type="range" min={100} max={1000} step={50}
+                value={config.maxTokens}
+                onChange={e => setConfig({ ...config, maxTokens: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: 'var(--color-brand-400)' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
+                <span>100</span><span>1000</span>
+              </div>
+            </div>
+
+            {/* Temperature */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                Temperature: {config.temperature.toFixed(1)}
+              </label>
+              <input
+                type="range" min={0} max={1} step={0.1}
+                value={config.temperature}
+                onChange={e => setConfig({ ...config, temperature: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: 'var(--color-brand-400)' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
+                <span>Preciso</span><span>Criativo</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Save + Message */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 10,
+            border: 'none', background: 'linear-gradient(135deg, #6c38ff, #4e1fd4)',
+            color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(108,56,255,0.3)', transition: 'all 0.15s',
+          }}
+        >
+          {saving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={16} />}
+          Salvar Configuração
+        </button>
+
+        {message && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500,
+            color: message.type === 'success' ? '#26d07c' : '#ff284c',
+          }}>
+            {message.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+            {message.text}
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div style={{
+        padding: '14px 18px', borderRadius: 10, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7,
+        background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+      }}>
+        <strong style={{ color: 'var(--text-primary)' }}>Como funciona:</strong><br />
+        Quando ativada, a IA usa o OpenRouter para enviar dados da blockchain a um modelo LLM que gera explicações em português.
+        Se a API falhar ou estiver desativada, o sistema usa templates locais como fallback automático.
+        A API key é salva apenas no servidor e nunca é exposta ao frontend.
+      </div>
+    </div>
+  );
+}

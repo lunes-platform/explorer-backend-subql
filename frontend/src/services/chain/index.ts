@@ -412,7 +412,7 @@ export async function getAccountStaking(address: string): Promise<{
 
   return {
     bonded,
-    bondedFormatted: Number(BigInt(bonded)) / Math.pow(10, 8),
+    bondedFormatted: Number(BigInt(bonded)) / Math.pow(10, 12),
     isNominator: nominations.length > 0,
     isValidator,
     nominations,
@@ -867,16 +867,17 @@ export interface RecentTransfer {
   amountFormatted: number;
   success: boolean;
   hash: string;
+  extrinsicHash: string;
   timestamp: number;
 }
 
-export async function getAccountTransfers(address: string, count: number = 30): Promise<RecentTransfer[]> {
+export async function getAccountTransfers(address: string, count: number = 50): Promise<RecentTransfer[]> {
   const api = await getApi();
   const header = await api.rpc.chain.getHeader();
   const latestBlock = header.number.toNumber();
   const transfers: RecentTransfer[] = [];
-  const BATCH_SIZE = 10;
-  const MAX_BLOCKS = 100;
+  const BATCH_SIZE = 20;
+  const MAX_BLOCKS = 3000;
 
   async function scanBlock(blockNum: number): Promise<RecentTransfer[]> {
     try {
@@ -901,6 +902,8 @@ export async function getAccountTransfers(address: string, count: number = 30): 
 
           if (fromAddr === address || toAddr === address) {
             const extrinsicIndex = record.phase.isApplyExtrinsic ? record.phase.asApplyExtrinsic.toNumber() : 0;
+            const ext = signedBlock.block.extrinsics[extrinsicIndex];
+            const extHash = ext ? ext.hash.toHex() : blockHash.toString();
             found.push({
               blockNumber: blockNum,
               extrinsicIndex,
@@ -910,6 +913,7 @@ export async function getAccountTransfers(address: string, count: number = 30): 
               amountFormatted: Number(BigInt(amount.toString())) / 1e8,
               success: true,
               hash: blockHash.toString(),
+              extrinsicHash: extHash,
               timestamp: ts,
             });
           }
@@ -960,6 +964,8 @@ export async function getRecentTransfers(count: number = 20): Promise<RecentTran
 
           // find if the extrinsic succeeded
           const extrinsicIndex = record.phase.isApplyExtrinsic ? record.phase.asApplyExtrinsic.toNumber() : 0;
+          const ext = signedBlock.block.extrinsics[extrinsicIndex];
+          const extHash = ext ? ext.hash.toHex() : blockHash.toString();
 
           transfers.push({
             blockNumber: blockNum,
@@ -970,6 +976,7 @@ export async function getRecentTransfers(count: number = 20): Promise<RecentTran
             amountFormatted: Number(amountBigInt) / Math.pow(10, 8),
             success: true,
             hash: blockHash.toString(),
+            extrinsicHash: extHash,
             timestamp: ts,
           });
         }
@@ -980,4 +987,240 @@ export async function getRecentTransfers(count: number = 20): Promise<RecentTran
   }
 
   return transfers.slice(0, count);
+}
+
+// ==================== EXTRINSIC DETAIL BY HASH ====================
+
+export interface ExtrinsicDetail {
+  hash: string;
+  blockNumber: number;
+  blockHash: string;
+  index: number;
+  section: string;
+  method: string;
+  signer: string | null;
+  signature: string | null;
+  success: boolean;
+  timestamp: number;
+  args: string[];
+  fee: string;
+  tip: string;
+  transfers: Array<{
+    from: string;
+    to: string;
+    amount: string;
+    amountFormatted: number;
+  }>;
+  events: Array<{
+    section: string;
+    method: string;
+    data: string[];
+  }>;
+}
+
+export async function getExtrinsicByHash(hashOrId: string): Promise<ExtrinsicDetail | null> {
+  try {
+    const api = await getApi();
+
+    // 1) If it's an extrinsic ID like "12345-0", parse block number + index
+    const idMatch = hashOrId.match(/^(\d+)-(\d+)$/);
+    if (idMatch) {
+      const blockNum = parseInt(idMatch[1], 10);
+      const extIdx = parseInt(idMatch[2], 10);
+      return fetchExtrinsicFromBlock(api, blockNum, extIdx);
+    }
+
+    if (hashOrId.startsWith('0x')) {
+      // 2) Try as a block hash first (single fast RPC call)
+      try {
+        const block = await api.rpc.chain.getBlock(hashOrId);
+        if (block?.block?.extrinsics?.length > 0) {
+          const blockNum = block.block.header.number.toNumber();
+          for (let idx = 0; idx < block.block.extrinsics.length; idx++) {
+            const ext = block.block.extrinsics[idx] as any;
+            if (ext.isSigned) {
+              return fetchExtrinsicFromBlock(api, blockNum, idx);
+            }
+          }
+          return fetchExtrinsicFromBlock(api, blockNum, 0);
+        }
+      } catch {
+        // Not a valid block hash, continue to extrinsic hash search
+      }
+
+      // 3) Query indexer for blocks with transfers, then check those blocks via RPC
+      try {
+        const GRAPHQL_URL = 'http://localhost:3000';
+        // Get unique block numbers from transfers (most likely to contain user txs)
+        const transferRes = await fetch(GRAPHQL_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `{ transfers(first: 200, orderBy: BLOCK_NUMBER_DESC) { nodes { blockNumber } } }`
+          })
+        });
+        const transferData = await transferRes.json();
+        const transferBlocks = [...new Set(
+          (transferData?.data?.transfers?.nodes || []).map((n: any) => parseInt(n.blockNumber))
+        )] as number[];
+
+        // Also get unique block numbers from extrinsics table
+        const extRes = await fetch(GRAPHQL_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `{ extrinsics(first: 200, orderBy: BLOCK_NUMBER_DESC, filter: { isSigned: { equalTo: true } }) { nodes { blockNumber } } }`
+          })
+        });
+        const extData = await extRes.json();
+        const extBlocks = (extData?.data?.extrinsics?.nodes || []).map((n: any) => parseInt(n.blockNumber));
+
+        // Combine and deduplicate block numbers
+        const candidateBlocks = [...new Set([...transferBlocks, ...extBlocks])] as number[];
+
+        // Check candidate blocks in parallel batches of 10
+        for (let i = 0; i < candidateBlocks.length; i += 10) {
+          const batch = candidateBlocks.slice(i, i + 10);
+          const results = await Promise.all(batch.map(async (blockNum) => {
+            try {
+              const bHash = await api.rpc.chain.getBlockHash(blockNum);
+              const signedBlock = await api.rpc.chain.getBlock(bHash);
+              for (let idx = 0; idx < signedBlock.block.extrinsics.length; idx++) {
+                const ext = signedBlock.block.extrinsics[idx] as any;
+                if (ext.hash.toHex() === hashOrId) {
+                  return { blockNum, idx };
+                }
+              }
+            } catch { /* skip */ }
+            return null;
+          }));
+          const found = results.find(r => r !== null);
+          if (found) {
+            return fetchExtrinsicFromBlock(api, found.blockNum, found.idx);
+          }
+        }
+      } catch (e) {
+        console.warn('Indexer lookup failed, falling back to recent scan:', e);
+      }
+
+      // 4) Scan recent blocks as last resort (limited to 50 blocks)
+      const header = await api.rpc.chain.getHeader();
+      const latestBlock = header.number.toNumber();
+      const SCAN_RANGE = 50;
+      const BATCH_SIZE = 10;
+
+      for (let start = 0; start < SCAN_RANGE; start += BATCH_SIZE) {
+        const batch = [];
+        for (let j = 0; j < BATCH_SIZE; j++) {
+          const blockNum = latestBlock - start - j;
+          if (blockNum < 1) break;
+          batch.push(blockNum);
+        }
+
+        const results = await Promise.all(batch.map(async (blockNum) => {
+          try {
+            const bHash = await api.rpc.chain.getBlockHash(blockNum);
+            const signedBlock = await api.rpc.chain.getBlock(bHash);
+            for (let idx = 0; idx < signedBlock.block.extrinsics.length; idx++) {
+              const ext = signedBlock.block.extrinsics[idx] as any;
+              if (ext.hash.toHex() === hashOrId) {
+                return { blockNum, idx };
+              }
+            }
+          } catch { /* skip */ }
+          return null;
+        }));
+
+        const found = results.find(r => r !== null);
+        if (found) {
+          return fetchExtrinsicFromBlock(api, found.blockNum, found.idx);
+        }
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.error('getExtrinsicByHash error:', err);
+    return null;
+  }
+}
+
+async function fetchExtrinsicFromBlock(api: ApiPromise, blockNum: number, extIdx: number): Promise<ExtrinsicDetail | null> {
+  try {
+    const blockHash = await api.rpc.chain.getBlockHash(blockNum);
+    const [signedBlock, allEvents] = await Promise.all([
+      api.rpc.chain.getBlock(blockHash),
+      api.query.system.events.at(blockHash),
+    ]);
+
+    const ext = signedBlock.block.extrinsics[extIdx] as any;
+    if (!ext) return null;
+
+    const timestampExt = signedBlock.block.extrinsics.find(
+      (ex: any) => ex.method.section === 'timestamp' && ex.method.method === 'set'
+    );
+    const ts = timestampExt ? Number(timestampExt.method.args[0].toString()) : 0;
+
+    const extEvents = (allEvents as any[]).filter(
+      (e: any) => e.phase.isApplyExtrinsic && e.phase.asApplyExtrinsic.toNumber() === extIdx
+    );
+
+    const success = !extEvents.some(
+      (e: any) => e.event.section === 'system' && e.event.method === 'ExtrinsicFailed'
+    );
+
+    const transfers: ExtrinsicDetail['transfers'] = [];
+    const events: ExtrinsicDetail['events'] = [];
+
+    for (const record of extEvents) {
+      const { event } = record;
+      events.push({
+        section: event.section,
+        method: event.method,
+        data: event.data.map((d: any) => d.toString()),
+      });
+
+      if (event.section === 'balances' && event.method === 'Transfer') {
+        const [from, to, amount] = event.data;
+        transfers.push({
+          from: from.toString(),
+          to: to.toString(),
+          amount: amount.toString(),
+          amountFormatted: Number(BigInt(amount.toString())) / 1e8,
+        });
+      }
+    }
+
+    // Try to extract fee from TransactionPayment event
+    let fee = '0';
+    let tip = '0';
+    const feeEvent = extEvents.find(
+      (e: any) => e.event.section === 'transactionPayment' && e.event.method === 'TransactionFeePaid'
+    );
+    if (feeEvent) {
+      fee = feeEvent.event.data[1]?.toString() || '0';
+      tip = feeEvent.event.data[2]?.toString() || '0';
+    }
+
+    return {
+      hash: ext.hash.toHex(),
+      blockNumber: blockNum,
+      blockHash: blockHash.toString(),
+      index: extIdx,
+      section: ext.method.section,
+      method: ext.method.method,
+      signer: ext.isSigned ? ext.signer.toString() : null,
+      signature: ext.isSigned ? ext.signature.toString() : null,
+      success,
+      timestamp: ts,
+      args: ext.method.args.map((a: any) => a.toString()),
+      fee,
+      tip,
+      transfers,
+      events,
+    };
+  } catch (err) {
+    console.error('fetchExtrinsicFromBlock error:', err);
+    return null;
+  }
 }

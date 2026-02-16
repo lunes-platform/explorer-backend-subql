@@ -323,9 +323,9 @@
 }
 
 .stakeButton:hover {
-  background: var(--color-brand-800);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(108, 56, 255, 0.3);
+  background: linear-gradient(135deg, #7B42FF, #9B6DFF);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(108, 56, 255, 0.5), 0 0 40px rgba(108, 56, 255, 0.3);
 }
 
 /* Info Section */

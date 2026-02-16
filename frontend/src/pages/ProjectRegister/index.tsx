@@ -10,11 +10,14 @@ import {
   Upload,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  Wallet
 } from 'lucide-react';
 import Card from '../../components/common/Card';
-import { StatusBadge } from '../../components/common/StatusBadge';
-import EmptyState from '../../components/common/EmptyState';
+import ImageUpload from '../../components/common/ImageUpload';
+import { useWalletAuth } from '../../context/WalletAuthContext';
+import { useProjectMutations } from '../../hooks/useProjects';
+import type { ProjectLink, ProjectMilestone } from '../../data/knownProjects';
 import styles from './ProjectRegister.module.css';
 
 const CATEGORIES = [
@@ -54,8 +57,10 @@ const ProjectRegister: React.FC = () => {
     { quarter: '', title: '', description: '', status: 'Upcoming' }
   ]);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isConnected, connect, wallet } = useWalletAuth();
+  const { create, saving: isSubmitting, error: apiError } = useProjectMutations();
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -92,13 +97,51 @@ const ProjectRegister: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsSubmitting(false);
-    setSubmitted(true);
+    setSubmitError(null);
+
+    if (!isConnected || !wallet?.account?.address) {
+      setSubmitError('Please connect your wallet first.');
+      return;
+    }
+
+    const links: ProjectLink[] = [];
+    if (formData.website) links.push({ type: 'website', url: formData.website, label: 'Website' });
+    if (formData.github) links.push({ type: 'github', url: formData.github, label: 'GitHub' });
+    if (formData.x) links.push({ type: 'x', url: formData.x, label: 'X' });
+    if (formData.discord) links.push({ type: 'discord', url: formData.discord, label: 'Discord' });
+    if (formData.telegram) links.push({ type: 'telegram', url: formData.telegram, label: 'Telegram' });
+    if (formData.whitepaper) links.push({ type: 'docs', url: formData.whitepaper, label: 'Whitepaper' });
+
+    const milestones: ProjectMilestone[] = roadmap
+      .filter(r => r.title.trim())
+      .map(r => ({
+        title: r.title,
+        date: r.quarter,
+        status: r.status === 'Completed' ? 'completed' as const : r.status === 'In Progress' ? 'in-progress' as const : 'planned' as const,
+        description: r.description,
+      }));
+
+    const result = await create({
+      name: formData.name,
+      category: formData.category.toLowerCase() as any,
+      description: formData.description,
+      logo: formData.logoUrl,
+      links,
+      team: teamMembers.filter(m => m.name.trim()).map(m => ({ name: m.name, role: m.role })),
+      milestones,
+      tags: [],
+      contractAddresses: [],
+      tokenIds: [],
+      nftCollectionIds: [],
+      assetIds: assetId ? [assetId] : [],
+      ownerAddress: wallet.account.address,
+    });
+
+    if (result) {
+      setSubmitted(true);
+    } else {
+      setSubmitError(apiError || 'Failed to register project. Make sure the API server is running (port 4000).');
+    }
   };
 
   if (submitted) {
@@ -282,26 +325,20 @@ const ProjectRegister: React.FC = () => {
         <Card title="Project Media" icon={<Upload size={18} />}>
           <div className={styles.formGrid}>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Logo URL</label>
-              <input
-                type="url"
-                name="logoUrl"
+              <ImageUpload
+                label="Logo (recommended: 200x200px)"
                 value={formData.logoUrl}
-                onChange={handleInputChange}
-                className={styles.input}
-                placeholder="https://... (recommended: 200x200px)"
+                onChange={(url) => setFormData(prev => ({ ...prev, logoUrl: url }))}
+                placeholder="https://..."
               />
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.label}>Banner URL</label>
-              <input
-                type="url"
-                name="bannerUrl"
+              <ImageUpload
+                label="Banner (recommended: 1200x400px)"
                 value={formData.bannerUrl}
-                onChange={handleInputChange}
-                className={styles.input}
-                placeholder="https://... (recommended: 1200x400px)"
+                onChange={(url) => setFormData(prev => ({ ...prev, bannerUrl: url }))}
+                placeholder="https://..."
               />
             </div>
           </div>
@@ -446,24 +483,42 @@ const ProjectRegister: React.FC = () => {
               This process typically takes 3-5 business days.
             </span>
           </div>
-          
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={styles.submitButton}
-          >
-            {isSubmitting ? (
-              <>
-                <span className={styles.spinner} />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <CheckCircle size={20} />
-                Submit for Verification
-              </>
-            )}
-          </button>
+
+          {submitError && (
+            <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.2)', color: '#ff4d6a', fontSize: 13, marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <AlertCircle size={16} />
+              {submitError}
+            </div>
+          )}
+
+          {!isConnected ? (
+            <button
+              type="button"
+              onClick={() => connect()}
+              className={styles.submitButton}
+            >
+              <Wallet size={20} />
+              Connect Wallet to Submit
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={styles.submitButton}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className={styles.spinner} />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={20} />
+                  Submit for Verification
+                </>
+              )}
+            </button>
+          )}
         </div>
       </form>
     </div>

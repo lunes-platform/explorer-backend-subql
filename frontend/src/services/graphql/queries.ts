@@ -31,6 +31,21 @@ export const GET_LATEST_EXTRINSICS = gql`
   }
 `;
 
+export const GET_LATEST_TRANSFERS = gql`
+  query GetLatestTransfers($first: Int = 8) {
+    transfers(first: $first, orderBy: TIMESTAMP_DESC) {
+      nodes {
+        id
+        fromId
+        toId
+        amount
+        blockNumber
+        timestamp
+      }
+    }
+  }
+`;
+
 export const GET_HOME_STATS = gql`
   query GetHomeStats {
     transfers(first: 100, orderBy: TIMESTAMP_DESC) {
@@ -195,6 +210,41 @@ export const GET_ACCOUNT_DETAIL = gql`
           success
         }
       }
+    }
+  }
+`;
+
+export const GET_ACCOUNT_TRANSFERS = gql`
+  query GetAccountTransfers($id: String!, $first: Int = 50) {
+    sent: transfers(filter: { fromId: { equalTo: $id } }, first: $first, orderBy: BLOCK_NUMBER_DESC) {
+      nodes {
+        id
+        fromId
+        toId
+        amount
+        value
+        blockNumber
+        eventIndex
+        timestamp
+        date
+        blockId
+      }
+      totalCount
+    }
+    received: transfers(filter: { toId: { equalTo: $id } }, first: $first, orderBy: BLOCK_NUMBER_DESC) {
+      nodes {
+        id
+        fromId
+        toId
+        amount
+        value
+        blockNumber
+        eventIndex
+        timestamp
+        date
+        blockId
+      }
+      totalCount
     }
   }
 `;

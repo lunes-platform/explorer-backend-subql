@@ -1,17 +1,25 @@
 import { motion } from 'framer-motion';
 import { Search, Loader2 } from 'lucide-react';
 import MarketStats from './MarketStats';
+import BannerSlider from './BannerSlider';
 import TopTokens from './TopTokens';
 import LatestActivity from './LatestActivity';
 import { useGlobalSearch } from '../../hooks/useGlobalSearch';
+import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import SearchResults from '../../components/common/SearchResults';
+import { IndexerAlert } from '../../components/common/IndexerAlert';
 import classes from './Home.module.css';
 
 const Home = () => {
-    const { query, setQuery, results, showResults, handleSearch, selectResult, dismissResults, isSearching } = useGlobalSearch();
+    usePageTitle('Dashboard', 'Lunes blockchain dashboard — real-time blocks, transactions, market data, validators, and network health at a glance.');
+    const { query, setQuery, results, showResults, handleSearch, selectResult, dismissResults, isSearching, selectedIndex } = useGlobalSearch();
+    const health = useHealthStatus();
 
     return (
         <div className={classes.pageContainer}>
+            <IndexerAlert lag={health.indexer.lag} />
+            
             {/* Search Section - NOW CONNECTED TO useGlobalSearch */}
             <div className={classes.searchContainer}>
                 <div style={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
@@ -55,15 +63,25 @@ const Home = () => {
                         query={query}
                         onSelect={selectResult}
                         onDismiss={dismissResults}
+                        selectedIndex={selectedIndex}
                     />
                 </div>
             </div>
+
+            {/* Promotional Banner Slider */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <BannerSlider />
+            </motion.div>
 
             {/* Market Stats Hero */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.15 }}
             >
                 <MarketStats />
             </motion.div>

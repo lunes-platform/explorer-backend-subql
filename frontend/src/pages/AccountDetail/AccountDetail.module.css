@@ -2,6 +2,9 @@
   max-width: var(--content-max-width);
   margin: 0 auto;
   padding: var(--space-6) var(--layout-gutter);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .header {
@@ -120,14 +123,15 @@
 .transfersList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
 }
 
 .transferItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-4);
+  gap: var(--space-3);
   background: var(--surface-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);

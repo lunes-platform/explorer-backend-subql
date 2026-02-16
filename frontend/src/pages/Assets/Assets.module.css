@@ -281,6 +281,19 @@
   font-size: var(--text-sm);
 }
 
+.ownerLink {
+  color: var(--color-brand-400);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+
+.ownerLink:hover {
+  color: var(--color-brand-300);
+  text-decoration: underline;
+}
+
 @media (max-width: 1024px) {
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);

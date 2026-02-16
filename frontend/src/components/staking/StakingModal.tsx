@@ -16,6 +16,8 @@ function shortAddr(addr: string): string {
   return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
 }
 
+const MIN_STAKE = 10_000;
+
 export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, validatorAddress }) => {
   const { wallet, isConnected } = useWalletAuth();
   const [activeTab, setActiveTab] = useState<'stake' | 'unstake' | 'withdraw'>('stake');
@@ -65,12 +67,17 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
 
   const handleStake = async () => {
     if (!address || !amount) return;
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed < MIN_STAKE) {
+      setError(`Minimum stake is ${MIN_STAKE.toLocaleString()} LUNES`);
+      return;
+    }
     
     setIsSubmitting(true);
     setError(null);
     
     try {
-      const amountPlanck = BigInt(Math.floor(parseFloat(amount) * 1e12));
+      const amountPlanck = BigInt(Math.floor(parseFloat(amount) * 1e8));
       await bond(address, amountPlanck, 'Staked');
       
       // After bonding, nominate the selected validator
@@ -90,12 +97,17 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
 
   const handleStakeMore = async () => {
     if (!address || !amount) return;
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed < MIN_STAKE) {
+      setError(`Minimum additional stake is ${MIN_STAKE.toLocaleString()} LUNES`);
+      return;
+    }
     
     setIsSubmitting(true);
     setError(null);
     
     try {
-      const amountPlanck = BigInt(Math.floor(parseFloat(amount) * 1e12));
+      const amountPlanck = BigInt(Math.floor(parseFloat(amount) * 1e8));
       await bondExtra(address, amountPlanck);
       
       setSuccess(`Successfully added ${amount} LUNES to your stake!`);
@@ -115,7 +127,7 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
     setError(null);
     
     try {
-      const amountPlanck = BigInt(Math.floor(parseFloat(amount) * 1e12));
+      const amountPlanck = BigInt(Math.floor(parseFloat(amount) * 1e8));
       await unbond(address, amountPlanck);
       
       setSuccess(`Successfully unbonded ${amount} LUNES! You can withdraw after the unbonding period (28 eras).`);
@@ -216,13 +228,13 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
                         <div>
                           <span className={styles.label}>Total Staked</span>
                           <span className={styles.value}>
-                            {(Number(BigInt(stakingInfo.ledger.total.replace(/,/g, ''))) / 1e12).toFixed(4)} LUNES
+                            {(Number(BigInt(stakingInfo.ledger.total.replace(/,/g, ''))) / 1e8).toFixed(4)} LUNES
                           </span>
                         </div>
                         <div>
                           <span className={styles.label}>Active</span>
                           <span className={styles.value}>
-                            {(Number(BigInt(stakingInfo.ledger.active.replace(/,/g, ''))) / 1e12).toFixed(4)} LUNES
+                            {(Number(BigInt(stakingInfo.ledger.active.replace(/,/g, ''))) / 1e8).toFixed(4)} LUNES
                           </span>
                         </div>
                       </div>
@@ -247,12 +259,12 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      placeholder="Enter amount to stake"
+                      placeholder={`Min. ${MIN_STAKE.toLocaleString()} LUNES`}
                       className={styles.input}
-                      min="1"
-                      step="0.01"
+                      min={MIN_STAKE}
+                      step="1"
                     />
-                    <span className={styles.hint}>Minimum: 1 LUNES</span>
+                    <span className={styles.hint}>Minimum: {MIN_STAKE.toLocaleString()} LUNES</span>
                   </div>
 
                   {!hasExistingStake && !selectedValidator && (
@@ -271,7 +283,7 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
 
                   <button
                     onClick={hasExistingStake ? handleStakeMore : handleStake}
-                    disabled={!amount || isSubmitting}
+                    disabled={!amount || isSubmitting || parseFloat(amount) < MIN_STAKE}
                     className={styles.submitButton}
                   >
                     {isSubmitting ? (
@@ -311,7 +323,7 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
                     />
                     {stakingInfo?.ledger?.active && (
                       <span className={styles.hint}>
-                        Available: {(Number(BigInt(stakingInfo.ledger.active.replace(/,/g, ''))) / 1e12).toFixed(4)} LUNES
+                        Available: {(Number(BigInt(stakingInfo.ledger.active.replace(/,/g, ''))) / 1e8).toFixed(4)} LUNES
                       </span>
                     )}
                   </div>
@@ -344,7 +356,7 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
                           <div>
                             <span className={styles.label}>Ready to Withdraw</span>
                             <span className={styles.value}>
-                              {(Number(unbondingInfo.ready) / 1e12).toFixed(4)} LUNES
+                              {(Number(unbondingInfo.ready) / 1e8).toFixed(4)} LUNES
                             </span>
                           </div>
                         </div>
@@ -355,7 +367,7 @@ export const StakingModal: React.FC<StakingModalProps> = ({ isOpen, onClose, val
                           <div>
                             <span className={styles.label}>Still Unbonding</span>
                             <span className={styles.value}>
-                              {(Number(unbondingInfo.pending) / 1e12).toFixed(4)} LUNES
+                              {(Number(unbondingInfo.pending) / 1e8).toFixed(4)} LUNES
                             </span>
                           </div>
                         </div>

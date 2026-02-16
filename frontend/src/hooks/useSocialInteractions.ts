@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { toggleLike as apiToggleLike, toggleFollow as apiToggleFollow, fetchProjectSocial, fetchComments as apiFetchComments, createComment as apiCreateComment, addReaction as apiAddReaction } from '../services/projectsApi';
 
 export interface ProjectSocialData {
   likes: number;
@@ -14,6 +15,10 @@ export interface ProjectComment {
   author: string;
   text: string;
   timestamp: number;
+  metadata?: {
+    reactions?: { userAddress: string; emoji: string; createdAt: string }[];
+    gif?: string | null;
+  };
 }
 
 interface UserInteractions {
@@ -79,6 +84,46 @@ export function useSocialInteractions(projectId: string, userAddress?: string | 
     }
   }, [projectId, userAddress]);
 
+  // Sync with backend API (best-effort)
+  useEffect(() => {
+    fetchProjectSocial(projectId)
+      .then(data => {
+        setSocialData(prev => ({
+          ...prev,
+          likes: Math.max(prev.likes, data.stats.likes),
+          followers: Math.max(prev.followers, data.stats.follows),
+        }));
+        if (userAddress) {
+          const apiLiked = data.likes.some(l => l.userAddress === userAddress);
+          const apiFollowed = data.follows.some(f => f.userAddress === userAddress);
+          if (apiLiked || apiFollowed) {
+            setUserInteractions(prev => ({
+              ...prev,
+              liked: prev.liked || apiLiked,
+              following: prev.following || apiFollowed,
+            }));
+          }
+        }
+      })
+      .catch(() => { /* API unavailable, use localStorage */ });
+  }, [projectId, userAddress]);
+
+  // Sync comments from backend
+  useEffect(() => {
+    apiFetchComments(projectId)
+      .then(apiComments => {
+        const mapped: ProjectComment[] = apiComments.map(c => ({
+          id: c.id,
+          author: c.userAddress,
+          text: c.content,
+          timestamp: new Date(c.createdAt).getTime(),
+          metadata: c.metadata,
+        }));
+        setSocialData(prev => ({ ...prev, comments: mapped }));
+      })
+      .catch(() => { /* API unavailable, use localStorage */ });
+  }, [projectId]);
+
   const updateSocial = useCallback((updater: (prev: ProjectSocialData) => ProjectSocialData) => {
     setSocialData(prev => {
       const next = updater(prev);
@@ -103,7 +148,9 @@ export function useSocialInteractions(projectId: string, userAddress?: string | 
     const wasLiked = userInteractions.liked;
     updateUser(prev => ({ ...prev, liked: !wasLiked }));
     updateSocial(prev => ({ ...prev, likes: prev.likes + (wasLiked ? -1 : 1) }));
-  }, [userAddress, userInteractions.liked, updateUser, updateSocial]);
+    // Sync to backend
+    apiToggleLike(projectId, userAddress).catch(() => {});
+  }, [projectId, userAddress, userInteractions.liked, updateUser, updateSocial]);
 
   const toggleLove = useCallback(() => {
     if (!userAddress) return;
@@ -117,7 +164,9 @@ export function useSocialInteractions(projectId: string, userAddress?: string | 
     const wasFollowing = userInteractions.following;
     updateUser(prev => ({ ...prev, following: !wasFollowing }));
     updateSocial(prev => ({ ...prev, followers: prev.followers + (wasFollowing ? -1 : 1) }));
-  }, [userAddress, userInteractions.following, updateUser, updateSocial]);
+    // Sync to backend
+    apiToggleFollow(projectId, userAddress).catch(() => {});
+  }, [projectId, userAddress, userInteractions.following, updateUser, updateSocial]);
 
   const recordDonation = useCallback((amount: number) => {
     updateSocial(prev => ({
@@ -127,19 +176,71 @@ export function useSocialInteractions(projectId: string, userAddress?: string | 
     }));
   }, [updateSocial]);
 
-  const addComment = useCallback((text: string) => {
+  const addComment = useCallback(async (text: string, metadata?: { gif?: string | null }) => {
     if (!userAddress || !text.trim()) return;
+    const trimmedText = text.trim();
+    if (trimmedText.length > 350) return; // Max 350 chars
+    
+    // Optimistic update
+    const tempId = Date.now().toString(36);
     const comment: ProjectComment = {
-      id: Date.now().toString(36),
+      id: tempId,
       author: userAddress,
-      text: text.trim(),
+      text: trimmedText,
       timestamp: Date.now(),
+      metadata,
     };
     updateSocial(prev => ({
       ...prev,
       comments: [comment, ...prev.comments].slice(0, 50),
     }));
-  }, [userAddress, updateSocial]);
+    
+    // Sync to backend
+    try {
+      const apiComment = await apiCreateComment(projectId, userAddress, trimmedText, metadata);
+      // Replace temp ID with real ID
+      setSocialData(prev => ({
+        ...prev,
+        comments: prev.comments.map(c => c.id === tempId ? {
+          id: apiComment.id,
+          author: apiComment.userAddress,
+          text: apiComment.content,
+          timestamp: new Date(apiComment.createdAt).getTime(),
+          metadata: apiComment.metadata,
+        } : c),
+      }));
+    } catch {
+      // Keep local comment if API fails
+    }
+  }, [userAddress, projectId, updateSocial]);
+
+  const addCommentReaction = useCallback(async (commentId: string, emoji: string) => {
+    if (!userAddress) return;
+    
+    // Optimistic update
+    setSocialData(prev => ({
+      ...prev,
+      comments: prev.comments.map(c => {
+        if (c.id !== commentId) return c;
+        const reactions = c.metadata?.reactions || [];
+        const existing = reactions.find(r => r.userAddress === userAddress && r.emoji === emoji);
+        const newReactions = existing
+          ? reactions.filter(r => !(r.userAddress === userAddress && r.emoji === emoji))
+          : [...reactions, { userAddress, emoji, createdAt: new Date().toISOString() }];
+        return {
+          ...c,
+          metadata: { ...c.metadata, reactions: newReactions },
+        };
+      }),
+    }));
+    
+    // Sync to backend
+    try {
+      await apiAddReaction(commentId, userAddress, emoji);
+    } catch {
+      // Revert on error would require more complex state management
+    }
+  }, [userAddress]);
 
   return {
     socialData,
@@ -149,6 +250,7 @@ export function useSocialInteractions(projectId: string, userAddress?: string | 
     toggleFollow,
     recordDonation,
     addComment,
+    addCommentReaction,
     isConnected: !!userAddress,
   };
 }

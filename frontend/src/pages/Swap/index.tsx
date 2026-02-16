@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Settings, ArrowDown } from 'lucide-react';
+import { Settings, ArrowDown, AlertTriangle, Wallet } from 'lucide-react';
 import SwapInput from '../../components/swap/SwapInput';
 import TokenSelector from '../../components/swap/TokenSelector';
 import SettingsModal from '../../components/swap/SettingsModal';
+import { useWalletAuth } from '../../context/WalletAuthContext';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import classes from './Swap.module.css';
 
 // Types
@@ -13,6 +15,9 @@ interface Token {
 }
 
 const SwapPage: React.FC = () => {
+    usePageTitle('Swap', 'Swap tokens on the Lunes blockchain. Exchange LUNES and ecosystem tokens directly from your wallet.');
+    const { isConnected, connect } = useWalletAuth();
+
     // State
     const [fromAmount, setFromAmount] = useState('');
     const [toAmount, setToAmount] = useState('');
@@ -86,17 +91,40 @@ const SwapPage: React.FC = () => {
                     />
                 </div>
 
-                {fromToken && toToken && (
+                {fromToken && toToken && fromAmount && (
                     <div className={classes.infoRow}>
-                        <span>1 {fromToken.symbol} ≈ 12.34 {toToken.symbol}</span>
-                        <span>Fuel: $0.23</span>
+                        <span>1 {fromToken.symbol} ≈ — {toToken.symbol}</span>
+                        <span>Slippage: {slippage}%</span>
                     </div>
                 )}
 
+                {!isConnected ? (
+                    <button className={classes.swapButton} onClick={connect}>
+                        <Wallet size={18} style={{ marginRight: 8, verticalAlign: -3 }} />
+                        Connect Wallet
+                    </button>
+                ) : !fromToken || !toToken ? (
+                    <button className={classes.swapButton} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                        Select Tokens
+                    </button>
+                ) : !fromAmount || Number(fromAmount) <= 0 ? (
+                    <button className={classes.swapButton} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                        Enter Amount
+                    </button>
+                ) : (
+                    <button className={classes.swapButton} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                        Swap (Coming Soon)
+                    </button>
+                )}
 
-                <button className={classes.swapButton}>
-                    Connect Wallet
-                </button>
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
+                    borderRadius: 10, background: 'rgba(254,159,0,0.08)', border: '1px solid rgba(254,159,0,0.2)',
+                    fontSize: 12, color: '#fe9f00', marginTop: 4,
+                }}>
+                    <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                    <span>DEX liquidity pools are under development. Swap functionality will be enabled once pools are live on Lunes.</span>
+                </div>
             </div>
 
             <TokenSelector

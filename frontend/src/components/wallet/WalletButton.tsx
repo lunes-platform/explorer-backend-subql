@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, ChevronDown, LogOut, Copy, Check, Eye } from 'lucide-react';
+import { Wallet, ChevronDown, LogOut, Copy, Check, Eye, LayoutDashboard } from 'lucide-react';
 import { useWalletAuth } from '../../context/WalletAuthContext';
 import { WalletModal } from './WalletModal';
 import styles from './WalletButton.module.css';
@@ -21,12 +21,10 @@ export const WalletButton: React.FC = () => {
   };
 
   const handleOpenModal = () => {
-    console.log('Opening modal...');
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
-    console.log('Closing modal...');
     setShowModal(false);
   };
 
@@ -69,7 +67,7 @@ export const WalletButton: React.FC = () => {
             </div>
             
             <div className={styles.dropdownAddress}>
-              <span className={styles.fullAddress}>{wallet.account.address}</span>
+              <span className={styles.fullAddress}>{wallet.account.address.slice(0, 6)}...{wallet.account.address.slice(-4)}</span>
               <button 
                 className={styles.copyButton}
                 onClick={handleCopyAddress}
@@ -77,6 +75,18 @@ export const WalletButton: React.FC = () => {
                 {copied ? <Check size={14} /> : <Copy size={14} />}
               </button>
             </div>
+
+            <button
+              className={styles.disconnectButton}
+              style={{ color: 'var(--color-brand-400)', borderColor: 'rgba(108, 56, 255, 0.2)' }}
+              onClick={() => {
+                navigate('/dashboard');
+                setShowDropdown(false);
+              }}
+            >
+              <LayoutDashboard size={16} />
+              My Dashboard
+            </button>
 
             <button
               className={styles.disconnectButton}

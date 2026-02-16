@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Wallet, AlertCircle, Loader2, Check } from 'lucide-react';
 import { useWalletAuth, type WalletType } from '../../context/WalletAuthContext';
 import styles from './WalletModal.module.css';
@@ -34,8 +35,6 @@ const WALLET_INFO: Record<WalletType, { name: string; description: string; color
 export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const { connect, isConnecting, error, availableWallets, accounts, selectAccount, selectedAccount, wallet } = useWalletAuth();
 
-  console.log('WalletModal render - isOpen:', isOpen, 'wallet:', wallet, 'accounts:', accounts.length);
-
   if (!isOpen) return null;
 
   const handleWalletSelect = async (walletType: WalletType) => {
@@ -49,7 +48,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
 
   // Show account selection if connected and has multiple accounts
   if (wallet && accounts.length > 1) {
-    return (
+    return createPortal(
       <div className={styles.overlay} onClick={onClose}>
         <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
           <div className={styles.header}>
@@ -79,11 +78,12 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
             ))}
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
@@ -150,6 +150,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

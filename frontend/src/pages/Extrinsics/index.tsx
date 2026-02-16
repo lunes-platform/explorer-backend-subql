@@ -1,30 +1,32 @@
 import React, { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
 import { Link } from 'react-router-dom';
-import { GET_EXTRINSICS, GET_HOME_STATS } from '../../services/graphql/queries';
+import { GET_EXTRINSICS } from '../../services/graphql/queries';
 import { SkeletonRows } from '../../components/common/Skeleton';
 import { Pagination } from '../../components/common/Pagination';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import DegradedBanner from '../../components/common/DegradedBanner';
+import { ExportButton } from '../../components/common/ExportButton';
+import { IndexerAlert } from '../../components/common/IndexerAlert';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import { getIndexerDegradedLevel, degradedToHealth } from '../../utils/indexerHealth';
-import type { Extrinsic, GetExtrinsicsResponse, HomeStats } from '../../types';
+import type { Extrinsic, GetExtrinsicsResponse } from '../../types';
 import classes from '../Blocks/Blocks.module.css';
 
 const PAGE_SIZE = 25;
 
 const Extrinsics: React.FC = () => {
+    usePageTitle('Extrinsics', 'Browse all extrinsics (transactions) on the Lunes blockchain. View signer, method, block, status, and fees.');
     const [page, setPage] = useState(0);
     const { data, loading, error } = useQuery<GetExtrinsicsResponse>(GET_EXTRINSICS, {
         variables: { first: PAGE_SIZE, offset: page * PAGE_SIZE },
         pollInterval: 6000,
     });
     const health = useHealthStatus();
-    const { data: statsData } = useQuery<HomeStats>(GET_HOME_STATS);
-    const indexerBlock = statsData?.blocks?.nodes?.[0]?.number || 0;
-    const degradedLevel = getIndexerDegradedLevel(health.rpc.latestBlock, indexerBlock, !!error);
+    const degradedLevel = getIndexerDegradedLevel(health.rpc.latestBlock, health.indexer.latestBlock, !!error);
 
     const extrinsics = data?.extrinsics?.nodes || [];
     const totalCount = data?.extrinsics?.totalCount || 0;
@@ -37,7 +39,24 @@ const Extrinsics: React.FC = () => {
                 {totalCount > 0 ? `${totalCount.toLocaleString()} extrinsics indexed` : 'Loading indexed data...'}
                 {' · '}Persistent data from SubQuery indexer
             </p>
-            <DataSourceBadge source="INDEXER" updatedAt={!loading && extrinsics.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={degradedToHealth(degradedLevel)} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <DataSourceBadge source="INDEXER" updatedAt={!loading && extrinsics.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={degradedToHealth(degradedLevel)} />
+                {!loading && extrinsics.length > 0 && (
+                    <ExportButton
+                        data={extrinsics}
+                        filename={`extrinsics-${new Date().toISOString().split('T')[0]}`}
+                        columns={[
+                            { key: 'id', label: 'ID' },
+                            { key: 'blockNumber', label: 'Block' },
+                            { key: 'section', label: 'Section' },
+                            { key: 'method', label: 'Method' },
+                            { key: 'signer', label: 'Signer' },
+                            { key: 'success', label: 'Success', formatter: (v) => v ? 'Yes' : 'No' },
+                        ]}
+                        label="Export"
+                    />
+                )}
+            </div>
 
             {degradedLevel && (
                 <DegradedBanner
@@ -46,6 +65,8 @@ const Extrinsics: React.FC = () => {
                     onRetry={() => window.location.reload()}
                 />
             )}
+
+            <IndexerAlert lag={health.indexer.lag} />
 
             <div className={classes.card}>
                 <div className={classes.tableContainer}>

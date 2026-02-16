@@ -23,6 +23,7 @@
 .subtitle {
     color: var(--text-muted);
     font-size: 14px;
+    margin-bottom: 16px;
 }
 
 /* Summary stats row */

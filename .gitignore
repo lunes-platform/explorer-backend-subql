@@ -56,3 +56,22 @@ Thumbs.db
 
 .data
 .eslintcache
+
+# API data (contains admin credentials, configs)
+data/
+data/uploads/
+
+# Frontend build
+frontend/dist/
+
+# Backend Python
+backend-py/__pycache__/
+backend-py/.venv/
+
+# Playwright
+frontend/e2e/
+frontend/playwright.config.ts
+frontend/test-results/
+
+# Temp/analysis files
+REQUIREMENTS_GAP_ANALYSIS.md

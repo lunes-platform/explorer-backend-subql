@@ -16,24 +16,26 @@ import {
   Users,
   Layers
 } from 'lucide-react';
-import { GET_NFT_COLLECTION, GET_PROJECT, GET_HOME_STATS } from '../../services/graphql/queries';
+import { GET_NFT_COLLECTION, GET_PROJECT } from '../../services/graphql/queries';
 import Card from '../../components/common/Card';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { ExportButton } from '../../components/common/ExportButton';
 import { Skeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import DegradedBanner from '../../components/common/DegradedBanner';
+import { WatchlistButton } from '../../components/common/WatchlistButton';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { useWatchlist } from '../../hooks/useWatchlist';
 import { getIndexerDegradedLevel, degradedToHealth } from '../../utils/indexerHealth';
-import type { NFTCollection, GetProjectResponse, HomeStats } from '../../types';
+import type { NFTCollection, GetProjectResponse } from '../../types';
 import styles from './NFTDetail.module.css';
 
 const NFTDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const health = useHealthStatus();
-  const { data: homeStats } = useQuery<HomeStats>(GET_HOME_STATS);
-  const indexerBlock = homeStats?.blocks?.nodes?.[0]?.number || 0;
+  const { isWatched, toggleItem } = useWatchlist();
   
   const { data: nftData, loading: nftLoading, error: nftError } = 
     useQuery<{ psp34Collection: NFTCollection | null }>(GET_NFT_COLLECTION, {
@@ -103,6 +105,32 @@ const NFTDetail: React.FC = () => {
           <ArrowLeft size={18} />
           Back to NFTs
         </Link>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <ExportButton
+            data={[{
+              id: collection.id,
+              name: collection.name || 'Unnamed',
+              symbol: collection.symbol || '',
+              totalSupply: collection.totalSupply || 0,
+              contractAddress: collection.contractAddress || '',
+            }]}
+            filename={`nft-${collection.symbol || collection.id}-${new Date().toISOString().split('T')[0]}`}
+            columns={[
+              { key: 'id', label: 'Collection ID' },
+              { key: 'name', label: 'Name' },
+              { key: 'symbol', label: 'Symbol' },
+              { key: 'totalSupply', label: 'Total Supply' },
+              { key: 'contractAddress', label: 'Contract Address' },
+            ]}
+            label="Export"
+          />
+          {id && (
+            <WatchlistButton
+              isWatched={isWatched(id, 'nft')}
+              onToggle={() => toggleItem({ id, type: 'nft', name: collection?.name || undefined, symbol: collection?.symbol || undefined })}
+            />
+          )}
+        </div>
       </div>
 
       {/* Collection Hero */}
@@ -119,9 +147,9 @@ const NFTDetail: React.FC = () => {
             <h1 className={styles.collectionName}>{collection.name || 'Unnamed Collection'}</h1>
             <span className={styles.collectionSymbol}>{collection.symbol || '???'}</span>
           </div>
-          <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={degradedToHealth(getIndexerDegradedLevel(health.rpc.latestBlock, indexerBlock, !!nftError))} />
-          {getIndexerDegradedLevel(health.rpc.latestBlock, indexerBlock, !!nftError) && (
-            <DegradedBanner level={getIndexerDegradedLevel(health.rpc.latestBlock, indexerBlock, !!nftError)!} source="SubQuery Indexer" onRetry={() => window.location.reload()} />
+          <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={degradedToHealth(getIndexerDegradedLevel(health.rpc.latestBlock, health.indexer.latestBlock, !!nftError))} />
+          {getIndexerDegradedLevel(health.rpc.latestBlock, health.indexer.latestBlock, !!nftError) && (
+            <DegradedBanner level={getIndexerDegradedLevel(health.rpc.latestBlock, health.indexer.latestBlock, !!nftError)!} source="SubQuery Indexer" onRetry={() => window.location.reload()} />
           )}
           <div className={styles.collectionStats}>
             <div className={styles.stat}>

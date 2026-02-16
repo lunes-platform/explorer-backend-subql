@@ -101,6 +101,7 @@
 
 /* Top Tokens Section */
 .topTokensSection {
+    margin-top: 32px;
     margin-bottom: 40px;
 }
 
@@ -307,20 +308,20 @@
 }
 
 .activityItem:last-child {
-    border-bottom: none;
+border-bottom: none;
 }
 
 .activityIcon {
-    width: 40px;
-    height: 40px;
-    background-color: var(--bg-surface-hover);
-    border-radius: 8px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 14px;
+width: 40px;
+height: 40px;
+background-color: var(--bg-surface-hover);
+border-radius: 8px;
+display: flex;
+justify-content: center;
+align-items: center;
+color: var(--text-muted);
+font-weight: 600;
+font-size: 14px;
 }
 
 .activityContent {
@@ -401,8 +402,8 @@
 .searchBar {
     width: 100%;
     max-width: 600px;
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-default);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-subtle);
     border-radius: var(--radius-xl);
     padding: 16px 24px;
     font-size: 16px;
@@ -415,4 +416,158 @@
 .searchBar:focus {
     border-color: var(--color-brand-800);
     box-shadow: 0 4px 24px rgba(108, 56, 255, 0.15);
+}
+
+/* Ad Banner */
+.adBanner {
+    grid-column: span 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(108, 56, 255, 0.1) 0%, rgba(38, 208, 124, 0.06) 100%);
+    border: 1px solid rgba(108, 56, 255, 0.15);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.25s;
+    cursor: pointer;
+}
+
+.adBanner:hover {
+    border-color: rgba(108, 56, 255, 0.35);
+    background: linear-gradient(135deg, rgba(108, 56, 255, 0.16) 0%, rgba(38, 208, 124, 0.1) 100%);
+    transform: translateY(-4px);
+}
+
+.adContent {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.adTag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(108, 56, 255, 0.2);
+    color: var(--color-brand-400);
+    flex-shrink: 0;
+}
+
+.adTitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 2px;
+}
+
+.adDesc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.adCta {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-brand-400);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Mobile responsive (BL-UX-001) ── */
+
+@media (max-width: 768px) {
+    .pageContainer {
+        padding: 12px;
+    }
+
+    .searchContainer {
+        margin-bottom: 24px;
+    }
+
+    .searchBar {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+
+    .marketStatsGrid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+    }
+
+    .statCard {
+        padding: 14px;
+    }
+
+    .statValue {
+        font-size: 1.2rem;
+    }
+
+    .activityItem {
+        gap: 10px;
+        padding: 12px 0;
+    }
+
+    .activityIcon {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+
+    .activitySub {
+        font-size: 11px;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .pageContainer {
+        padding: 8px;
+    }
+
+    .marketStatsGrid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .adBanner {
+        grid-column: span 2;
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 16px;
+    }
+
+    .statCard {
+        padding: 10px;
+    }
+
+    .statLabel {
+        font-size: 10px;
+    }
+
+    .statValue {
+        font-size: 1rem;
+    }
+
+    .activityIcon {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+        border-radius: 6px;
+    }
+
+    .activitySub {
+        font-size: 10px;
+    }
+
+    .viewAllButton {
+        padding: 10px;
+        font-size: 13px;
+    }
 }

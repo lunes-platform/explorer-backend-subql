@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useQuery } from '@apollo/client/react';
 import { getApi, onConnectionChange } from '../services/chain';
+import { GET_HOME_STATS } from '../services/graphql/queries';
+import type { HomeStats } from '../types';
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected';
 
@@ -69,19 +72,32 @@ export function useHealthStatus(): HealthStatus {
     return rpcConnected ? 'connected' : 'disconnected';
   }, [rpcConnected]);
 
-  const indexerLag = useMemo(() => {
-    return null; // Will be computed once indexer feed is wired
-  }, []);
+  // Query indexer for latest indexed block (polls every 15s)
+  const { data: statsData, error: indexerError } = useQuery<HomeStats>(GET_HOME_STATS, {
+    pollInterval: POLL_INTERVAL,
+    fetchPolicy: 'network-only',
+  });
 
-  const indexerStatus = useMemo(() => {
+  const indexerBlock = statsData?.blocks?.nodes?.[0]?.number || 0;
+
+  const indexerLag = useMemo(() => {
+    if (indexerError) return null;
+    if (rpcBlock > 0 && indexerBlock > 0) {
+      return Math.max(rpcBlock - indexerBlock, 0);
+    }
+    return null;
+  }, [rpcBlock, indexerBlock, indexerError]);
+
+  const indexerStatus = useMemo((): 'healthy' | 'delayed' | 'lagging' | 'unknown' => {
+    if (indexerError) return 'unknown';
     if (indexerLag !== null) return getLagStatus(indexerLag);
-    return 'unknown' as const;
-  }, [indexerLag]);
+    return 'unknown';
+  }, [indexerLag, indexerError]);
 
   const health: HealthStatus = useMemo(() => ({
     rpc: { status: rpcStatus, latestBlock: rpcBlock, lastSeen: rpcLastSeen },
-    indexer: { latestBlock: 0, lag: indexerLag, status: indexerStatus },
-  }), [rpcStatus, rpcBlock, rpcLastSeen, indexerLag, indexerStatus]);
+    indexer: { latestBlock: indexerBlock, lag: indexerLag, status: indexerStatus },
+  }), [rpcStatus, rpcBlock, rpcLastSeen, indexerBlock, indexerLag, indexerStatus]);
 
   return health;
 }

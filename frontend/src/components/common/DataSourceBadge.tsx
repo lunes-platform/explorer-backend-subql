@@ -1,6 +1,6 @@
 import React from 'react';
 
-type DataSource = 'RPC' | 'API' | 'INDEXER' | 'RPC + API' | 'STATIC';
+type DataSource = 'RPC' | 'API' | 'INDEXER' | 'RPC + API' | 'RPC + INDEXER' | 'STATIC';
 type HealthLevel = 'healthy' | 'delayed' | 'lagging' | 'disconnected';
 
 interface DataSourceBadgeProps {

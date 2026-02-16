@@ -5,13 +5,15 @@ import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { useDashboardStats } from '../../hooks/useChainData';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { GET_HOME_STATS } from '../../services/graphql/queries';
+import type { HomeStats } from '../../types';
 import { useGlobalSearch } from '../../hooks/useGlobalSearch';
 import { WalletButton } from '../wallet/WalletButton';
 import { Search, Loader2, ChevronDown } from 'lucide-react';
 import SearchResults from '../common/SearchResults';
+import { WatchlistDropdown } from '../common/WatchlistDropdown';
+import { PriceAlertPanel } from '../common/PriceAlertPanel';
 import { LunesLogo } from '../common/LunesLogo';
 import { LunesWordmark } from '../common/LunesWordmark';
-import type { HomeStats } from '../../types';
 import {
     LUNES_BURN_TARGET,
     LUNES_INITIAL_SUPPLY,
@@ -28,19 +30,14 @@ function getIndexerLagStatus(lag: number | null) {
 const Header: React.FC = () => {
     const location = useLocation();
     const { price, change24h } = useLunesPrice();
-    const { data: statsData } = useQuery<HomeStats>(GET_HOME_STATS);
     const { data: chainStats } = useDashboardStats();
     const health = useHealthStatus();
-    const { query, setQuery, results, showResults, handleSearch, selectResult, dismissResults, isSearching } = useGlobalSearch();
+    const { query, setQuery, results, showResults, handleSearch, selectResult, dismissResults, isSearching, selectedIndex } = useGlobalSearch();
 
+    const { data: statsData } = useQuery<HomeStats>(GET_HOME_STATS, { pollInterval: 15000 });
     const totalTransfers = statsData?.transfers?.totalCount || 0;
     const currentSupply = chainStats?.totalIssuanceFormatted || 0;
-    const rpcLatestBlock = health.rpc.latestBlock || chainStats?.latestBlock || 0;
-    const indexerLatestBlock = statsData?.blocks?.nodes?.[0]?.number || 0;
-    const indexerLag = rpcLatestBlock > 0 && indexerLatestBlock > 0
-        ? Math.max(rpcLatestBlock - indexerLatestBlock, 0)
-        : null;
-    const indexerLagStatus = getIndexerLagStatus(indexerLag);
+    const indexerLagStatus = getIndexerLagStatus(health.indexer.lag);
     const rpcStatusLabel = health.rpc.status === 'connected' ? '● Mainnet Harmony'
         : health.rpc.status === 'connecting' ? '◌ Connecting...'
         : '○ RPC Offline';
@@ -91,11 +88,11 @@ const Header: React.FC = () => {
                     <span className={classes.title} style={{ fontSize: '11px', opacity: 0.5, fontWeight: 500, letterSpacing: '0.05em' }}>EXPLORER</span>
                 </Link>
 
-                <nav className={classes.nav}>
+                <nav className={classes.nav} aria-label="Main navigation">
                     <Link to="/" className={`${classes.navLink} ${location.pathname === '/' ? classes.active : ''}`}>Dashboard</Link>
 
                     <div className={classes.dropdown}>
-                        <button className={`${classes.navLink} ${classes.dropdownTrigger} ${['/blocks', '/extrinsics'].some(p => location.pathname.startsWith(p)) ? classes.active : ''}`}>
+                        <button aria-haspopup="true" aria-label="Blockchain menu" className={`${classes.navLink} ${classes.dropdownTrigger} ${['/blocks', '/extrinsics'].some(p => location.pathname.startsWith(p)) ? classes.active : ''}`}>
                             Blockchain <ChevronDown size={12} />
                         </button>
                         <div className={classes.dropdownMenu}>
@@ -105,7 +102,7 @@ const Header: React.FC = () => {
                     </div>
 
                     <div className={classes.dropdown}>
-                        <button className={`${classes.navLink} ${classes.dropdownTrigger} ${['/tokens', '/assets', '/nfts'].some(p => location.pathname.startsWith(p)) ? classes.active : ''}`}>
+                        <button aria-haspopup="true" aria-label="Tokens menu" className={`${classes.navLink} ${classes.dropdownTrigger} ${['/tokens', '/assets', '/nfts'].some(p => location.pathname.startsWith(p)) ? classes.active : ''}`}>
                             Tokens <ChevronDown size={12} />
                         </button>
                         <div className={classes.dropdownMenu}>
@@ -116,7 +113,7 @@ const Header: React.FC = () => {
                     </div>
 
                     <div className={classes.dropdown}>
-                        <button className={`${classes.navLink} ${classes.dropdownTrigger} ${['/staking', '/rich-list', '/contracts'].some(p => location.pathname.startsWith(p)) ? classes.active : ''}`}>
+                        <button aria-haspopup="true" aria-label="Network menu" className={`${classes.navLink} ${classes.dropdownTrigger} ${['/staking', '/rich-list', '/contracts'].some(p => location.pathname.startsWith(p)) ? classes.active : ''}`}>
                             Network <ChevronDown size={12} />
                         </button>
                         <div className={classes.dropdownMenu}>
@@ -127,9 +124,14 @@ const Header: React.FC = () => {
                     </div>
 
                     <Link to="/projects" className={`${classes.navLink} ${location.pathname.startsWith('/project') ? classes.active : ''}`}>Projects</Link>
+                    <Link to="/analytics" className={`${classes.navLink} ${location.pathname === '/analytics' ? classes.active : ''}`}>Analytics</Link>
+                    <Link to="/anomalies" className={`${classes.navLink} ${location.pathname === '/anomalies' ? classes.active : ''}`}>Radar</Link>
+                    <Link to="/rewards" className={`${classes.navLink} ${location.pathname.startsWith('/rewards') ? classes.active : ''}`}>Rewards</Link>
                 </nav>
 
                 <div className={classes.actions} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                    <PriceAlertPanel currentPrice={price} />
+                    <WatchlistDropdown />
                     <div className={classes.search} style={{ position: 'relative' }}>
                         <div className={classes.searchWrapper}>
                             <Search size={16} className={classes.searchIcon} />
@@ -140,6 +142,10 @@ const Header: React.FC = () => {
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 onKeyDown={handleSearch}
+                                aria-label="Search the blockchain"
+                                role="combobox"
+                                aria-expanded={showResults}
+                                aria-autocomplete="list"
                             />
                             {isSearching && <Loader2 size={14} className={classes.searchLoader} />}
                         </div>
@@ -150,6 +156,7 @@ const Header: React.FC = () => {
                             query={query}
                             onSelect={selectResult}
                             onDismiss={dismissResults}
+                            selectedIndex={selectedIndex}
                         />
                     </div>
                     <div style={{ flexShrink: 0 }}>

@@ -17,15 +17,37 @@ import { useBlockDetail } from '../../hooks/useChainData';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import Card from '../../components/common/Card';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import { WatchlistButton } from '../../components/common/WatchlistButton';
+import { ExportButton } from '../../components/common/ExportButton';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { useWatchlist } from '../../hooks/useWatchlist';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import { Skeleton } from '../../components/common/Skeleton';
+import AIExplanation from '../../components/common/AIExplanation';
+import { useAIExplanation } from '../../hooks/useAIExplanation';
 
 const BlockDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: block, loading, error } = useBlockDetail(id);
+  usePageTitle(block ? `Block #${block.number.toLocaleString()}` : 'Block');
   const health = useHealthStatus();
+  const { isWatched, toggleItem } = useWatchlist();
   const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
+  const { explanation, loading: aiLoading, explain, clear } = useAIExplanation();
+
+  const handleExplain = () => {
+    if (!block) return;
+    explain('block', {
+      number: block.number,
+      extrinsicCount: block.extrinsicCount,
+      eventCount: block.eventCount,
+      timestamp: block.timestamp,
+      hash: block.hash,
+      specVersion: block.specVersion,
+      sources: [`Block #${block.number}`, `${block.extrinsicCount} extrinsics`, `${block.eventCount} events`],
+    });
+  };
 
   if (loading) {
     return (
@@ -88,9 +110,40 @@ const BlockDetail: React.FC = () => {
             Block #{block.number.toLocaleString()}
           </h1>
           <DataSourceBadge source="RPC" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={rpcHealth} />
+          {id && (
+            <WatchlistButton
+              isWatched={isWatched(String(block.number), 'block')}
+              onToggle={() => toggleItem({ id: String(block.number), type: 'block', name: `Block #${block.number.toLocaleString()}` })}
+              size="sm"
+            />
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <ExportButton
+            data={[{
+              number: block.number,
+              hash: block.hash,
+              parentHash: block.parentHash,
+              stateRoot: block.stateRoot,
+              extrinsicsRoot: block.extrinsicsRoot,
+              specVersion: block.specVersion,
+              extrinsicCount: block.extrinsicCount,
+              eventCount: block.eventCount,
+              timestamp: block.timestamp ? new Date(block.timestamp).toISOString() : '',
+            }]}
+            filename={`block-${block.number}`}
+            columns={[
+              { key: 'number', label: 'Block' },
+              { key: 'hash', label: 'Hash' },
+              { key: 'parentHash', label: 'Parent Hash' },
+              { key: 'specVersion', label: 'Spec Version' },
+              { key: 'extrinsicCount', label: 'Extrinsics' },
+              { key: 'eventCount', label: 'Events' },
+              { key: 'timestamp', label: 'Timestamp' },
+            ]}
+            label="Export"
+          />
           <button
             onClick={() => navigate(`/block/${block.number - 1}`)}
             disabled={block.number <= 0}
@@ -114,6 +167,16 @@ const BlockDetail: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* AI Explanation */}
+      <AIExplanation
+        result={explanation}
+        loading={aiLoading}
+        error={null}
+        onExplain={handleExplain}
+        onClose={clear}
+        showButton={true}
+      />
 
       <div style={{ display: 'grid', gap: 20 }}>
         {/* Overview Card */}

@@ -10,6 +10,7 @@ import {
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
+import { Link } from 'react-router-dom';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
@@ -111,7 +112,11 @@ const Assets: React.FC = () => {
           </thead>
           <tbody>
             {/* LUNES native token - always first */}
-            <tr className={styles.assetRow}>
+            <tr 
+              className={styles.assetRow} 
+              style={{ cursor: 'pointer' }}
+              onClick={() => window.location.href = '/project/lunes-network'}
+            >
               <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>1</td>
               <td>
                 <div className={styles.assetCell}>
@@ -137,7 +142,15 @@ const Assets: React.FC = () => {
                   Native
                 </span>
               </td>
-              <td><span className={styles.noContract}>Substrate</span></td>
+              <td>
+                <Link 
+                  to="/project/lunes-network" 
+                  className={styles.ownerLink}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Lunes Network
+                </Link>
+              </td>
             </tr>
 
             {/* Chain assets from RPC */}

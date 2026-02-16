@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@apollo/client/react';
 import {
   Box,
   ChevronLeft,
@@ -7,12 +8,16 @@ import {
   Clock,
   Layers,
 } from 'lucide-react';
-import { useBlocksPage } from '../../hooks/useChainData';
+import { GET_BLOCKS } from '../../services/graphql/queries';
 import { SkeletonRows } from '../../components/common/Skeleton';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import DegradedBanner from '../../components/common/DegradedBanner';
+import { ExportButton } from '../../components/common/ExportButton';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { usePageTitle } from '../../hooks/usePageTitle';
+import { getIndexerDegradedLevel, degradedToHealth } from '../../utils/indexerHealth';
 import classes from './Blocks.module.css';
 
 const PAGE_SIZE = 25;
@@ -26,15 +31,43 @@ function timeAgo(ts: number): string {
   return new Date(ts).toLocaleString();
 }
 
-const Blocks: React.FC = () => {
-  const [page, setPage] = useState(0);
-  const { data, loading, error, refetch } = useBlocksPage(page, PAGE_SIZE);
-  const health = useHealthStatus();
-  const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
+interface IndexerBlock {
+  id: string;
+  number: number;
+  timestamp: string;
+  specVersion: number;
+}
 
-  const blocks = data?.blocks || [];
-  const latestBlock = data?.latestBlock || 0;
-  const estimatedTotalPages = latestBlock > 0 ? Math.ceil(latestBlock / PAGE_SIZE) : 1;
+interface GetBlocksResponse {
+  blocks: {
+    nodes: IndexerBlock[];
+    totalCount: number;
+  };
+}
+
+const Blocks: React.FC = () => {
+  usePageTitle('Blocks', 'Browse all blocks on the Lunes blockchain. View block height, hash, timestamp, extrinsics count, and validator details.');
+  const [page, setPage] = useState(0);
+  const health = useHealthStatus();
+  const degradedLevel = getIndexerDegradedLevel(health.rpc.latestBlock, health.indexer.latestBlock, false);
+  const indexerHealth = degradedToHealth(degradedLevel);
+
+  const { data: gqlData, loading, error, refetch } = useQuery<GetBlocksResponse>(GET_BLOCKS, {
+    variables: { first: PAGE_SIZE, offset: page * PAGE_SIZE },
+    pollInterval: 15000,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const blocks = (gqlData?.blocks?.nodes || []).map(b => ({
+    number: b.number,
+    hash: b.id,
+    timestamp: b.timestamp ? new Date(b.timestamp).getTime() : 0,
+    extrinsicCount: 0,
+    eventCount: 0,
+  }));
+  const totalCount = gqlData?.blocks?.totalCount || 0;
+  const latestBlock = blocks.length > 0 ? blocks[0].number : 0;
+  const estimatedTotalPages = totalCount > 0 ? Math.ceil(totalCount / PAGE_SIZE) : 1;
 
   return (
     <div className={classes.container}>
@@ -46,9 +79,24 @@ const Blocks: React.FC = () => {
               Latest block: #{latestBlock.toLocaleString()} — Showing page {page + 1}
             </p>
           )}
-          <DataSourceBadge source="RPC" updatedAt={!loading && blocks.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
+          <DataSourceBadge source="INDEXER" updatedAt={!loading && blocks.length > 0 ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={indexerHealth} />
+          {degradedLevel && <DegradedBanner level={degradedLevel} source="SubQuery Indexer" onRetry={() => refetch()} />}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {blocks.length > 0 && (
+            <ExportButton
+              data={blocks}
+              filename={`blocks-page${page + 1}-${new Date().toISOString().split('T')[0]}`}
+              columns={[
+                { key: 'number', label: 'Block' },
+                { key: 'hash', label: 'Hash' },
+                { key: 'extrinsicCount', label: 'Extrinsics' },
+                { key: 'eventCount', label: 'Events' },
+                { key: 'timestamp', label: 'Time', formatter: (v: number) => v ? new Date(v).toISOString() : '' },
+              ]}
+              label="Export"
+            />
+          )}
           <StatPill icon={<Box size={14} />} label="Latest" value={`#${latestBlock.toLocaleString()}`} />
           <StatPill icon={<Layers size={14} />} label="Page" value={`${page + 1}`} />
         </div>
@@ -67,15 +115,15 @@ const Blocks: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {loading && blocks.length === 0 ? (
                 <SkeletonRows columns={5} rows={PAGE_SIZE} />
               ) : error ? (
                 <tr>
                   <td colSpan={5}>
                     <EmptyState
                       type="error"
-                      message={error}
-                      action={{ label: 'Try again', onClick: refetch }}
+                      message={error.message || 'Failed to load blocks'}
+                      action={{ label: 'Try again', onClick: () => refetch() }}
                     />
                   </td>
                 </tr>

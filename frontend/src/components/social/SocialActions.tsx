@@ -6,6 +6,7 @@ import {
   UserCheck,
   MessageSquare,
   Send,
+  Smile,
 } from 'lucide-react';
 import { LunesLogo } from '../common/LunesLogo';
 import type { ProjectSocialData, ProjectComment } from '../../hooks/useSocialInteractions';
@@ -14,12 +15,17 @@ interface SocialActionsProps {
   socialData: ProjectSocialData;
   userInteractions: { liked: boolean; loved: boolean; following: boolean };
   isConnected: boolean;
+  userAddress?: string;
   onLike: () => void;
   onLove: () => void;
   onFollow: () => void;
   onDonate: () => void;
-  onComment: (text: string) => void;
+  onComment: (text: string, metadata?: { gif?: string | null }) => void;
+  onCommentReaction?: (commentId: string, emoji: string) => void;
 }
+
+const MAX_COMMENT_LENGTH = 350;
+const COMMON_EMOJIS = ['👍', '❤️', '🔥', '🚀', '👏', '😂', '😮', '🎉', '💯', '🔮'];
 
 function shortAddr(addr: string): string {
   if (!addr || addr.length < 14) return addr;
@@ -39,21 +45,37 @@ export const SocialActions: React.FC<SocialActionsProps> = ({
   socialData,
   userInteractions,
   isConnected,
+  userAddress,
   onLike,
   onLove,
   onFollow,
   onDonate,
   onComment,
+  onCommentReaction,
 }) => {
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedGif, setSelectedGif] = useState<string | null>(null);
 
   const handleSubmitComment = () => {
-    if (commentText.trim()) {
-      onComment(commentText);
+    if (commentText.trim() && commentText.length <= MAX_COMMENT_LENGTH) {
+      onComment(commentText, selectedGif ? { gif: selectedGif } : undefined);
       setCommentText('');
+      setSelectedGif(null);
+      setShowEmojiPicker(false);
     }
   };
+
+  const handleEmojiClick = (emoji: string) => {
+    if (commentText.length + emoji.length <= MAX_COMMENT_LENGTH) {
+      setCommentText(prev => prev + emoji);
+    }
+    setShowEmojiPicker(false);
+  };
+
+  const charCount = commentText.length;
+  const isOverLimit = charCount > MAX_COMMENT_LENGTH;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -177,34 +199,87 @@ export const SocialActions: React.FC<SocialActionsProps> = ({
 
           {/* Comment input */}
           {isConnected ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
-                placeholder="Write a comment..."
-                maxLength={280}
-                style={{
-                  flex: 1, padding: '10px 14px', borderRadius: 8,
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(255,255,255,0.03)', color: 'white',
-                  fontSize: 13, outline: 'none',
-                }}
-              />
-              <button
-                onClick={handleSubmitComment}
-                disabled={!commentText.trim()}
-                style={{
-                  padding: '8px 14px', borderRadius: 8, border: 'none',
-                  background: commentText.trim() ? 'var(--color-brand-600)' : 'rgba(255,255,255,0.05)',
-                  color: commentText.trim() ? 'white' : 'var(--text-muted)',
-                  cursor: commentText.trim() ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center',
-                }}
-              >
-                <Send size={14} />
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmitComment()}
+                    placeholder="Write a comment..."
+                    maxLength={MAX_COMMENT_LENGTH + 50}
+                    style={{
+                      width: '100%', padding: '10px 70px 10px 14px', borderRadius: 8,
+                      border: `1px solid ${isOverLimit ? 'rgba(239, 68, 68, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                      background: 'rgba(255,255,255,0.03)', color: 'white',
+                      fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                  <span style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    fontSize: 11, color: isOverLimit ? '#ef4444' : 'var(--text-muted)',
+                  }}>
+                    {charCount}/{MAX_COMMENT_LENGTH}
+                  </span>
+                </div>
+                <button
+                  onClick={handleSubmitComment}
+                  disabled={!commentText.trim() || isOverLimit}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, border: 'none',
+                    background: commentText.trim() && !isOverLimit ? 'var(--color-brand-600)' : 'rgba(255,255,255,0.05)',
+                    color: commentText.trim() && !isOverLimit ? 'white' : 'var(--text-muted)',
+                    cursor: commentText.trim() && !isOverLimit ? 'pointer' : 'not-allowed',
+                    display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  <Send size={14} />
+                </button>
+              </div>
+
+              {/* Emoji picker toggle */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
+                    background: showEmojiPicker ? 'rgba(108, 56, 255, 0.15)' : 'transparent',
+                    color: showEmojiPicker ? 'var(--color-brand-400)' : 'var(--text-muted)',
+                    cursor: 'pointer', fontSize: 12,
+                  }}
+                >
+                  <Smile size={14} />
+                  Emoji
+                </button>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  {selectedGif ? 'GIF attached' : ''}
+                </span>
+              </div>
+
+              {/* Emoji picker panel */}
+              {showEmojiPicker && (
+                <div style={{
+                  display: 'flex', gap: 6, flexWrap: 'wrap',
+                  padding: 10, background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)',
+                }}>
+                  {COMMON_EMOJIS.map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={() => handleEmojiClick(emoji)}
+                      style={{
+                        fontSize: 20, padding: 4, borderRadius: 4,
+                        border: 'none', background: 'transparent',
+                        cursor: 'pointer', lineHeight: 1,
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
@@ -245,6 +320,34 @@ export const SocialActions: React.FC<SocialActionsProps> = ({
                     <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4, color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
                       {comment.text}
                     </p>
+                    
+                    {/* Comment reactions */}
+                    <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                      {COMMON_EMOJIS.slice(0, 6).map(emoji => {
+                        const reactions = comment.metadata?.reactions || [];
+                        const count = reactions.filter(r => r.emoji === emoji).length;
+                        const userReacted = userAddress && reactions.some(r => r.userAddress === userAddress && r.emoji === emoji);
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => onCommentReaction?.(comment.id, emoji)}
+                            disabled={!isConnected}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 2,
+                              padding: '2px 6px', borderRadius: 12,
+                              border: '1px solid',
+                              borderColor: userReacted ? 'rgba(108, 56, 255, 0.5)' : 'rgba(255,255,255,0.1)',
+                              background: userReacted ? 'rgba(108, 56, 255, 0.15)' : 'transparent',
+                              color: 'var(--text-muted)',
+                              cursor: isConnected ? 'pointer' : 'not-allowed',
+                              fontSize: 12, opacity: isConnected ? 1 : 0.5,
+                            }}
+                          >
+                            {emoji} {count > 0 && <span style={{ fontSize: 10 }}>{count}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ))}

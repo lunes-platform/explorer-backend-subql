@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Activity, Box, Shield, Layers, Code2 } from 'lucide-react';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
@@ -61,6 +61,19 @@ const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon,
 );
 
 const MarketStats: React.FC = () => {
+    const [ad, setAd] = useState<{ id: string; title: string; description: string; ctaText: string; ctaUrl: string } | null>(null);
+    useEffect(() => {
+        fetch('http://localhost:4000/api/ads?placement=home_stats')
+            .then(r => r.json())
+            .then((data: any[]) => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setAd(data[0]);
+                    fetch(`http://localhost:4000/api/ads/${data[0].id}/impression`, { method: 'POST' }).catch(() => {});
+                }
+            })
+            .catch(() => {});
+    }, []);
+
     const { price, change24h, loading: priceLoading } = useLunesPrice();
     const { data: chainStats, loading: chainLoading } = useDashboardStats();
     const health = useHealthStatus();
@@ -147,7 +160,7 @@ const MarketStats: React.FC = () => {
                     label="Initial Supply"
                     value={`${formatAbbreviatedNumber(LUNES_INITIAL_SUPPLY)} LUNES`}
                     loading={false}
-                    icon={<span style={{ fontSize: '1.2em' }}>🧱</span>}
+                    icon={<LunesLogo size={20} />}
                 />
                 <StatCard
                     label="Current Supply"
@@ -194,6 +207,26 @@ const MarketStats: React.FC = () => {
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
                     healthLevel={rpcHealth}
                 />
+
+                {/* Dynamic Ad Banner */}
+                {ad && (
+                    <a
+                        href={ad.ctaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={classes.adBanner}
+                        onClick={() => fetch(`http://localhost:4000/api/ads/${ad.id}/click`, { method: 'POST' }).catch(() => {})}
+                    >
+                        <div className={classes.adContent}>
+                            <span className={classes.adTag}>AD</span>
+                            <div>
+                                <h4 className={classes.adTitle}>{ad.title}</h4>
+                                <p className={classes.adDesc}>{ad.description}</p>
+                            </div>
+                        </div>
+                        <span className={classes.adCta}>{ad.ctaText}</span>
+                    </a>
+                )}
             </div>
         </div>
     );

@@ -9,9 +9,9 @@ import {
   Lock,
   Award,
   ArrowRight,
-  Shield,
   Zap,
   AlertCircle,
+  Info,
 } from 'lucide-react';
 import { Skeleton } from '../../components/common/Skeleton';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -21,6 +21,8 @@ import { useStakingOverview, useAccountStaking } from '../../hooks/useChainData'
 import { useWalletAuth } from '../../context/WalletAuthContext';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { usePageTitle } from '../../hooks/usePageTitle';
+import { LunesLogo } from '../../components/common/LunesLogo';
 import type { ValidatorInfo } from '../../services/chain';
 import styles from './Staking.module.css';
 
@@ -30,13 +32,14 @@ function shortAddr(addr: string): string {
 }
 
 function formatStake(planck: string): string {
-  const val = Number(BigInt(planck || '0')) / 1e12;
+  const val = Number(BigInt(planck || '0')) / 1e8;
   if (val >= 1e6) return `${(val / 1e6).toFixed(2)}M`;
   if (val >= 1e3) return `${(val / 1e3).toFixed(2)}K`;
   return val.toFixed(4);
 }
 
 const Staking: React.FC = () => {
+  usePageTitle('Staking', 'Lunes staking overview — view active validators, total staked, era rewards, and nomination details on the Lunes network.');
   const { data: stakingData, loading, error } = useStakingOverview();
   const health = useHealthStatus();
   const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
@@ -64,7 +67,7 @@ const Staking: React.FC = () => {
       <div className={styles.hero}>
         <div className={styles.heroContent}>
           <div className={styles.heroBadge}>
-            <Shield size={16} />
+            <LunesLogo size={16} />
             <span>NPoS — Nominated Proof of Stake</span>
           </div>
           <h1 className={styles.heroTitle}>
@@ -232,7 +235,7 @@ const Staking: React.FC = () => {
           </div>
         ) : validators.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <Shield size={32} style={{ marginBottom: '8px' }} />
+            <AlertCircle size={32} style={{ marginBottom: '8px' }} />
             <p>No active validators found in current era.</p>
           </div>
         ) : (
@@ -247,7 +250,7 @@ const Staking: React.FC = () => {
               >
                 <div className={styles.poolHeader}>
                   <div className={styles.poolIcon}>
-                    <Shield size={20} />
+                    <LunesLogo size={20} />
                   </div>
                   <StatusBadge 
                     status={validator.isActive ? 'success' : 'warning'} 
@@ -261,10 +264,10 @@ const Staking: React.FC = () => {
                   Validator #{index + 1}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-muted)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {shortAddr(validator.address)}
                   </span>
-                  <CopyToClipboard text={validator.address} />
+                  <CopyToClipboard text={validator.address} showText={false} />
                 </div>
 
                 <div className={styles.poolStats}>
@@ -312,8 +315,7 @@ const Staking: React.FC = () => {
                     handleStakeClick(validator.address);
                   }}
                 >
-                  {isConnected ? 'Nominate & Stake' : 'Connect Wallet to Stake'}
-                  <ArrowRight size={16} />
+                  Staking
                 </button>
               </div>
             ))}
@@ -325,10 +327,10 @@ const Staking: React.FC = () => {
       <div className={styles.infoSection}>
         <div className={styles.infoCards}>
           <div className={styles.infoCard}>
-            <Shield className={styles.infoIcon} size={32} />
-            <h3 className={styles.infoTitle}>NPoS Consensus</h3>
+            <Clock className={styles.infoIcon} size={32} />
+            <h3 className={styles.infoTitle}>Unbonding Period</h3>
             <p className={styles.infoText}>
-              Lunes uses Nominated Proof-of-Stake (NPoS) where nominators back validators to secure the network.
+              When you unstake, funds enter an unbonding period of 28 eras (~7 days) before they can be withdrawn. Each era lasts approximately 6 hours.
             </p>
           </div>
 
@@ -336,15 +338,15 @@ const Staking: React.FC = () => {
             <Zap className={styles.infoIcon} size={32} />
             <h3 className={styles.infoTitle}>Era Rewards</h3>
             <p className={styles.infoText}>
-              Rewards are distributed every era. Validators share rewards with their nominators proportionally.
+              Rewards are distributed every era (~6h). Validators share rewards with their nominators proportionally based on stake amount. Commission is deducted first.
             </p>
           </div>
 
           <div className={styles.infoCard}>
-            <Clock className={styles.infoIcon} size={32} />
-            <h3 className={styles.infoTitle}>Unbonding Period</h3>
+            <Info className={styles.infoIcon} size={32} />
+            <h3 className={styles.infoTitle}>Network Rules</h3>
             <p className={styles.infoText}>
-              When you unstake, funds enter an unbonding period of 28 eras before they can be withdrawn.
+              Minimum stake: 10,000 LUNES. Rewards compound automatically. You can nominate up to 16 validators. Validators with higher commission keep more rewards.
             </p>
           </div>
         </div>

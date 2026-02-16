@@ -23,7 +23,13 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { Skeleton, CardSkeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
+import DegradedBanner from '../../components/common/DegradedBanner';
+import { ExportButton } from '../../components/common/ExportButton';
+import { WatchlistButton } from '../../components/common/WatchlistButton';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { usePageTitle } from '../../hooks/usePageTitle';
+import { useWatchlist } from '../../hooks/useWatchlist';
+import { getIndexerDegradedLevel } from '../../utils/indexerHealth';
 import { useAccountInfo, useAccountStaking, useAccountTransfers } from '../../hooks/useChainData';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { 
@@ -36,6 +42,8 @@ import type {
   PSP22Account,
   NftAccount
 } from '../../types';
+import { useAIExplanation } from '../../hooks/useAIExplanation';
+import AIExplanation from '../../components/common/AIExplanation';
 import styles from './AccountDetail.module.css';
 
 type TabType = 'overview' | 'tokens' | 'nfts' | 'staking' | 'transactions';
@@ -46,17 +54,23 @@ function shortAddr(addr: string): string {
 }
 
 function timeAgo(ts: number): string {
-  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (!ts || ts <= 0) return '';
+  // Auto-detect: if timestamp is in seconds (< year 2001 in ms), convert to ms
+  const msTs = ts < 1e12 ? ts * 1000 : ts;
+  const diff = Math.floor((Date.now() - msTs) / 1000);
+  if (diff < 0) return new Date(msTs).toLocaleString('pt-BR');
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return new Date(ts).toLocaleDateString();
+  return new Date(msTs).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 const AccountDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const health = useHealthStatus();
+  const { isWatched, toggleItem } = useWatchlist();
+  usePageTitle(id ? `Account ${id.slice(0, 8)}...` : 'Account');
 
   // Real-time data from blockchain RPC
   const { data: chainAccount, loading: chainLoading, error: chainError } = useAccountInfo(id || null);
@@ -65,6 +79,7 @@ const AccountDetail: React.FC = () => {
   );
   const { data: rpcTransfers, loading: transfersLoading } = useAccountTransfers(id || null);
   const { price } = useLunesPrice();
+  const { explanation, loading: aiLoading, explain, clear } = useAIExplanation();
 
   // SubQuery data for tokens/nfts
   const { data: tokensData, loading: tokensLoading } = 
@@ -124,20 +139,32 @@ const AccountDetail: React.FC = () => {
   const tokenAccounts = tokensData?.psp22Accounts?.nodes || [];
   const nftAccounts = nftsData?.nftAccounts?.nodes || [];
 
-  // Transfer row component for reuse in overview and transactions tab
-  const TransferRow = ({ tx, compact = false }: { tx: typeof transfers[0]; compact?: boolean }) => {
+  // Handle AI explain for a transfer
+  const handleExplainTransfer = (tx: typeof transfers[0]) => {
+    explain('transaction', {
+      hash: tx.hash,
+      from: tx.from,
+      to: tx.to,
+      amountFormatted: tx.amountFormatted,
+      blockNumber: tx.blockNumber,
+      timestamp: tx.timestamp,
+      success: true,
+      sources: [`Block #${tx.blockNumber}`, `${tx.amountFormatted.toFixed(4)} LUNES`],
+    });
+  };
+  const TransferRow = ({ tx, compact = false, showExplain = false }: { tx: typeof transfers[0]; compact?: boolean; showExplain?: boolean }) => {
     const isSent = tx.from === id;
     return (
-      <div className={styles.transferItem} style={{ padding: compact ? '10px 0' : '12px 0' }}>
+      <div className={styles.transferItem} style={{ padding: compact ? '12px 16px' : '16px 20px' }}>
         <div className={styles.transferMain} style={{ flex: 1 }}>
           <div style={{ 
-            width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: isSent ? 'rgba(255, 100, 100, 0.12)' : 'rgba(38, 208, 124, 0.12)',
             flexShrink: 0
           }}>
-            {isSent ? <ArrowUpRight size={16} color="#ff6464" /> : <ArrowDownLeft size={16} color="#26d07c" />}
+            {isSent ? <ArrowUpRight size={14} color="#ff6464" /> : <ArrowDownLeft size={14} color="#26d07c" />}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <StatusBadge status={isSent ? 'warning' : 'success'} size="sm">
                 {isSent ? 'SENT' : 'RECEIVED'}
@@ -166,24 +193,26 @@ const AccountDetail: React.FC = () => {
                 {tx.to === id ? 'This Account' : shortAddr(tx.to)}
               </Link>
             </div>
-            {!compact && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px' }}>
-                <Hash size={10} color="var(--text-muted)" />
-                <span style={{ fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-muted)' }}>
-                  {shortAddr(tx.hash)}
-                </span>
-                <button 
-                  onClick={() => navigator.clipboard.writeText(tx.hash)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex' }}
-                  title="Copy block hash"
-                >
-                  <Copy size={10} color="var(--text-muted)" />
-                </button>
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+              <Hash size={10} color="var(--text-muted)" />
+              <span style={{ color: 'var(--text-muted)' }}>{tx.extrinsicHash ? 'TxID:' : 'Ext:'}</span>
+              <Link to={`/tx/${tx.blockNumber}-${tx.extrinsicIndex}`} style={{
+                fontFamily: 'var(--font-mono, monospace)', color: 'var(--color-brand-400)',
+                textDecoration: 'none', fontSize: '11px',
+              }}>
+                {tx.extrinsicHash ? shortAddr(tx.extrinsicHash) : `${tx.blockNumber}-${tx.extrinsicIndex}`}
+              </Link>
+              <button 
+                onClick={() => navigator.clipboard.writeText(tx.extrinsicHash || `${tx.blockNumber}-${tx.extrinsicIndex}`)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex' }}
+                title={tx.extrinsicHash ? 'Copy TxID' : 'Copy Extrinsic ID'}
+              >
+                <Copy size={10} color="var(--text-muted)" />
+              </button>
+            </div>
           </div>
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '16px' }}>
           <div style={{ 
             fontWeight: 600, fontSize: '14px',
             color: isSent ? '#ff6464' : '#26d07c'
@@ -191,15 +220,53 @@ const AccountDetail: React.FC = () => {
             {isSent ? '-' : '+'}{tx.amountFormatted.toFixed(4)} LUNES
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            ≈ ${(tx.amountFormatted * price).toFixed(2)}
+            ${(tx.amountFormatted * price).toFixed(2)}
           </div>
+          {showExplain && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleExplainTransfer(tx); }}
+              style={{
+                marginTop: '6px',
+                padding: '4px 10px',
+                background: 'rgba(108, 56, 255, 0.1)',
+                border: '1px solid rgba(108, 56, 255, 0.2)',
+                borderRadius: '6px',
+                color: 'var(--color-brand-400)',
+                fontSize: '11px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <Sparkles size={10} />
+              Explain
+            </button>
+          )}
         </div>
       </div>
     );
   };
 
+  const handleExplainAccount = () => {
+    if (!id) return;
+    explain('account', {
+      address: id,
+      totalFormatted: totalBalance,
+      freeFormatted: freeBalance,
+      reservedFormatted: reservedBalance,
+      nonce,
+      sources: [`Balance: ${totalBalance.toFixed(4)} LUNES`, `Nonce: ${nonce}`, `${transfers.length} recent transfers`],
+    });
+  };
+
+  const degradedLevel = getIndexerDegradedLevel(health.rpc.latestBlock, health.indexer.latestBlock, false);
+
   return (
     <div className={styles.container}>
+      {degradedLevel && (
+        <DegradedBanner level={degradedLevel} source="Indexer" message="Token and NFT data from the indexer may be outdated." />
+      )}
       {/* Header */}
       <div className={styles.header}>
         <Link to="/" className={styles.backLink}>
@@ -210,7 +277,15 @@ const AccountDetail: React.FC = () => {
           <Wallet size={24} />
           Account Details
         </h1>
-        <DataSourceBadge source="RPC + API" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={health.rpc.status === 'connected' ? 'healthy' : health.rpc.status === 'connecting' ? 'delayed' : 'disconnected'} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
+          <DataSourceBadge source="RPC + API" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={health.rpc.status === 'connected' ? 'healthy' : health.rpc.status === 'connecting' ? 'delayed' : 'disconnected'} />
+          {id && (
+            <WatchlistButton
+              isWatched={isWatched(id, 'account')}
+              onToggle={() => toggleItem({ id, type: 'account' })}
+            />
+          )}
+        </div>
       </div>
 
       {/* Address Card */}
@@ -237,6 +312,16 @@ const AccountDetail: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      {/* AI Explanation */}
+      <AIExplanation
+        result={explanation}
+        loading={aiLoading}
+        error={null}
+        onExplain={handleExplainAccount}
+        onClose={clear}
+        showButton={true}
+      />
 
       {/* Tabs */}
       <div className={styles.tabs}>
@@ -288,7 +373,7 @@ const AccountDetail: React.FC = () => {
                   {freeBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} <span className={styles.balanceUnit}>LUNES</span>
                 </div>
                 <div className={styles.balanceUsd}>
-                  ≈ ${(freeBalance * price).toFixed(2)} USD
+                  ${(freeBalance * price).toFixed(2)} USD
                 </div>
               </Card>
 
@@ -297,7 +382,7 @@ const AccountDetail: React.FC = () => {
                   {reservedBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} <span className={styles.balanceUnit}>LUNES</span>
                 </div>
                 <div className={styles.balanceUsd}>
-                  ≈ ${(reservedBalance * price).toFixed(2)} USD
+                  ${(reservedBalance * price).toFixed(2)} USD
                 </div>
               </Card>
 
@@ -306,7 +391,7 @@ const AccountDetail: React.FC = () => {
                   {totalBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} <span className={styles.balanceUnit}>LUNES</span>
                 </div>
                 <div className={styles.balanceUsd}>
-                  ≈ ${(totalBalance * price).toFixed(2)} USD
+                  ${(totalBalance * price).toFixed(2)} USD
                 </div>
               </Card>
 
@@ -342,14 +427,16 @@ const AccountDetail: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-brand-400)' }} />
-                    <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Scanning recent blocks for transfers...</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Loading transfers...</span>
                   </div>
                   <Skeleton height={18} width="90%" />
                   <Skeleton height={18} width="70%" />
                   <Skeleton height={18} width="80%" />
                 </div>
+              ) : !rpcTransfers ? (
+                <EmptyState type="error" message="Unable to load transfers. The RPC connection may be unavailable." />
               ) : transfers.length === 0 ? (
-                <EmptyState type="no-data" message="No transfers found in recent blocks for this account." />
+                <EmptyState type="no-data" message="No transfers found for this account." />
               ) : (
                 <div className={styles.transfersList}>
                   {transfers.slice(0, 5).map((tx, idx) => (
@@ -502,7 +589,7 @@ const AccountDetail: React.FC = () => {
                     <span className={styles.txLabel}>Unbonding</span>
                     {stakingData.unbonding.map((u, i) => (
                       <span key={i} className={styles.txValue}>
-                        {(Number(BigInt(u.amount)) / 1e12).toFixed(4)} LUNES (era {u.era})
+                        {(Number(BigInt(u.amount)) / 1e8).toFixed(4)} LUNES (era {u.era})
                       </span>
                     ))}
                   </div>
@@ -515,19 +602,37 @@ const AccountDetail: React.FC = () => {
         )}
 
         {activeTab === 'transactions' && (
-          <Card title={`Transfer History (${transfers.length})`} icon={<ArrowRightLeft size={18} />}>
+          <Card 
+            title={`Transfer History (${transfers.length})`} 
+            icon={<ArrowRightLeft size={18} />}
+            action={transfers.length > 0 ? (
+              <ExportButton
+                data={transfers}
+                filename={`transfers-${id?.slice(0, 8)}-${new Date().toISOString().split('T')[0]}`}
+                columns={[
+                  { key: 'blockNumber', label: 'Block' },
+                  { key: 'extrinsicHash', label: 'TxID' },
+                  { key: 'from', label: 'From' },
+                  { key: 'to', label: 'To' },
+                  { key: 'amountFormatted', label: 'Amount', formatter: (v) => v.toFixed(8) },
+                  { key: 'timestamp', label: 'Timestamp', formatter: (v) => new Date(v).toISOString() },
+                ]}
+                label="Export"
+              />
+            ) : undefined}
+          >
             {transfersLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-brand-400)' }} />
-                  <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Scanning last 200 blocks for transfers...</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Loading transfer history...</span>
                 </div>
                 <Skeleton height={48} width="100%" />
                 <Skeleton height={48} width="100%" />
                 <Skeleton height={48} width="100%" />
               </div>
             ) : transfers.length === 0 ? (
-              <EmptyState type="no-data" message="No transfers found in the last 200 blocks for this account." />
+              <EmptyState type="no-data" message="No transfers found for this account across all blocks." />
             ) : (
               <div className={styles.transfersList}>
                 {/* Summary stats */}
@@ -557,7 +662,7 @@ const AccountDetail: React.FC = () => {
 
                 {/* Transfer rows */}
                 {transfers.map((tx, idx) => (
-                  <TransferRow key={`${tx.blockNumber}-${tx.extrinsicIndex}-${idx}`} tx={tx} />
+                  <TransferRow key={`${tx.blockNumber}-${tx.extrinsicIndex}-${idx}`} tx={tx} showExplain />
                 ))}
               </div>
             )}
