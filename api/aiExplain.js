@@ -43,7 +43,7 @@ async function callOpenRouter(config, type, data) {
     headers: {
       'Authorization': `Bearer ${config.apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://explorer.lunes.io',
+      'HTTP-Referer': process.env.APP_PUBLIC_URL || 'https://explorer.lunes.io',
       'X-Title': 'Lunes Explorer AI',
     },
     body: JSON.stringify({

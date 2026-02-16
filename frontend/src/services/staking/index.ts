@@ -1,13 +1,12 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { web3FromAddress } from '@polkadot/extension-dapp';
-
-const WS_PROVIDER = 'wss://ws-archive.lunes.io';
+import { WS_ENDPOINTS } from '../../config';
 
 let api: ApiPromise | null = null;
 
 export async function getApi(): Promise<ApiPromise> {
   if (!api) {
-    const provider = new WsProvider(WS_PROVIDER);
+    const provider = new WsProvider(WS_ENDPOINTS);
     api = await ApiPromise.create({ provider });
   }
   return api;

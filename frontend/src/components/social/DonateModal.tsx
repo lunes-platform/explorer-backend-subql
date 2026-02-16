@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useWalletAuth } from '../../context/WalletAuthContext';
+import { WS_ENDPOINTS } from '../../config';
 import { LunesLogo } from '../common/LunesLogo';
 
 interface DonateModalProps {
@@ -39,7 +40,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
       const { ApiPromise, WsProvider } = await import('@polkadot/api');
       const { web3FromAddress } = await import('@polkadot/extension-dapp');
 
-      const provider = new WsProvider('wss://ws-archive.lunes.io');
+      const provider = new WsProvider(WS_ENDPOINTS);
       const api = await ApiPromise.create({ provider });
       const injector = await web3FromAddress(wallet.account.address);
 

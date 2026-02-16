@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { WS_ENDPOINTS } from '../../config';
 import {
   ArrowLeft,
   ShieldCheck,
@@ -92,7 +93,7 @@ const ProjectVerify: React.FC = () => {
       const { ApiPromise, WsProvider } = await import('@polkadot/api');
       const { web3FromSource } = await import('@polkadot/extension-dapp');
 
-      const wsProvider = new WsProvider('wss://ws-archive.lunes.io');
+      const wsProvider = new WsProvider(WS_ENDPOINTS);
       const api = await ApiPromise.create({ provider: wsProvider });
 
       const injector = await web3FromSource(wallet.account.meta.source || 'polkadot-js');
