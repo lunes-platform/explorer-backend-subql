@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, Image, Loader2, Link as LinkIcon } from 'lucide-react';
-
-const API_BASE = 'http://localhost:4000';
+import { API_BASE } from '../../config';
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 

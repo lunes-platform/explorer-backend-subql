@@ -39,8 +39,9 @@ import Card from '../../components/common/Card';
 import styles from './AdminRewards.module.css';
 import { mnemonicGenerate, cryptoWaitReady } from '@polkadot/util-crypto';
 import { Keyring } from '@polkadot/keyring';
+import { API_BASE_URL } from '../../config';
 
-const API = 'http://localhost:4000/api';
+const API = API_BASE_URL;
 
 interface ChangeLogEntry {
   id: string;

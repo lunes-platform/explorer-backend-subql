@@ -4,6 +4,7 @@ import { LunesLogo } from '../../components/common/LunesLogo';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { useDashboardStats } from '../../hooks/useChainData';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
+import { API_BASE_URL } from '../../config';
 import {
     LUNES_BURN_TARGET,
     LUNES_INITIAL_SUPPLY,
@@ -63,12 +64,12 @@ const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon,
 const MarketStats: React.FC = () => {
     const [ad, setAd] = useState<{ id: string; title: string; description: string; ctaText: string; ctaUrl: string } | null>(null);
     useEffect(() => {
-        fetch('http://localhost:4000/api/ads?placement=home_stats')
+        fetch(`${API_BASE_URL}/ads?placement=home_stats`)
             .then(r => r.json())
             .then((data: any[]) => {
                 if (Array.isArray(data) && data.length > 0) {
                     setAd(data[0]);
-                    fetch(`http://localhost:4000/api/ads/${data[0].id}/impression`, { method: 'POST' }).catch(() => {});
+                    fetch(`${API_BASE_URL}/ads/${data[0].id}/impression`, { method: 'POST' }).catch(() => {});
                 }
             })
             .catch(() => {});
@@ -215,7 +216,7 @@ const MarketStats: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className={classes.adBanner}
-                        onClick={() => fetch(`http://localhost:4000/api/ads/${ad.id}/click`, { method: 'POST' }).catch(() => {})}
+                        onClick={() => fetch(`${API_BASE_URL}/ads/${ad.id}/click`, { method: 'POST' }).catch(() => {})}
                     >
                         <div className={classes.adContent}>
                             <span className={classes.adTag}>AD</span>

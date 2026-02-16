@@ -1,11 +1,6 @@
 // @ts-nocheck - Polkadot API returns dynamic Codec types based on chain metadata
 import { ApiPromise, WsProvider } from '@polkadot/api';
-
-const WS_ENDPOINTS = [
-  'wss://ws-archive.lunes.io',
-  'wss://ws-lunes-main-02.lunes.io',
-  'wss://ws-lunes-main-01.lunes.io',
-];
+import { WS_ENDPOINTS, GRAPHQL_URL } from '../../config';
 
 let api: ApiPromise | null = null;
 let connectionPromise: Promise<ApiPromise> | null = null;
@@ -1051,7 +1046,7 @@ export async function getExtrinsicByHash(hashOrId: string): Promise<ExtrinsicDet
 
       // 3) Query indexer for blocks with transfers, then check those blocks via RPC
       try {
-        const GRAPHQL_URL = 'http://localhost:3000';
+        // GRAPHQL_URL imported from config
         // Get unique block numbers from transfers (most likely to contain user txs)
         const transferRes = await fetch(GRAPHQL_URL, {
           method: 'POST',

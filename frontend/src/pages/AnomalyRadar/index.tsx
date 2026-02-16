@@ -8,6 +8,7 @@ import DataSourceBadge from '../../components/common/DataSourceBadge';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import styles from './AnomalyRadar.module.css';
+import { API_BASE_URL } from '../../config';
 
 interface Anomaly {
   id: string;
@@ -23,7 +24,7 @@ interface Anomaly {
   recommendations: string[];
 }
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = API_BASE_URL;
 
 const AnomalyRadar: React.FC = () => {
   usePageTitle('Anomaly Radar', 'Detect unusual activity on the Lunes blockchain. Scan for large transfers, whale movements, and suspicious patterns.');

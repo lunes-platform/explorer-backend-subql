@@ -6,8 +6,9 @@ import {
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import styles from './Admin.module.css';
+import { API_BASE_URL } from '../../config';
 
-const API = 'http://localhost:4000/api';
+const API = API_BASE_URL;
 
 interface TeamMember {
   id: number;

@@ -5,8 +5,9 @@ import {
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import styles from './Admin.module.css';
+import { API_BASE_URL } from '../../config';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = API_BASE_URL;
 
 interface Banner {
   id: string;

@@ -5,8 +5,9 @@ import { useAdminProjectReviews } from '../../hooks/useAdminData';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { getAllProjects, type KnownProject } from '../../data/knownProjects';
 import styles from './Admin.module.css';
+import { API_BASE_URL } from '../../config';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = API_BASE_URL;
 
 const CATEGORIES = ['infrastructure', 'defi', 'dao', 'social', 'nft', 'gaming', 'token', 'meme', 'rwa', 'other'] as const;
 const STATUSES = ['active', 'development', 'beta', 'deprecated'] as const;

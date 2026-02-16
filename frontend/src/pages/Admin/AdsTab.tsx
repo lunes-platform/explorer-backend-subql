@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Edit3, Eye, EyeOff, CheckCircle, AlertTriangle, Loader2, Save, X } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
+import { API_BASE_URL } from '../../config';
 
-const API = 'http://localhost:4000/api';
+const API = API_BASE_URL;
 
 interface Ad {
   id: string; title: string; description: string; ctaText: string; ctaUrl: string;

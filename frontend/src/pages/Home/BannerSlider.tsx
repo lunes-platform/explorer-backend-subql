@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import styles from './BannerSlider.module.css';
+import { API_BASE_URL } from '../../config';
 
 interface Banner {
   id: string;
@@ -13,7 +14,7 @@ interface Banner {
   linkLabel?: string;
 }
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = API_BASE_URL;
 const AUTO_PLAY_INTERVAL = 6000;
 
 const BannerSlider: React.FC = () => {

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
 
 interface User {
     id: number;
@@ -34,7 +35,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
 
             try {
-                const response = await fetch('http://localhost:4000/api/auth/me', {
+                const response = await fetch(`${API_BASE_URL}/auth/me`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }

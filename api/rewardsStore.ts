@@ -465,7 +465,7 @@ export function getLeaderboard(limit: number = 50): LeaderboardEntry[] {
 }
 
 // Seed users from indexer GraphQL data (accounts + transfers)
-const INDEXER_URL = 'http://localhost:3000';
+const INDEXER_URL = process.env.INDEXER_URL || 'http://localhost:3000';
 
 export async function seedFromIndexer(): Promise<number> {
   try {

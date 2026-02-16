@@ -162,7 +162,8 @@ app.post('/api/upload', uploadRateLimit, (req, res) => {
 
     writeFileSync(join(UPLOADS_DIR, finalName), buffer);
 
-    const url = `http://localhost:${PORT}/uploads/${finalName}`;
+    const API_PUBLIC_URL = process.env.API_PUBLIC_URL || `http://localhost:${PORT}`;
+    const url = `${API_PUBLIC_URL}/uploads/${finalName}`;
     console.log(`[Upload] Saved ${finalName} (${(buffer.length / 1024).toFixed(1)}KB)`);
     res.json({ url, filename: finalName });
   } catch (err) {
