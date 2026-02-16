@@ -1,9 +1,10 @@
 // Price Cache Service
-// Fetches prices from CoinGecko (primary) + BitStorage (fallback)
-// with an in-memory buffer to avoid exceeding free API rate limits.
+// Fetches LUNES price from BitStorage (primary) + CoinGecko (fallback for market cap)
+// with an in-memory buffer to avoid exceeding API rate limits.
 //
-// CoinGecko free tier: ~10-30 req/min. We fetch once every 5 minutes.
-// The cache serves all frontend requests from memory.
+// BitStorage is the official exchange for LUNES trading pairs.
+// CoinGecko is used only as fallback to enrich with market cap data.
+// The cache serves all frontend requests from memory (5-min TTL).
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3';
@@ -134,26 +135,21 @@ async function fetchFromBitStorage(): Promise<PriceData | null> {
 }
 
 async function fetchFreshPrice(): Promise<PriceData> {
-  // Try CoinGecko first (has market cap)
-  const cgData = await fetchFromCoinGecko();
-  if (cgData && cgData.price > 0) {
-    // Enrich with BitStorage high/low if available
-    const bsData = await fetchFromBitStorage().catch(() => null);
-    if (bsData) {
-      cgData.high24h = bsData.high24h;
-      cgData.low24h = bsData.low24h;
-      // If CoinGecko change24h is null, use BitStorage
-      if (!cgData.change24h && bsData.change24h) {
-        cgData.change24h = bsData.change24h;
-      }
-    }
-    return cgData;
-  }
-
-  // Fallback to BitStorage
+  // Try BitStorage first (official LUNES exchange)
   const bsData = await fetchFromBitStorage();
   if (bsData && bsData.price > 0) {
+    // Enrich with CoinGecko market cap if available
+    const cgData = await fetchFromCoinGecko().catch(() => null);
+    if (cgData) {
+      bsData.marketCap = cgData.marketCap;
+    }
     return bsData;
+  }
+
+  // Fallback to CoinGecko
+  const cgData = await fetchFromCoinGecko();
+  if (cgData && cgData.price > 0) {
+    return cgData;
   }
 
   // Both failed — return stale cache if available, or zeros
