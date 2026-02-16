@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from database import SessionLocal, engine, Base
 import models
 import auth
@@ -9,6 +10,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def init_db():
+    logger.info("Creating schema 'auth' if not exists...")
+    with engine.connect() as conn:
+        conn.execute(text('CREATE SCHEMA IF NOT EXISTS auth'))
+        conn.commit()
     logger.info("Creating tables...")
     Base.metadata.create_all(bind=engine)
     logger.info("Tables created.")
