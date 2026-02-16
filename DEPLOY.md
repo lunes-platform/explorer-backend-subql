@@ -37,7 +37,313 @@
 
 ---
 
-## 📋 Passo 0 — Pré-requisitos
+## � Opção A — Deploy com Docker (Recomendado)
+
+O Docker elimina problemas de dependências e versões. Todos os serviços (PostgreSQL, API Express, Backend Python, SubQuery Node, GraphQL Engine) são gerenciados automaticamente.
+
+### A.1 Pré-requisitos
+
+```bash
+# Instalar Docker e Docker Compose
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ca-certificates curl gnupg
+
+# Adicionar repositório oficial do Docker
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Permitir uso sem sudo
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Verificar instalação
+docker --version          # 24+
+docker compose version    # 2.20+
+```
+
+Também instale **Nginx** e **Certbot** (para SSL e proxy reverso):
+
+```bash
+sudo apt install -y nginx certbot python3-certbot-nginx git
+```
+
+### A.2 Clonar o Projeto
+
+```bash
+sudo mkdir -p /opt/lunes-explorer
+sudo chown $USER:$USER /opt/lunes-explorer
+cd /opt/lunes-explorer
+git clone https://github.com/lunes-platform/explorer-backend-subql.git .
+git checkout main   # ou a branch de produção
+```
+
+### A.3 Gerar Segredos
+
+```bash
+# 1) ADMIN_SALT
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# 2) ADMIN_TOKEN_SECRET
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# 3) SECRET_KEY (Python)
+python3 -c "import secrets; print(secrets.token_hex(32))"
+
+# 4) Senha do PostgreSQL
+openssl rand -base64 24
+
+# 5) Senha do Admin
+openssl rand -base64 18
+```
+
+> ⚠️ **Anote todos os valores gerados!**
+
+### A.4 Configurar Variáveis de Ambiente
+
+#### API Express (`api/.env`)
+
+```bash
+cp api/.env.example api/.env
+nano api/.env
+```
+
+```env
+API_PORT=4000
+CORS_ORIGINS=https://explorer.lunes.io
+RPC_URL=wss://ws.lunes.io
+INDEXER_URL=http://graphql-engine:3000
+API_PUBLIC_URL=https://api.explorer.lunes.io
+APP_PUBLIC_URL=https://explorer.lunes.io
+ADMIN_SALT=<valor_gerado_1>
+ADMIN_TOKEN_SECRET=<valor_gerado_2>
+ADMIN_DEFAULT_PASSWORD=<senha_gerada_5>
+```
+
+> **Nota Docker:** `INDEXER_URL` usa `http://graphql-engine:3000` (nome do serviço Docker, não `localhost`).
+
+#### Backend Python (`backend-py/.env`)
+
+```bash
+cp backend-py/.env.example backend-py/.env
+nano backend-py/.env
+```
+
+```env
+DATABASE_URL=postgresql://postgres:SENHA_POSTGRES@postgres:5432/postgres
+DB_PASSWORD=<senha_gerada_4>
+SECRET_KEY=<valor_gerado_3>
+ADMIN_DEFAULT_PASSWORD=<senha_gerada_5>
+```
+
+> **Nota Docker:** `DATABASE_URL` usa `postgres` como host (nome do serviço Docker, não `localhost`).
+
+#### Frontend (`frontend/.env`)
+
+```bash
+cp frontend/.env.example frontend/.env
+nano frontend/.env
+```
+
+```env
+VITE_API_URL=https://api.explorer.lunes.io
+VITE_GRAPHQL_URL=https://indexer.explorer.lunes.io
+VITE_WS_ENDPOINTS=wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io,wss://ws-lunes-main-01.lunes.io
+```
+
+#### Arquivo `.env` raiz (senha do PostgreSQL para Docker)
+
+```bash
+nano /opt/lunes-explorer/.env
+```
+
+```env
+DB_PASSWORD=<senha_gerada_4>
+```
+
+#### Proteger todos os `.env`
+
+```bash
+chmod 600 api/.env backend-py/.env frontend/.env .env
+```
+
+### A.5 Build do Frontend
+
+O frontend é uma SPA estática que precisa ser compilada antes:
+
+```bash
+cd /opt/lunes-explorer/frontend
+npm install
+npm run build
+# Resultado: pasta dist/ com index.html e assets/
+```
+
+### A.6 Subir Todos os Serviços
+
+```bash
+cd /opt/lunes-explorer
+docker compose up --build -d
+```
+
+### A.7 Verificar Status
+
+```bash
+# Status de todos os containers
+docker compose ps
+
+# Resultado esperado:
+# NAME                          STATUS
+# postgres                      Up (healthy)
+# api                           Up (healthy)    → porta 4000
+# backend-py                    Up (healthy)    → porta 8000
+# subquery-node                 Up
+# graphql-engine                Up              → porta 3000
+
+# Testar API Express
+curl -s http://localhost:4000/api/health
+
+# Testar Backend Python
+curl -s http://localhost:8000/docs
+
+# Logs de todos os serviços
+docker compose logs --tail 20
+
+# Logs de um serviço específico
+docker compose logs api --tail 50
+docker compose logs backend-py --tail 50
+```
+
+### A.8 Arquitetura Docker (docker-compose.yml)
+
+```
+┌────────────────────────────────────────────────────┐
+│                 Docker Compose                      │
+│                                                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌────────────┐ │
+│  │  postgres    │  │ subquery-   │  │ graphql-   │ │
+│  │  :5432       │◀─│ node        │  │ engine     │ │
+│  │              │  │             │  │ :3000      │ │
+│  └──────┬───────┘  └─────────────┘  └────────────┘ │
+│         │                                          │
+│  ┌──────▼───────┐  ┌─────────────┐                 │
+│  │  backend-py  │  │  api        │                 │
+│  │  :8000       │  │  :4000      │                 │
+│  └──────────────┘  └─────────────┘                 │
+│                                                    │
+└──────────────────────┬─────────────────────────────┘
+                       │ portas expostas: 3000, 4000, 5432, 8000
+                       ▼
+              ┌────────────────┐
+              │     Nginx      │ ← SSL + Reverse Proxy
+              │  :80 / :443   │
+              └────────────────┘
+```
+
+### A.9 Comandos Docker Úteis
+
+```bash
+# Parar todos os serviços
+docker compose down
+
+# Reiniciar um serviço específico
+docker compose restart api
+docker compose restart backend-py
+
+# Rebuild e reiniciar (após mudanças no código)
+docker compose up --build -d
+
+# Rebuild sem cache (forçar reinstalação de dependências)
+docker compose build --no-cache
+docker compose up -d
+
+# Ver logs em tempo real
+docker compose logs -f
+
+# Acessar shell de um container
+docker compose exec api sh
+docker compose exec backend-py bash
+
+# Acessar PostgreSQL direto
+docker compose exec postgres psql -U postgres
+
+# Verificar uso de recursos
+docker stats
+```
+
+### A.10 Atualizar em Produção (Docker)
+
+```bash
+cd /opt/lunes-explorer
+
+# 1) Baixar código novo
+git pull origin main
+
+# 2) Rebuild do frontend
+cd frontend && npm install && npm run build && cd ..
+
+# 3) Rebuild e reiniciar containers
+docker compose up --build -d
+
+# 4) Verificar
+docker compose ps
+docker compose logs --tail 10
+```
+
+#### Script de deploy rápido (Docker)
+
+```bash
+nano /opt/lunes-explorer/deploy-docker.sh
+```
+
+```bash
+#!/bin/bash
+set -e
+echo "🐳 Deploying Lunes Explorer (Docker)..."
+
+cd /opt/lunes-explorer
+git pull origin main
+
+echo "🏗️ Building frontend..."
+cd frontend && npm install && npm run build && cd ..
+
+echo "♻️ Rebuilding containers..."
+docker compose up --build -d
+
+echo "✅ Deploy complete!"
+docker compose ps
+```
+
+```bash
+chmod +x /opt/lunes-explorer/deploy-docker.sh
+```
+
+### A.11 Resolução de Problemas (Docker)
+
+| Problema | Causa | Solução |
+| --- | --- | --- |
+| Container em restart loop | Erro no código ou `.env` faltando | `docker compose logs <serviço> --tail 50` |
+| `schema "auth" does not exist` | Primeira execução sem schema | Já corrigido no `seed.py` (cria automaticamente) |
+| `passlib`/`bcrypt` incompatível | Versão do `bcrypt` muito nova | Já pinado em `bcrypt==4.0.1` no `requirements.txt` |
+| `ERR_UNKNOWN_FILE_EXTENSION .ts` | API Express importa `.ts` sem compilar | Já corrigido no Dockerfile (usa `tsx` global) |
+| `NameError: app not defined` | `main.py` sem instância FastAPI | Já corrigido com `app = FastAPI()` |
+| Porta já em uso | Container antigo não parou | `docker compose down && docker compose up -d` |
+| Conflito de container name | Container órfão | `docker rm -f <nome>` e subir novamente |
+| Sem espaço em disco | Imagens antigas acumuladas | `docker system prune -a` |
+
+---
+
+> **💡 Se preferir deploy sem Docker (manual com PM2)**, siga a **Opção B** abaixo.
+
+---
+
+## �📋 Opção B — Deploy Manual (sem Docker)
+
+### Passo 0 — Pré-requisitos
 
 ### No servidor (Ubuntu 22.04 LTS recomendado):
 
