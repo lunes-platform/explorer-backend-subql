@@ -9,16 +9,22 @@ services:
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - explorer-network
 
   # ── Backend Python (FastAPI) ──
   backend-py:
-    build: ./backend-py
+    build:
+      context: ./backend-py
+      target: development
     ports:
       - 8000:8000
+    volumes:
+      - ./backend-py:/app
     env_file:
       - ./backend-py/.env
     environment:
@@ -27,7 +33,13 @@ services:
       postgres:
         condition: service_healthy
     restart: always
-    command: sh -c "python seed.py && uvicorn main:app --host 0.0.0.0 --port 8000"
+    networks:
+      - explorer-network
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')\" || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # ── API Express (Node.js) ──
   api:
@@ -41,6 +53,8 @@ services:
     depends_on:
       - postgres
     restart: always
+    networks:
+      - explorer-network
 
   # ── SubQuery Node (Indexer) ──
   subquery-node:
@@ -63,6 +77,8 @@ services:
       - --batch-size=100
       - --workers=4
       - --disable-historical
+    networks:
+      - explorer-network
 
   # ── GraphQL Engine (SubQuery Query) ──
   graphql-engine:
@@ -83,6 +99,35 @@ services:
       - --name=app
       - --playground
       - --indexer=http://subquery-node:3000
+    networks:
+      - explorer-network
+
+  # ── Frontend (React/Vite) ──
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    ports:
+      - 5175:5173
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:4000
+      - VITE_GRAPHQL_URL=http://localhost:3000
+      - VITE_WS_ENDPOINTS=wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io
+      - HOST=0.0.0.0
+    depends_on:
+      - api
+      - graphql-engine
+      - backend-py
+    networks:
+      - explorer-network
 
 volumes:
   postgres_data:
+
+
+networks:
+  explorer-network:
+    driver: bridge
