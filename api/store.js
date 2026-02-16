@@ -53,6 +53,7 @@ export function createProject(project) {
     nftCollectionIds: project.nftCollectionIds || [],
     assetIds: project.assetIds || [],
     tokenSymbol: project.tokenSymbol || '',
+    coingeckoId: project.coingeckoId || '',
     verification: project.verification || { status: 'unverified' },
     ownerAddress: project.ownerAddress || '',
     createdAt: now,

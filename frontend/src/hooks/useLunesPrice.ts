@@ -31,8 +31,11 @@ export const useLunesPrice = () => {
 
     const fetchPrice = async () => {
         try {
-            // Fetch from our backend cache (CoinGecko + BitStorage with 5-min buffer)
+            // Fetch from our backend (Cached for 5 minutes)
             const response = await fetch(`${API_BASE_URL}/prices`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const result = await response.json();
 
             if (result && typeof result.price === 'number') {
@@ -49,7 +52,7 @@ export const useLunesPrice = () => {
                     lastUpdated: result.lastUpdated || null,
                 });
             } else {
-                throw new Error('Invalid price response');
+                throw new Error('Invalid price response structure');
             }
         } catch (err: any) {
             console.error('Error fetching Lunes price:', err);
@@ -59,7 +62,7 @@ export const useLunesPrice = () => {
 
     useEffect(() => {
         fetchPrice();
-        // Poll every 60s — backend cache handles the actual rate limiting (5-min TTL)
+        // Poll every 60s - backend handles the 5-min cache TTL
         const interval = setInterval(fetchPrice, 60000);
         return () => clearInterval(interval);
     }, []);

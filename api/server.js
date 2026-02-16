@@ -45,6 +45,7 @@ import {
   getWalletChangeLog
 } from './rewardsStore.ts';
 import { getPrice, getPriceStats } from './priceCache.ts';
+import { getTokenPrices, getTokenPriceStats } from './tokenPriceCache.ts';
 
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, extname } from 'path';
@@ -410,7 +411,9 @@ app.post('/api/anomalies/scan', async (req, res) => {
   }
 });
 
-// ─── Price Cache (CoinGecko + BitStorage with 5-min buffer) ───
+// ─── Price Cache ───
+// LUNES price: BitStorage (primary), CoinGecko (fallback)
+// Project token prices: CoinGecko (for tokens with coingeckoId)
 
 app.get('/api/prices', async (_req, res) => {
   try {
@@ -421,8 +424,65 @@ app.get('/api/prices', async (_req, res) => {
   }
 });
 
+// Token prices for registered project tokens via CoinGecko
+app.get('/api/prices/tokens', async (_req, res) => {
+  try {
+    const projects = getProjects();
+    const coingeckoIds = projects
+      .map(p => p.coingeckoId)
+      .filter(id => id && id.trim());
+
+    if (coingeckoIds.length === 0) {
+      return res.json({ tokens: [], source: 'coingecko', message: 'No projects with coingeckoId found' });
+    }
+
+    const prices = await getTokenPrices(coingeckoIds);
+
+    // Map prices back to project data for richer response
+    const tokens = projects
+      .filter(p => p.coingeckoId)
+      .map(p => {
+        const price = prices.find(tp => tp.coingeckoId === p.coingeckoId);
+        return {
+          projectSlug: p.slug,
+          projectName: p.name,
+          ticker: p.ticker,
+          coingeckoId: p.coingeckoId,
+          assetIds: p.assetIds || [],
+          price: price?.price || 0,
+          change24h: price?.change24h || 0,
+          volume24h: price?.volume24h || 0,
+          marketCap: price?.marketCap || 0,
+          image: price?.image || p.logo || '',
+          lastUpdated: price?.lastUpdated || null,
+        };
+      });
+
+    res.json({ tokens, source: 'coingecko' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch token prices', tokens: [] });
+  }
+});
+
+// Get price for a specific CoinGecko token ID
+app.get('/api/prices/token/:coingeckoId', async (req, res) => {
+  try {
+    const { coingeckoId } = req.params;
+    if (!coingeckoId || !coingeckoId.trim()) {
+      return res.status(400).json({ error: 'coingeckoId is required' });
+    }
+    const prices = await getTokenPrices([coingeckoId]);
+    if (prices.length === 0) {
+      return res.status(404).json({ error: 'Token not found on CoinGecko' });
+    }
+    res.json(prices[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch token price' });
+  }
+});
+
 app.get('/api/prices/stats', (_req, res) => {
-  res.json(getPriceStats());
+  res.json({ lunes: getPriceStats(), tokens: getTokenPriceStats() });
 });
 
 // ─── Rewards System ───
