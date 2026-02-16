@@ -61,6 +61,7 @@ export interface KnownProject {
   assetIds: string[];
   // Token association — links this project to a token page (e.g. 'lunes' for native, or asset ID)
   tokenSymbol?: string;
+  donationAddress?: string; // Wallet address to receive donations
   // Verification
   verification: VerificationData;
 }

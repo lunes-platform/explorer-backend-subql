@@ -38,6 +38,7 @@ export interface ApiProject {
   nftCollectionIds: string[];
   assetIds: string[];
   tokenSymbol?: string;
+  donationAddress?: string;
   verification: VerificationData;
   ownerAddress: string;
   createdAt: string;
@@ -63,6 +64,7 @@ export interface CreateProjectPayload {
   nftCollectionIds?: string[];
   assetIds?: string[];
   tokenSymbol?: string;
+  donationAddress?: string;
   ownerAddress: string;
 }
 
@@ -270,6 +272,7 @@ export function toKnownProject(api: ApiProject): KnownProject {
     nftCollectionIds: api.nftCollectionIds || [],
     assetIds: api.assetIds || [],
     tokenSymbol: api.tokenSymbol || undefined,
+    donationAddress: api.donationAddress || undefined,
     verification: api.verification || { status: 'unverified' },
   };
 }

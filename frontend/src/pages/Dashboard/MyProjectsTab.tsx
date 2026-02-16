@@ -30,12 +30,13 @@ interface FormData {
   github: string;
   contractAddress: string;
   assetId: string;
+  donationAddress: string;
 }
 
 const emptyForm: FormData = {
   slug: '', name: '', ticker: '', category: 'token', description: '',
   logoUrl: '', website: '', twitter: '', telegram: '', github: '',
-  contractAddress: '', assetId: '',
+  contractAddress: '', assetId: '', donationAddress: '',
 };
 
 function projectToForm(p: ApiProject): FormData {
@@ -48,6 +49,7 @@ function projectToForm(p: ApiProject): FormData {
     telegram: getLink('telegram'), github: getLink('github'),
     contractAddress: p.contractAddresses?.[0] || '',
     assetId: p.assetIds?.[0] || '',
+    donationAddress: (p as any).donationAddress || '',
   };
 }
 
@@ -87,6 +89,7 @@ export default function MyProjectsTab({ address }: Props) {
       links: links as any,
       contractAddresses: form.contractAddress ? [form.contractAddress] : [],
       assetIds: form.assetId ? [form.assetId] : [],
+      donationAddress: form.donationAddress || '',
       ownerAddress: address,
     };
   };
@@ -226,6 +229,11 @@ export default function MyProjectsTab({ address }: Props) {
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Asset ID (pallet)</label>
               <input className={styles.formInput} value={form.assetId} onChange={(e) => setForm({ ...form, assetId: e.target.value })} placeholder="1" />
+            </div>
+            <div className={styles.formGroupFull}>
+              <label className={styles.formLabel}>Donation Wallet Address</label>
+              <input className={styles.formInput} value={form.donationAddress} onChange={(e) => setForm({ ...form, donationAddress: e.target.value })} placeholder="5C...  (Lunes address to receive donations)" />
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, display: 'block' }}>The wallet where donations from the "Donate LUNES" button will be sent to your project</span>
             </div>
           </div>
 

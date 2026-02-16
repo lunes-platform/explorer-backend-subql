@@ -54,6 +54,7 @@ export function createProject(project) {
     assetIds: project.assetIds || [],
     tokenSymbol: project.tokenSymbol || '',
     coingeckoId: project.coingeckoId || '',
+    donationAddress: project.donationAddress || '',
     verification: project.verification || { status: 'unverified' },
     ownerAddress: project.ownerAddress || '',
     createdAt: now,

@@ -65,6 +65,7 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
     status: project.status || 'development',
     tags: (project.tags || []).join(', '),
     tokenSymbol: project.tokenSymbol || '',
+    donationAddress: (project as any).donationAddress || '',
   });
   const [links, setLinks] = useState<{ type: string; url: string; label: string }[]>(
     (project.links || []).map(l => ({ type: l.type || 'website', url: l.url || '', label: l.label || '' }))
@@ -120,6 +121,7 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
         status: form.status,
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
         tokenSymbol: form.tokenSymbol,
+        donationAddress: form.donationAddress,
         links: links.filter(l => l.url.trim()),
         team: team.filter(t => t.name.trim()),
         milestones: milestones.filter(m => m.title.trim()),
@@ -195,6 +197,11 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
           <div>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Tags (comma separated)</label>
             <input style={inputStyle} value={form.tags} onChange={e => handleChange('tags', e.target.value)} placeholder="layer-1, substrate" />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Donation Wallet Address</label>
+            <input style={inputStyle} value={form.donationAddress} onChange={e => handleChange('donationAddress', e.target.value)} placeholder="5C...  (Lunes address to receive donations)" />
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, display: 'block' }}>Wallet address where donations from the 'Donate LUNES' button will be sent</span>
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Short Description</label>
@@ -305,6 +312,7 @@ export default function ProjectsTab({ adminAddress }: Props) {
         milestones: p.milestones || [], tags: p.tags || [], contractAddresses: p.contractAddresses || [],
         tokenIds: p.tokenIds || [], nftCollectionIds: p.nftCollectionIds || [],
         assetIds: p.assetIds || [], tokenSymbol: p.tokenSymbol || undefined,
+        donationAddress: p.donationAddress || undefined,
         verification: p.verification || { status: 'unverified' },
       }))
     : fallbackProjects;

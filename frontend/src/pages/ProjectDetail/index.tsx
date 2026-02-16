@@ -88,7 +88,7 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
   } = useSocialInteractions(project.id, userAddr);
   const [showDonate, setShowDonate] = useState(false);
 
-  const donationReceiver = project.contractAddresses[0] || VERIFICATION_RECEIVER;
+  const donationReceiver = (project as any).donationAddress || project.contractAddresses[0] || VERIFICATION_RECEIVER;
 
   const hasOnChain = project.contractAddresses.length > 0 ||
     project.assetIds.length > 0 ||
