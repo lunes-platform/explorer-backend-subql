@@ -34,7 +34,7 @@ const Extrinsics: React.FC = () => {
 
     return (
         <div className={classes.container}>
-            <h1 className={classes.title}>Extrinsics (Transações)</h1>
+            <h1 className={classes.title}>Extrinsics (Transactions)</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 8 }}>
                 {totalCount > 0 ? `${totalCount.toLocaleString()} extrinsics indexed` : 'Loading indexed data...'}
                 {' · '}Persistent data from SubQuery indexer
