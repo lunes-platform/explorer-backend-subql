@@ -1,6 +1,6 @@
 # Lunes Explorer — Guia de Deploy em Produção
 
-## 📐 Arquitetura do Projeto
+## 📐 Arquitetura
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -16,7 +16,7 @@
 │  └──────────┘    ├───────────────┤    ┌─────────▼────────────┐  │
 │                  │  Backend Py   │    │  PostgreSQL          │  │
 │                  │  :8000        │───▶│  :5432               │  │
-│                  └───────────────┘    └──────────────────────┘  │
+│                  └──────────────┘    └──────────────────────┘  │
 │                         │                                       │
 │                         ▼                                       │
 │              ┌──────────────────┐                               │
@@ -26,29 +26,17 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Componentes:**
-
-- **Frontend (React/Vite)** — SPA estática servida pelo Nginx
-- **API Express** (porta 4000) — Backend principal (admin, rewards, ads, AI)
-- **Backend Python** (porta 8000) — Serviços auxiliares (market data)
-- **SubQuery Node** (porta 3000) — Indexador GraphQL da blockchain
-- **PostgreSQL** — Banco de dados do backend Python
-- **Nginx** — Reverse proxy com SSL
-
 ---
 
-## � Opção A — Deploy com Docker (Recomendado)
+## 🐳 Deploy com Docker
 
-O Docker elimina problemas de dependências e versões. Todos os serviços (PostgreSQL, API Express, Backend Python, SubQuery Node, GraphQL Engine) são gerenciados automaticamente.
-
-### A.1 Pré-requisitos
+### Pré-requisitos
 
 ```bash
-# Instalar Docker e Docker Compose
-sudo apt update && sudo apt upgrade -y
+# Instalar Docker e Docker Compose (Ubuntu)
+sudo apt update
 sudo apt install -y ca-certificates curl gnupg
 
-# Adicionar repositório oficial do Docker
 sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
@@ -58,61 +46,42 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Permitir uso sem sudo
 sudo usermod -aG docker $USER
 newgrp docker
 
-# Verificar instalação
-docker --version          # 24+
-docker compose version    # 2.20+
-```
+# Verificar
+docker --version
+docker compose version
 
-Também instale **Nginx** e **Certbot** (para SSL e proxy reverso):
-
-```bash
+# Instalar Nginx e Certbot
 sudo apt install -y nginx certbot python3-certbot-nginx git
 ```
 
-### A.2 Clonar o Projeto
+### 1. Clonar e Configurar
 
 ```bash
 sudo mkdir -p /opt/lunes-explorer
 sudo chown $USER:$USER /opt/lunes-explorer
 cd /opt/lunes-explorer
 git clone https://github.com/lunes-platform/explorer-backend-subql.git .
-git checkout main   # ou a branch de produção
+git checkout main
 ```
 
-### A.3 Gerar Segredos
+### 2. Gerar Segredos
 
 ```bash
-# 1) ADMIN_SALT
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-
-# 2) ADMIN_TOKEN_SECRET
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-
-# 3) SECRET_KEY (Python)
-python3 -c "import secrets; print(secrets.token_hex(32))"
-
-# 4) Senha do PostgreSQL
-openssl rand -base64 24
-
-# 5) Senha do Admin
-openssl rand -base64 18
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"  # ADMIN_SALT
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"  # ADMIN_TOKEN_SECRET  
+python3 -c "import secrets; print(secrets.token_hex(32))"                  # SECRET_KEY
+openssl rand -base64 24                                                   # DB_PASSWORD
+openssl rand -base64 18                                                   # ADMIN_PASSWORD
 ```
 
-> ⚠️ **Anote todos os valores gerados!**
+> Anote todos os valores gerados!
 
-### A.4 Configurar Variáveis de Ambiente
+### 3. Configurar .env Files
 
-#### API Express (`api/.env`)
-
-```bash
-cp api/.env.example api/.env
-nano api/.env
-```
-
+**api/.env:**
 ```env
 API_PORT=4000
 CORS_ORIGINS=https://explorer.lunes.io
@@ -120,585 +89,115 @@ RPC_URL=wss://ws.lunes.io
 INDEXER_URL=http://graphql-engine:3000
 API_PUBLIC_URL=https://api.explorer.lunes.io
 APP_PUBLIC_URL=https://explorer.lunes.io
-ADMIN_SALT=<valor_gerado_1>
-ADMIN_TOKEN_SECRET=<valor_gerado_2>
-ADMIN_DEFAULT_PASSWORD=<senha_gerada_5>
+ADMIN_SALT=<valor_gerado>
+ADMIN_TOKEN_SECRET=<valor_gerado>
+ADMIN_DEFAULT_PASSWORD=<senha_gerada>
 ```
 
-> **Nota Docker:** `INDEXER_URL` usa `http://graphql-engine:3000` (nome do serviço Docker, não `localhost`).
-
-#### Backend Python (`backend-py/.env`)
-
-```bash
-cp backend-py/.env.example backend-py/.env
-nano backend-py/.env
-```
-
+**backend-py/.env:**
 ```env
-DATABASE_URL=postgresql://postgres:SENHA_POSTGRES@postgres:5432/postgres
-DB_PASSWORD=<senha_gerada_4>
-SECRET_KEY=<valor_gerado_3>
-ADMIN_DEFAULT_PASSWORD=<senha_gerada_5>
+DATABASE_URL=postgresql://postgres:<SENHA>@postgres:5432/postgres
+DB_PASSWORD=<SENHA>
+SECRET_KEY=<valor_gerado>
+ADMIN_DEFAULT_PASSWORD=<senha_gerada>
 ```
 
-> **Nota Docker:** `DATABASE_URL` usa `postgres` como host (nome do serviço Docker, não `localhost`).
-
-#### Frontend (`frontend/.env`)
-
-```bash
-cp frontend/.env.example frontend/.env
-nano frontend/.env
-```
-
+**frontend/.env:**
 ```env
 VITE_API_URL=https://api.explorer.lunes.io
 VITE_GRAPHQL_URL=https://indexer.explorer.lunes.io
 VITE_WS_ENDPOINTS=wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io,wss://ws-lunes-main-01.lunes.io
 ```
 
-#### Arquivo `.env` raiz (senha do PostgreSQL para Docker)
-
-```bash
-nano /opt/lunes-explorer/.env
-```
-
+**.env (raiz):**
 ```env
-DB_PASSWORD=<senha_gerada_4>
+DB_PASSWORD=<SENHA>
 ```
 
-#### Proteger todos os `.env`
-
+Proteger:
 ```bash
 chmod 600 api/.env backend-py/.env frontend/.env .env
 ```
 
-### A.5 Build do Frontend
-
-O frontend é uma SPA estática que precisa ser compilada antes:
+### 4. Build do Frontend
 
 ```bash
-cd /opt/lunes-explorer/frontend
+cd frontend
 npm install
 npm run build
-# Resultado: pasta dist/ com index.html e assets/
+cd ..
 ```
 
-### A.6 Subir Todos os Serviços
+### 5. Subir com Docker
 
 ```bash
-cd /opt/lunes-explorer
 docker compose up --build -d
 ```
 
-### A.7 Verificar Status
-
+Verificar:
 ```bash
-# Status de todos os containers
 docker compose ps
-
-# Resultado esperado:
-# NAME                          STATUS
-# postgres                      Up (healthy)
-# api                           Up (healthy)    → porta 4000
-# backend-py                    Up (healthy)    → porta 8000
-# subquery-node                 Up
-# graphql-engine                Up              → porta 3000
-
-# Testar API Express
-curl -s http://localhost:4000/api/health
-
-# Testar Backend Python
-curl -s http://localhost:8000/docs
-
-# Logs de todos os serviços
-docker compose logs --tail 20
-
-# Logs de um serviço específico
-docker compose logs api --tail 50
-docker compose logs backend-py --tail 50
+curl http://localhost:4000/api/health
+curl http://localhost:8000/docs
 ```
 
-### A.8 Arquitetura Docker (docker-compose.yml)
-
-```
-┌────────────────────────────────────────────────────┐
-│                 Docker Compose                      │
-│                                                    │
-│  ┌─────────────┐  ┌─────────────┐  ┌────────────┐ │
-│  │  postgres    │  │ subquery-   │  │ graphql-   │ │
-│  │  :5432       │◀─│ node        │  │ engine     │ │
-│  │              │  │             │  │ :3000      │ │
-│  └──────┬───────┘  └─────────────┘  └────────────┘ │
-│         │                                          │
-│  ┌──────▼───────┐  ┌─────────────┐                 │
-│  │  backend-py  │  │  api        │                 │
-│  │  :8000       │  │  :4000      │                 │
-│  └──────────────┘  └─────────────┘                 │
-│                                                    │
-└──────────────────────┬─────────────────────────────┘
-                       │ portas expostas: 3000, 4000, 5432, 8000
-                       ▼
-              ┌────────────────┐
-              │     Nginx      │ ← SSL + Reverse Proxy
-              │  :80 / :443   │
-              └────────────────┘
-```
-
-### A.9 Comandos Docker Úteis
-
-```bash
-# Parar todos os serviços
-docker compose down
-
-# Reiniciar um serviço específico
-docker compose restart api
-docker compose restart backend-py
-
-# Rebuild e reiniciar (após mudanças no código)
-docker compose up --build -d
-
-# Rebuild sem cache (forçar reinstalação de dependências)
-docker compose build --no-cache
-docker compose up -d
-
-# Ver logs em tempo real
-docker compose logs -f
-
-# Acessar shell de um container
-docker compose exec api sh
-docker compose exec backend-py bash
-
-# Acessar PostgreSQL direto
-docker compose exec postgres psql -U postgres
-
-# Verificar uso de recursos
-docker stats
-```
-
-### A.10 Atualizar em Produção (Docker)
-
-```bash
-cd /opt/lunes-explorer
-
-# 1) Baixar código novo
-git pull origin main
-
-# 2) Rebuild do frontend
-cd frontend && npm install && npm run build && cd ..
-
-# 3) Rebuild e reiniciar containers
-docker compose up --build -d
-
-# 4) Verificar
-docker compose ps
-docker compose logs --tail 10
-```
-
-#### Script de deploy rápido (Docker)
-
-```bash
-nano /opt/lunes-explorer/deploy-docker.sh
-```
-
-```bash
-#!/bin/bash
-set -e
-echo "🐳 Deploying Lunes Explorer (Docker)..."
-
-cd /opt/lunes-explorer
-git pull origin main
-
-echo "🏗️ Building frontend..."
-cd frontend && npm install && npm run build && cd ..
-
-echo "♻️ Rebuilding containers..."
-docker compose up --build -d
-
-echo "✅ Deploy complete!"
-docker compose ps
-```
-
-```bash
-chmod +x /opt/lunes-explorer/deploy-docker.sh
-```
-
-### A.11 Resolução de Problemas (Docker)
-
-| Problema | Causa | Solução |
-| --- | --- | --- |
-| Container em restart loop | Erro no código ou `.env` faltando | `docker compose logs <serviço> --tail 50` |
-| `schema "auth" does not exist` | Primeira execução sem schema | Já corrigido no `seed.py` (cria automaticamente) |
-| `passlib`/`bcrypt` incompatível | Versão do `bcrypt` muito nova | Já pinado em `bcrypt==4.0.1` no `requirements.txt` |
-| `ERR_UNKNOWN_FILE_EXTENSION .ts` | API Express importa `.ts` sem compilar | Já corrigido no Dockerfile (usa `tsx` global) |
-| `NameError: app not defined` | `main.py` sem instância FastAPI | Já corrigido com `app = FastAPI()` |
-| Porta já em uso | Container antigo não parou | `docker compose down && docker compose up -d` |
-| Conflito de container name | Container órfão | `docker rm -f <nome>` e subir novamente |
-| Sem espaço em disco | Imagens antigas acumuladas | `docker system prune -a` |
-
----
-
-> **💡 Se preferir deploy sem Docker (manual com PM2)**, siga a **Opção B** abaixo.
-
----
-
-## �📋 Opção B — Deploy Manual (sem Docker)
-
-### Passo 0 — Pré-requisitos
-
-### No servidor (Ubuntu 22.04 LTS recomendado):
-
-```bash
-# Atualizar sistema
-sudo apt update && sudo apt upgrade -y
-
-# Instalar Node.js 20 LTS
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# Instalar Python 3.11+
-sudo apt install -y python3 python3-pip python3-venv
-
-# Instalar PostgreSQL
-sudo apt install -y postgresql postgresql-contrib
-
-# Instalar Nginx
-sudo apt install -y nginx
-
-# Instalar Certbot (SSL)
-sudo apt install -y certbot python3-certbot-nginx
-
-# Instalar PM2 (gerenciador de processos)
-sudo npm install -g pm2
-
-# Instalar Git
-sudo apt install -y git
-```
-
-### Verificar versões:
-
-```bash
-node -v       # v20.x.x
-npm -v        # 10.x.x
-python3 -V    # 3.11+
-psql --version # 14+
-nginx -v      # 1.18+
-pm2 -v        # 5.x.x
-```
-
----
-
-## 🔐 Passo 1 — Segurança (ANTES de tudo)
-
-### 1.1 Criar usuário dedicado (não usar root)
-
-```bash
-sudo adduser lunes
-sudo usermod -aG sudo lunes
-su - lunes
-```
-
-### 1.2 Configurar firewall
-
-```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP (redirect para HTTPS)
-sudo ufw allow 443/tcp   # HTTPS
-sudo ufw enable
-sudo ufw status
-
-# IMPORTANTE: NÃO abrir portas 3000, 4000, 8000 — só Nginx acessa
-```
-
-### 1.3 Gerar segredos de produção
-
-Execute estes comandos e **anote os resultados** (vai precisar nos `.env`):
-
-```bash
-# 1) ADMIN_SALT (copie o resultado)
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-
-# 2) ADMIN_TOKEN_SECRET (copie o resultado)
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-
-# 3) SECRET_KEY para Python (copie o resultado)
-python3 -c "import secrets; print(secrets.token_hex(32))"
-
-# 4) Senha do PostgreSQL (copie o resultado)
-openssl rand -base64 24
-
-# 5) Senha forte do admin (copie o resultado)
-openssl rand -base64 18
-```
-
-> ⚠️ **NUNCA reutilize segredos de desenvolvimento em produção!**
-> ⚠️ **Guarde esses valores — você não poderá recuperá-los depois.**
-
----
-
-## 🗄️ Passo 2 — Configurar PostgreSQL
-
-```bash
-# Acessar o PostgreSQL
-sudo -u postgres psql
-
-# Dentro do psql, execute:
-CREATE DATABASE lunes_explorer;
-CREATE USER lunes WITH ENCRYPTED PASSWORD 'COLE_A_SENHA_DO_PASSO_1.4';
-GRANT ALL PRIVILEGES ON DATABASE lunes_explorer TO lunes;
-\q
-```
-
-### Testar conexão:
-
-```bash
-psql -U lunes -d lunes_explorer -h localhost
-# Se pedir senha, use a que criou acima
-# Se conectar, digite \q para sair
-```
-
----
-
-## 📥 Passo 3 — Clonar e Instalar o Projeto
-
-```bash
-# Criar diretório
-sudo mkdir -p /opt/lunes-explorer
-sudo chown lunes:lunes /opt/lunes-explorer
-
-# Clonar repositório
-cd /opt/lunes-explorer
-git clone https://github.com/lunes-platform/explorer-backend-subql.git .
-
-# Verificar que está na branch correta
-git checkout main   # ou a branch de produção
-```
-
-### 3.1 Instalar dependências da API
-
-```bash
-cd /opt/lunes-explorer/api
-npm install --production
-```
-
-### 3.2 Instalar dependências do Frontend
-
-```bash
-cd /opt/lunes-explorer/frontend
-npm install
-```
-
-### 3.3 Instalar dependências do Backend Python
-
-```bash
-cd /opt/lunes-explorer/backend-py
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-deactivate
-```
-
----
-
-## 🗂️ Passo 4 — Configurar Variáveis de Ambiente
-
-### 4.1 API Backend (`api/.env`)
-
-```bash
-cp api/.env.example api/.env
-nano api/.env
-```
-
-Cole o seguinte (substituindo os valores `<...>`):
-
-```env
-# Servidor
-API_PORT=4000
-
-# CORS — URL do seu frontend em produção
-CORS_ORIGINS=https://explorer.lunes.io
-
-# Conexão RPC com a blockchain
-RPC_URL=wss://ws.lunes.io
-
-# URL do indexador SubQuery (local no mesmo servidor)
-INDEXER_URL=http://localhost:3000
-
-# URL pública da API (usada para URLs de upload)
-API_PUBLIC_URL=https://api.explorer.lunes.io
-
-# URL pública do app (usada como HTTP-Referer para IA)
-APP_PUBLIC_URL=https://explorer.lunes.io
-
-# Segurança Admin — COLE OS VALORES GERADOS NO PASSO 1.3
-ADMIN_SALT=<cole_o_valor_gerado_1>
-ADMIN_TOKEN_SECRET=<cole_o_valor_gerado_2>
-ADMIN_DEFAULT_PASSWORD=<cole_a_senha_gerada_5>
-```
-
-### 4.2 Frontend (`frontend/.env`)
-
-```bash
-cp frontend/.env.example frontend/.env
-nano frontend/.env
-```
-
-Cole:
-
-```env
-# URL da API em produção
-VITE_API_URL=https://api.explorer.lunes.io
-
-# URL do indexador GraphQL (se exposto publicamente)
-VITE_GRAPHQL_URL=https://indexer.explorer.lunes.io
-
-# Endpoints WebSocket RPC
-VITE_WS_ENDPOINTS=wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io,wss://ws-lunes-main-01.lunes.io
-```
-
-### 4.3 Backend Python (`backend-py/.env`)
-
-```bash
-cp backend-py/.env.example backend-py/.env
-nano backend-py/.env
-```
-
-Cole:
-
-```env
-# Banco de dados — use a senha criada no Passo 2
-DATABASE_URL=postgresql://lunes:<SENHA_DO_POSTGRES>@localhost:5432/lunes_explorer
-DB_PASSWORD=<SENHA_DO_POSTGRES>
-
-# Segurança — COLE OS VALORES GERADOS NO PASSO 1.3
-SECRET_KEY=<cole_o_valor_gerado_3>
-ADMIN_DEFAULT_PASSWORD=<cole_a_senha_gerada_5>
-```
-
-### 4.4 Proteger os arquivos .env
-
-```bash
-chmod 600 /opt/lunes-explorer/api/.env
-chmod 600 /opt/lunes-explorer/frontend/.env
-chmod 600 /opt/lunes-explorer/backend-py/.env
-```
-
----
-
-## 🏗️ Passo 5 — Build do Frontend
-
-```bash
-cd /opt/lunes-explorer/frontend
-npm run build
-```
-
-Resultado esperado: pasta `frontend/dist/` criada com `index.html` e `assets/`.
-
-```bash
-# Verificar
-ls -la dist/
-# Deve ter: index.html, assets/ (com .js e .css)
-```
-
----
-
-## 🌐 Passo 6 — Configurar Nginx
-
-### 6.1 Criar arquivo de configuração
+### 6. Configurar Nginx + SSL
 
 ```bash
 sudo nano /etc/nginx/sites-available/explorer.lunes.io
 ```
 
-Cole o conteúdo completo:
-
 ```nginx
-# ============================================
-# Lunes Explorer — Configuração Nginx
-# ============================================
-
-# Rate limiting global
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/s;
 limit_req_zone $binary_remote_addr zone=static_limit:10m rate=50r/s;
 
-# ── Frontend (SPA estática) ──
 server {
     listen 443 ssl http2;
     server_name explorer.lunes.io;
-
-    # SSL (será preenchido pelo Certbot)
-    ssl_certificate     /etc/letsencrypt/live/explorer.lunes.io/fullchain.pem;
+    
+    ssl_certificate /etc/letsencrypt/live/explorer.lunes.io/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/explorer.lunes.io/privkey.pem;
-
-    # Diretório do build
+    
     root /opt/lunes-explorer/frontend/dist;
     index index.html;
-
-    # SPA — todas as rotas servem index.html
+    
     location / {
         limit_req zone=static_limit burst=100 nodelay;
         try_files $uri $uri/ /index.html;
     }
-
-    # Cache para assets estáticos (JS, CSS, imagens)
+    
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";
         access_log off;
     }
-
-    # Segurança
+    
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-
-    # Gzip
+    
     gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml;
-    gzip_min_length 256;
+    gzip_types text/plain text/css application/json application/javascript;
 }
 
-# ── API Express (porta 4000) ──
 server {
     listen 443 ssl http2;
     server_name api.explorer.lunes.io;
-
-    ssl_certificate     /etc/letsencrypt/live/api.explorer.lunes.io/fullchain.pem;
+    
+    ssl_certificate /etc/letsencrypt/live/api.explorer.lunes.io/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/api.explorer.lunes.io/privkey.pem;
-
+    
     location / {
         limit_req zone=api_limit burst=50 nodelay;
-
         proxy_pass http://127.0.0.1:4000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        # Limite de upload (para banners, logos)
         client_max_body_size 10M;
-
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-
-    # Endpoint de uploads (cache de imagens)
-    location /api/uploads/ {
-        proxy_pass http://127.0.0.1:4000;
-        expires 30d;
-        add_header Cache-Control "public";
     }
 }
 
-# ── Redirect HTTP → HTTPS ──
 server {
     listen 80;
     server_name explorer.lunes.io api.explorer.lunes.io;
@@ -706,285 +205,80 @@ server {
 }
 ```
 
-### 6.2 Ativar o site
-
+Ativar:
 ```bash
-# Criar link simbólico
 sudo ln -s /etc/nginx/sites-available/explorer.lunes.io /etc/nginx/sites-enabled/
-
-# Remover default (se existir)
 sudo rm -f /etc/nginx/sites-enabled/default
-
-# Testar configuração
 sudo nginx -t
-
-# Se aparecer "syntax is ok" e "test is successful":
 sudo systemctl reload nginx
-```
 
-### 6.3 Certificado SSL (Let's Encrypt)
-
-**Primeiro, comente as linhas `ssl_certificate` no Nginx** (pois ainda não existem):
-
-```bash
-# Obter certificados
+# SSL
 sudo certbot --nginx -d explorer.lunes.io -d api.explorer.lunes.io
-
-# Testar renovação automática
 sudo certbot renew --dry-run
 ```
 
-O Certbot vai atualizar automaticamente o Nginx com os certificados.
-
 ---
 
-## 🚀 Passo 7 — Iniciar os Serviços com PM2
-
-### 7.1 Criar arquivo de configuração PM2
+## 🔄 Atualizar em Produção
 
 ```bash
-nano /opt/lunes-explorer/ecosystem.config.js
-```
-
-Cole:
-
-```js
-module.exports = {
-  apps: [
-    {
-      name: 'lunes-api',
-      script: './api/server.js',
-      cwd: '/opt/lunes-explorer',
-      env: {
-        NODE_ENV: 'production',
-      },
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '512M',
-      error_file: '/opt/lunes-explorer/logs/api-error.log',
-      out_file: '/opt/lunes-explorer/logs/api-out.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-    },
-    {
-      name: 'lunes-python',
-      script: './backend-py/main.py',
-      cwd: '/opt/lunes-explorer',
-      interpreter: '/opt/lunes-explorer/backend-py/.venv/bin/python3',
-      env: {
-        PYTHONUNBUFFERED: '1',
-      },
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '256M',
-      error_file: '/opt/lunes-explorer/logs/python-error.log',
-      out_file: '/opt/lunes-explorer/logs/python-out.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-    },
-  ],
-};
-```
-
-### 7.2 Criar pasta de logs e iniciar
-
-```bash
-mkdir -p /opt/lunes-explorer/logs
-
-# Iniciar todos os serviços
-cd /opt/lunes-explorer
-pm2 start ecosystem.config.js
-
-# Verificar status
-pm2 status
-
-# Resultado esperado:
-# ┌─────────────────┬────┬──────┬───────┬────────┐
-# │ name            │ id │ mode │ status│ cpu    │
-# ├─────────────────┼────┼──────┼───────┼────────┤
-# │ lunes-api       │ 0  │ fork │ online│ 0%     │
-# │ lunes-python    │ 1  │ fork │ online│ 0%     │
-# └─────────────────┴────┴──────┴───────┴────────┘
-```
-
-### 7.3 Configurar auto-start no boot
-
-```bash
-pm2 save
-pm2 startup
-
-# O PM2 vai mostrar um comando sudo — EXECUTE-O:
-# sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u lunes --hp /home/lunes
-```
-
----
-
-## ✅ Passo 8 — Verificação Final
-
-### 8.1 Testar cada componente
-
-```bash
-# 1) API respondendo?
-curl -s http://localhost:4000/api/health | head -1
-# Esperado: {"status":"ok"} ou similar
-
-# 2) Frontend acessível?
-curl -s -o /dev/null -w "%{http_code}" https://explorer.lunes.io
-# Esperado: 200
-
-# 3) API via domínio?
-curl -s -o /dev/null -w "%{http_code}" https://api.explorer.lunes.io/api/health
-# Esperado: 200
-
-# 4) SSL válido?
-curl -vI https://explorer.lunes.io 2>&1 | grep "SSL certificate verify ok"
-# Esperado: "SSL certificate verify ok"
-
-# 5) Logs sem erros?
-pm2 logs --lines 20
-```
-
-### 8.2 Checklist de segurança final
-
-```bash
-# Portas abertas (deve ser APENAS 22, 80, 443)
-sudo ufw status
-
-# Arquivos .env protegidos
-ls -la /opt/lunes-explorer/api/.env
-# Esperado: -rw------- (600)
-
-# Nenhum .env no git
-cd /opt/lunes-explorer
-git status | grep ".env"
-# Esperado: nenhum resultado
-
-# Nginx não expõe portas internas
-curl -s http://explorer.lunes.io:4000 2>&1
-# Esperado: conexão recusada
-```
-
----
-
-## 🔄 Passo 9 — Como Atualizar em Produção
-
-Sempre que fizer `git push` no repositório:
-
-```bash
-cd /opt/lunes-explorer
-
-# 1) Baixar código novo
-git pull origin main
-
-# 2) Atualizar dependências da API (se package.json mudou)
-cd api && npm install --production && cd ..
-
-# 3) Rebuild do frontend (se código do frontend mudou)
-cd frontend && npm install && npm run build && cd ..
-
-# 4) Reiniciar serviços
-pm2 restart all
-
-# 5) Verificar
-pm2 status
-pm2 logs --lines 10
-```
-
-### Script de deploy rápido (opcional)
-
-```bash
-nano /opt/lunes-explorer/deploy.sh
-```
-
-```bash
-#!/bin/bash
-set -e
-echo "🚀 Deploying Lunes Explorer..."
-
 cd /opt/lunes-explorer
 git pull origin main
-
-echo "📦 Installing API deps..."
-cd api && npm install --production && cd ..
-
-echo "🏗️ Building frontend..."
 cd frontend && npm install && npm run build && cd ..
-
-echo "♻️ Restarting services..."
-pm2 restart all
-
-echo "✅ Deploy complete!"
-pm2 status
+docker compose up --build -d
+docker compose ps
 ```
+
+---
+
+## 📊 Comandos Úteis
 
 ```bash
-chmod +x /opt/lunes-explorer/deploy.sh
+# Status
+docker compose ps
 
-# Para usar:
-/opt/lunes-explorer/deploy.sh
+# Logs
+docker compose logs -f
+docker compose logs api --tail 50
+
+# Reiniciar serviço
+docker compose restart api
+
+# Rebuild sem cache
+docker compose build --no-cache && docker compose up -d
+
+# Parar tudo
+docker compose down
+
+# Acessar banco
+docker compose exec postgres psql -U postgres
+
+# Limpar imagens antigas
+docker system prune -a
 ```
 
 ---
 
-## 📊 Passo 10 — Monitoramento
+## 🆘 Troubleshooting
 
-### Comandos úteis do dia a dia
-
-```bash
-# Status dos serviços
-pm2 status
-
-# Logs em tempo real
-pm2 logs
-
-# Logs só da API
-pm2 logs lunes-api --lines 50
-
-# Métricas (CPU, memória)
-pm2 monit
-
-# Reiniciar um serviço
-pm2 restart lunes-api
-
-# Reiniciar todos
-pm2 restart all
-
-# Disco e memória do servidor
-df -h
-free -m
-
-# Logs do Nginx
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
-```
+| Problema | Solução |
+|----------|---------|
+| Container em restart loop | docker compose logs <servico> --tail 50 |
+| Porta já em uso | docker compose down && docker compose up -d |
+| Sem espaço em disco | docker system prune -a |
+| Erro no schema auth | Já corrigido no seed.py (cria automaticamente) |
+| bcrypt incompatível | Já pinado em bcrypt==4.0.1 |
 
 ---
 
-## 🆘 Resolução de Problemas
+## 📝 Portas
 
-| Problema | Causa provável | Solução |
-| --- | --- | --- |
-| Tela branca no frontend | `VITE_API_URL` errado ou build desatualizado | Corrija `frontend/.env` e execute `npm run build` |
-| Erro de CORS na API | `CORS_ORIGINS` não inclui o domínio do frontend | Corrija `api/.env` e `pm2 restart lunes-api` |
-| Login admin não funciona | Segredos inválidos | Verifique `ADMIN_SALT` e `ADMIN_TOKEN_SECRET`, reinicie a API |
-| WebSocket não conecta | Endpoints inválidos ou bloqueados | Verifique `VITE_WS_ENDPOINTS` e rebuild o frontend |
-| URLs de upload quebradas | `API_PUBLIC_URL` incorreta | Corrija em `api/.env` e reinicie |
-| Dados do indexador faltando | SubQuery Node parado ou `INDEXER_URL` errado | Verifique se porta 3000 está ativa |
-| Erro 502 Bad Gateway | Serviço não está rodando | Execute `pm2 status` e `pm2 restart all` |
-| Certificado SSL expirado | Certbot não renovou | Execute `sudo certbot renew` |
-| Servidor lento | Memória insuficiente | Verifique `free -m`, considere upgrade do VPS |
+| Serviço | Porta | Acesso |
+|---------|-------|--------|
+| Frontend (Nginx) | 80/443 | Público |
+| API Express | 4000 | Via Nginx |
+| Backend Python | 8000 | Interno |
+| GraphQL Engine | 3000 | Interno |
+| PostgreSQL | 5432 | Interno |
 
----
-
-## 📝 Resumo dos Domínios e Portas
-
-| Serviço | Porta interna | Domínio público | Acesso externo |
-| --- | --- | --- | --- |
-| Frontend (Nginx) | — | `explorer.lunes.io` | ✅ HTTPS |
-| API Express | 4000 | `api.explorer.lunes.io` | ✅ via Nginx |
-| Backend Python | 8000 | — | ❌ interno |
-| SubQuery Node | 3000 | — | ❌ interno |
-| PostgreSQL | 5432 | — | ❌ interno |
-
-> Apenas as portas 80 e 443 devem ser acessíveis externamente.
-> Todos os outros serviços rodam apenas em `localhost`.
+> Apenas 80/443 são acessíveis externamente.

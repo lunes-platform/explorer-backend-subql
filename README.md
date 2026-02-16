@@ -116,52 +116,117 @@ explorer-backend-subql/
 
 ---
 
-## Setup
+## 🐳 Quick Start com Docker
 
-### Pré-requisitos
+A forma mais rápida de rodar o projeto localmente ou em produção.
 
-- Node.js 18+
-- Docker & Docker Compose (para o indexador)
-- Yarn ou npm
-
-### 1. Indexador SubQuery
+### 1. Clone e configure
 
 ```bash
-# Na raiz do projeto
-yarn install
-yarn codegen
-yarn build
-docker-compose pull && docker-compose up
+git clone https://github.com/lunes-platform/explorer-backend-subql.git
+cd explorer-backend-subql
+
+# Copiar arquivos de exemplo
+cp api/.env.example api/.env
+cp backend-py/.env.example backend-py/.env
+cp frontend/.env.example frontend/.env
 ```
 
-O GraphQL playground estará em [http://localhost:3000](http://localhost:3000).
-
-### 2. API Backend
+### 2. Gerar segredos
 
 ```bash
-cd api
-npm install
-npx ts-node server.js
+# No terminal, execute e anote os valores:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"  # ADMIN_SALT
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"  # ADMIN_TOKEN_SECRET
+python3 -c "import secrets; print(secrets.token_hex(32))"                  # SECRET_KEY
+openssl rand -base64 24                                                   # DB_PASSWORD
+openssl rand -base64 18                                                   # ADMIN_PASSWORD
 ```
 
-A API estará em [http://localhost:4000](http://localhost:4000).
+### 3. Editar `.env` files
 
-### 3. Frontend
+**`api/.env`:**
+```env
+API_PORT=4000
+CORS_ORIGINS=http://localhost:5175
+RPC_URL=wss://ws.lunes.io
+INDEXER_URL=http://localhost:3000
+API_PUBLIC_URL=http://localhost:4000
+APP_PUBLIC_URL=http://localhost:5175
+ADMIN_SALT=<cole_o_valor_gerado>
+ADMIN_TOKEN_SECRET=<cole_o_valor_gerado>
+ADMIN_DEFAULT_PASSWORD=<cole_a_senha_gerada>
+```
+
+**`backend-py/.env`:**
+```env
+DATABASE_URL=postgresql://postgres:<SENHA>@postgres:5432/postgres
+DB_PASSWORD=<SENHA>
+SECRET_KEY=<cole_o_valor_gerado>
+ADMIN_DEFAULT_PASSWORD=<cole_a_senha_gerada>
+```
+
+**`frontend/.env`:**
+```env
+VITE_API_URL=http://localhost:4000
+VITE_GRAPHQL_URL=http://localhost:3000
+VITE_WS_ENDPOINTS=wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io
+```
+
+**`.env` na raiz:**
+```env
+DB_PASSWORD=<SENHA>
+```
+
+### 4. Build do frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run build
+cd ..
 ```
 
-O frontend estará em [http://localhost:5175](http://localhost:5175).
+### 5. Subir com Docker
 
-### Admin Padrão
+```bash
+docker compose up --build -d
+```
 
-- **Email:** `admin@lunes.io`
-- **Senha:** `lunes2024`
+### 6. Verificar
 
-> Altere a senha após o primeiro login em Admin > Configurações.
+```bash
+# Status
+docker compose ps
+
+# Testar
+curl http://localhost:4000/api/health
+curl http://localhost:8000/docs
+open http://localhost:5175  # frontend
+```
+
+### Comandos úteis
+
+```bash
+# Parar
+docker compose down
+
+# Logs
+docker compose logs -f
+
+# Reiniciar serviço específico
+docker compose restart api
+
+# Rebuild completo
+docker compose up --build -d
+
+# Acessar banco
+docker compose exec postgres psql -U postgres
+```
+
+---
+
+> **💡 Veja o arquivo `DEPLOY.md` para instruções detalhadas de deploy em produção com Nginx + SSL.**
 
 ---
 
