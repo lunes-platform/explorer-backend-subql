@@ -146,7 +146,7 @@ export interface AccountInfo {
 export async function getAccountInfo(address: string): Promise<AccountInfo> {
   const api = await getApi();
   const account = await api.query.system.account(address);
-  const decimals = 12;
+  const decimals = api.registry.chainDecimals?.[0] ?? 8;
 
   const free = BigInt(account.data.free.toString());
   const reserved = BigInt(account.data.reserved.toString());
@@ -378,6 +378,7 @@ export async function getAccountStaking(address: string): Promise<{
   unbonding: Array<{ amount: string; era: number }>;
 }> {
   const api = await getApi();
+  const decimals = api.registry.chainDecimals?.[0] ?? 8;
 
   const [ledgerOpt, nominationsOpt, validators] = await Promise.all([
     api.query.staking.ledger(address),
@@ -412,7 +413,7 @@ export async function getAccountStaking(address: string): Promise<{
 
   return {
     bonded,
-    bondedFormatted: Number(BigInt(bonded)) / Math.pow(10, 12),
+    bondedFormatted: Number(BigInt(bonded)) / Math.pow(10, decimals),
     isNominator: nominations.length > 0,
     isValidator,
     nominations,
