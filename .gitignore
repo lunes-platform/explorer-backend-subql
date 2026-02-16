@@ -57,6 +57,11 @@ Thumbs.db
 .data
 .eslintcache
 
+# Environment variables (contain secrets - NEVER commit)
+.env
+api/.env
+backend-py/.env
+
 # API data (contains admin credentials, configs)
 data/
 data/uploads/

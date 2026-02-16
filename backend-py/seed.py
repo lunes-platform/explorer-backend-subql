@@ -2,6 +2,7 @@ from database import SessionLocal, engine, Base
 import models
 import auth
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,9 +16,9 @@ def init_db():
     db = SessionLocal()
     
     admin_email = "cardeal@lunes.io"
-    # In production, use a strong password from env or secrets manager
-    # For now, setting a default initial password that should be changed
-    admin_password = "lunes-admin-initial" 
+    admin_password = os.environ.get("ADMIN_DEFAULT_PASSWORD")
+    if not admin_password:
+        raise RuntimeError("ADMIN_DEFAULT_PASSWORD environment variable is required for seeding.")
     
     user = db.query(models.User).filter(models.User.email == admin_email).first()
     if not user:

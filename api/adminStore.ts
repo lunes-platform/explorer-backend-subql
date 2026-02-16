@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import 'dotenv/config';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const ADMIN_FILE = path.join(DATA_DIR, 'admins.json');
@@ -22,7 +23,8 @@ interface AdminData {
   nextId: number;
 }
 
-const SALT = 'lunes-explorer-2024'; // Static salt for backward compat
+const SALT = process.env.ADMIN_SALT || 'lunes-explorer-2024';
+const TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || crypto.randomBytes(32).toString('hex');
 
 function hashPassword(password: string): string {
   return crypto.createHmac('sha256', SALT).update(password).digest('hex');
@@ -48,7 +50,7 @@ function loadData(): AdminData {
         {
           id: 1,
           email: 'admin@lunes.io',
-          password: hashPassword('lunes2024'),
+          password: hashPassword(process.env.ADMIN_DEFAULT_PASSWORD || 'lunes2024'),
           full_name: 'Admin',
           role: 'owner',
           is_active: true,
@@ -82,8 +84,8 @@ export function authenticateUser(email: string, password: string): AdminUser | n
 }
 
 export function generateToken(user: AdminUser): string {
-  const payload = `${user.id}:${user.email}:${Date.now()}`;
-  return 'lunes-admin-' + crypto.createHash('sha256').update(payload).digest('hex').slice(0, 48);
+  const payload = `${user.id}:${user.email}:${Date.now()}:${TOKEN_SECRET}`;
+  return 'lunes-admin-' + crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('hex').slice(0, 48);
 }
 
 // Token store with expiration (in-memory)

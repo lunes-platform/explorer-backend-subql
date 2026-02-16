@@ -9,7 +9,9 @@ from database import get_db
 import models, schemas
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-it-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is required. Set it in .env or environment.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
