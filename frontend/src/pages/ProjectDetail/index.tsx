@@ -103,7 +103,7 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
           style={{ background: 'none', border: 'none', cursor: 'pointer' }}
         >
           <ArrowLeft size={16} />
-          Voltar
+          Back
         </button>
 
         <div className={styles.projectHeader}>

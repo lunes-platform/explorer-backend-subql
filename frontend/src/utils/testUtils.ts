@@ -41,6 +41,7 @@ export const runTests = () => {
       } catch {
         results.push('❌ Watchlist: Invalid data');
         return false;
+      }
     }
     results.push('⚠️ Watchlist: Empty (no items yet)');
     return true;

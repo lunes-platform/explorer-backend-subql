@@ -25,15 +25,15 @@ import styles from './Admin.module.css';
 type AdminTab = 'overview' | 'projects' | 'token' | 'banners' | 'ads' | 'announcements' | 'rewards' | 'ai' | 'settings';
 
 const TABS: { key: AdminTab; label: string; icon: React.ReactNode; description: string }[] = [
-  { key: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} />, description: 'Visão geral do sistema' },
-  { key: 'projects', label: 'Projetos', icon: <FolderCheck size={18} />, description: 'Gerenciar projetos' },
-  { key: 'token', label: 'Tokens', icon: <Coins size={18} />, description: 'Informações de tokens' },
-  { key: 'banners', label: 'Banners', icon: <Image size={18} />, description: 'Gerenciar banners' },
-  { key: 'ads', label: 'Ads', icon: <MonitorPlay size={18} />, description: 'Gerenciar anúncios' },
-  { key: 'announcements', label: 'Anúncios', icon: <Megaphone size={18} />, description: 'Comunicados oficiais' },
-  { key: 'rewards', label: 'Rewards', icon: <Award size={18} />, description: 'Sistema de recompensas' },
-  { key: 'ai', label: 'IA / LLM', icon: <Brain size={18} />, description: 'Configurar inteligência artificial' },
-  { key: 'settings', label: 'Configurações', icon: <Shield size={18} />, description: 'Senha e equipe' },
+  { key: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} />, description: 'System overview' },
+  { key: 'projects', label: 'Projects', icon: <FolderCheck size={18} />, description: 'Manage projects' },
+  { key: 'token', label: 'Tokens', icon: <Coins size={18} />, description: 'Token information' },
+  { key: 'banners', label: 'Banners', icon: <Image size={18} />, description: 'Manage banners' },
+  { key: 'ads', label: 'Ads', icon: <MonitorPlay size={18} />, description: 'Manage advertisements' },
+  { key: 'announcements', label: 'Announcements', icon: <Megaphone size={18} />, description: 'Official announcements' },
+  { key: 'rewards', label: 'Rewards', icon: <Award size={18} />, description: 'Rewards system' },
+  { key: 'ai', label: 'AI / LLM', icon: <Brain size={18} />, description: 'Configure artificial intelligence' },
+  { key: 'settings', label: 'Settings', icon: <Shield size={18} />, description: 'Password and team' },
 ];
 
 const OverviewTab = React.lazy(() => import('./OverviewTab'));
@@ -55,7 +55,7 @@ export default function AdminPage() {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
-        <p>Verificando acesso...</p>
+        <p>Verifying access...</p>
       </div>
     );
   }
@@ -66,15 +66,15 @@ export default function AdminPage() {
         <div className={styles.accessIcon}>
           <Shield size={64} />
         </div>
-        <h2>Acesso Administrativo</h2>
-        <p>Você precisa estar autenticado para acessar o painel de administração.</p>
+        <h2>Admin Access</h2>
+        <p>You must be authenticated to access the administration panel.</p>
         <div className={styles.accessActions}>
           <Link to="/admin/login" className={styles.loginButton}>
-            Fazer Login
+            Sign In
           </Link>
           <Link to="/" className={styles.backButton}>
             <ArrowLeft size={16} /> 
-            Voltar ao Explorer
+            Back to Explorer
           </Link>
         </div>
       </div>
@@ -101,7 +101,7 @@ export default function AdminPage() {
         
         <nav className={styles.sidebarNav}>
           <div className={styles.navSection}>
-            <span className={styles.navSectionTitle}>Menu Principal</span>
+            <span className={styles.navSectionTitle}>Main Menu</span>
             {TABS.map((tab) => (
               <button
                 key={tab.key}
@@ -128,7 +128,7 @@ export default function AdminPage() {
         <div className={styles.sidebarFooter}>
           <Link to="/" className={styles.backLink}>
             <ArrowLeft size={16} />
-            Voltar ao Explorer
+            Back to Explorer
           </Link>
           <div className={styles.version}>v2.0.0</div>
         </div>
@@ -160,7 +160,7 @@ export default function AdminPage() {
           </div>
           
           <div className={styles.headerRight}>
-            <button className={styles.headerIconBtn} title="Notificações">
+            <button className={styles.headerIconBtn} title="Notifications">
               <Bell size={18} />
               <span className={styles.notificationBadge}>3</span>
             </button>
@@ -173,7 +173,7 @@ export default function AdminPage() {
                 <span className={styles.userName}>{user?.full_name || 'Admin'}</span>
                 <span className={styles.userEmail}>{user?.email}</span>
               </div>
-              <button className={styles.logoutBtn} onClick={logout} title="Sair">
+              <button className={styles.logoutBtn} onClick={logout} title="Sign Out">
                 <LogOut size={16} />
               </button>
             </div>
@@ -195,7 +195,7 @@ export default function AdminPage() {
                 fallback={
                   <div className={styles.fallback}>
                     <div className={styles.spinner}></div>
-                    <span>Carregando...</span>
+                    <span>Loading...</span>
                   </div>
                 }
               >

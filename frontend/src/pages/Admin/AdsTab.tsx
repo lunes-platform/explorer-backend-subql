@@ -58,7 +58,7 @@ export default function AdsTab() {
   };
 
   const handleSave = async () => {
-    if (!form.title || !form.ctaUrl) { setFb({ type: 'error', msg: 'Título e URL obrigatórios' }); return; }
+    if (!form.title || !form.ctaUrl) { setFb({ type: 'error', msg: 'Title and URL are required' }); return; }
     setSaving(true); setFb(null);
     try {
       const url = editing ? `${API}/admin/ads/${editing.id}` : `${API}/admin/ads`;
@@ -66,16 +66,16 @@ export default function AdsTab() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...form, priority: Number(form.priority) || 0,
           startDate: form.startDate || undefined, endDate: form.endDate || undefined }) });
-      if (r.ok) { setFb({ type: 'success', msg: editing ? 'Atualizado' : 'Criado' }); reset(); load(); }
-      else { const e = await r.json(); setFb({ type: 'error', msg: e.error || 'Erro' }); }
-    } catch { setFb({ type: 'error', msg: 'Erro de rede' }); }
+      if (r.ok) { setFb({ type: 'success', msg: editing ? 'Updated' : 'Created' }); reset(); load(); }
+      else { const e = await r.json(); setFb({ type: 'error', msg: e.error || 'Error' }); }
+    } catch { setFb({ type: 'error', msg: 'Network error' }); }
     finally { setSaving(false); }
   };
 
   const handleDel = async (id: string) => {
-    if (!confirm('Excluir?')) return;
-    try { await fetch(`${API}/admin/ads/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }); setFb({ type: 'success', msg: 'Excluído' }); load(); }
-    catch { setFb({ type: 'error', msg: 'Erro' }); }
+    if (!confirm('Delete this ad?')) return;
+    try { await fetch(`${API}/admin/ads/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }); setFb({ type: 'success', msg: 'Deleted' }); load(); }
+    catch { setFb({ type: 'error', msg: 'Error' }); }
   };
 
   const handleToggle = async (ad: Ad) => {
@@ -90,9 +90,9 @@ export default function AdsTab() {
 
   return (<div>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
-      {[{ l: 'Total', v: ads.length }, { l: 'Ativos', v: ads.filter(a => a.isActive).length },
-        { l: 'Impressões', v: ads.reduce((s, a) => s + a.impressions, 0) },
-        { l: 'Cliques', v: ads.reduce((s, a) => s + a.clicks, 0) }].map((s, i) => (
+      {[{ l: 'Total', v: ads.length }, { l: 'Active', v: ads.filter(a => a.isActive).length },
+        { l: 'Impressions', v: ads.reduce((s, a) => s + a.impressions, 0) },
+        { l: 'Clicks', v: ads.reduce((s, a) => s + a.clicks, 0) }].map((s, i) => (
         <div key={i} style={{ padding: '16px 20px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>{s.l}</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: 'white' }}>{s.v}</div>
@@ -101,12 +101,12 @@ export default function AdsTab() {
 
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: 'white', margin: 0 }}>Gerenciamento de Ads</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>Anúncios promocionais do explorer</p>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: 'white', margin: 0 }}>Ad Management</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>Explorer promotional advertisements</p>
       </div>
       <button onClick={() => { reset(); setCreating(true); }}
         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#6c38ff', color: 'white', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-        <Plus size={16} /> Novo Anúncio
+        <Plus size={16} /> New Ad
       </button>
     </div>
 
@@ -119,51 +119,51 @@ export default function AdsTab() {
 
     {(creating || editing) && <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: 'white', margin: 0 }}>{editing ? 'Editar' : 'Criar'} Anúncio</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: 'white', margin: 0 }}>{editing ? 'Edit' : 'Create'} Ad</h3>
         <button onClick={reset} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Título *</label>
+        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Title *</label>
           <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={IS} /></div>
-        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>URL do CTA *</label>
+        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>CTA URL *</label>
           <input value={form.ctaUrl} onChange={e => setForm(f => ({ ...f, ctaUrl: e.target.value }))} style={IS} /></div>
-        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Descrição</label>
+        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Description</label>
           <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={IS} /></div>
-        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Texto Botão</label>
+        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Button Text</label>
           <input value={form.ctaText} onChange={e => setForm(f => ({ ...f, ctaText: e.target.value }))} style={IS} /></div>
-        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Posição</label>
+        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Placement</label>
           <select value={form.placement} onChange={e => setForm(f => ({ ...f, placement: e.target.value }))} style={IS}>
             {PL.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select></div>
-        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Prioridade</label>
+        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Priority</label>
           <input type="number" value={form.priority} onChange={e => setForm(f => ({ ...f, priority: Number(e.target.value) }))} style={IS} /></div>
-        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Data Início</label>
+        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Start Date</label>
           <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} style={IS} /></div>
-        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Data Fim</label>
+        <div><label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>End Date</label>
           <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} style={IS} /></div>
       </div>
       <div style={{ display: 'flex', gap: 12, marginTop: 16, alignItems: 'center' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} /> Ativo
+          <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} /> Active
         </label>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button onClick={reset} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={reset} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#6c38ff', color: 'white', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
-            {saving ? <Loader2 size={14} /> : <Save size={14} />} {saving ? 'Salvando...' : 'Salvar'}
+            {saving ? <Loader2 size={14} /> : <Save size={14} />} {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
     </div>}
 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {ads.length === 0 ? <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>Nenhum anúncio.</div> :
+      {ads.length === 0 ? <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>No ads yet.</div> :
         ads.map(ad => (
           <div key={ad.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', opacity: ad.isActive ? 1 : 0.5 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: ad.isActive ? '#26d07c' : '#666', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ad.title}</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                {ad.placement} · {ad.impressions} imp · {ad.clicks} cliques · CTR: {ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(1) : 0}%
+                {ad.placement} · {ad.impressions} imp · {ad.clicks} clicks · CTR: {ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(1) : 0}%
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>

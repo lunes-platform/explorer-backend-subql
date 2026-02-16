@@ -61,6 +61,8 @@ Thumbs.db
 .env
 api/.env
 backend-py/.env
+frontend/.env
+frontend/.env.local
 
 # API data (contains admin credentials, configs)
 data/

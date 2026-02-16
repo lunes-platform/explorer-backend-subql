@@ -113,16 +113,16 @@ const AdminRewards: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setWalletMessage({ type: 'success', text: 'Endereço da carteira gerada aplicado com sucesso!' });
+        setWalletMessage({ type: 'success', text: 'Generated wallet address applied successfully!' });
         reloadWallet();
         setGeneratedSeed(null);
         setGeneratedAddress(null);
         setShowSeed(false);
         setSeedConfirmed(false);
       } else {
-        setWalletMessage({ type: 'error', text: data.error || 'Erro ao aplicar endereço' });
+        setWalletMessage({ type: 'error', text: data.error || 'Failed to apply address' });
       }
-    } catch { setWalletMessage({ type: 'error', text: 'Erro de conexão' }); }
+    } catch { setWalletMessage({ type: 'error', text: 'Connection error' }); }
   };
 
   const fetchChangelog = useCallback(async () => {
@@ -407,7 +407,7 @@ const AdminRewards: React.FC = () => {
                 <div className={styles.walletStatusInfo}>
                   <div className={`${styles.walletStatusDot} ${wallet?.isActive ? styles.active : styles.paused}`} />
                   <span className={styles.walletStatusText}>
-                    {wallet?.isActive ? 'Distribuição Ativa' : 'Distribuição Pausada'}
+                    {wallet?.isActive ? 'Distribution Active' : 'Distribution Paused'}
                   </span>
                 </div>
                 <button
@@ -421,25 +421,25 @@ const AdminRewards: React.FC = () => {
                         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                       });
                       if (res.ok) {
-                        setWalletMessage({ type: 'success', text: wallet?.isActive ? 'Distribuição pausada com sucesso' : 'Distribuição reativada com sucesso' });
+                        setWalletMessage({ type: 'success', text: wallet?.isActive ? 'Distribution paused successfully' : 'Distribution resumed successfully' });
                         reloadWallet();
                       } else {
                         const data = await res.json();
-                        setWalletMessage({ type: 'error', text: data.error || 'Erro ao alterar status' });
+                        setWalletMessage({ type: 'error', text: data.error || 'Failed to change status' });
                       }
-                    } catch { setWalletMessage({ type: 'error', text: 'Erro de conexão' }); }
+                    } catch { setWalletMessage({ type: 'error', text: 'Connection error' }); }
                     finally { setToggleLoading(false); }
                   }}
                   disabled={toggleLoading}
                 >
                   <Power size={14} />
-                  {toggleLoading ? 'Aguarde...' : wallet?.isActive ? 'Pausar' : 'Reativar'}
+                  {toggleLoading ? 'Please wait...' : wallet?.isActive ? 'Pause' : 'Resume'}
                 </button>
               </div>
 
               {/* Wallet Name */}
               <div className={styles.walletField}>
-                <span className={styles.walletFieldLabel}>Nome da Carteira</span>
+                <span className={styles.walletFieldLabel}>Wallet Name</span>
                 {editingName ? (
                   <div className={styles.walletFieldEdit}>
                     <input
@@ -447,7 +447,7 @@ const AdminRewards: React.FC = () => {
                       value={newWalletName}
                       onChange={(e) => setNewWalletName(e.target.value)}
                       className={styles.walletFieldInput}
-                      placeholder="Nome da carteira"
+                      placeholder="Wallet name"
                     />
                     <button
                       className={styles.walletFieldSave}
@@ -460,18 +460,18 @@ const AdminRewards: React.FC = () => {
                             body: JSON.stringify({ name: newWalletName }),
                           });
                           if (res.ok) {
-                            setWalletMessage({ type: 'success', text: 'Nome atualizado' });
+                            setWalletMessage({ type: 'success', text: 'Name updated' });
                             reloadWallet();
                             setEditingName(false);
                           }
-                        } catch { setWalletMessage({ type: 'error', text: 'Erro de conexão' }); }
+                        } catch { setWalletMessage({ type: 'error', text: 'Connection error' }); }
                       }}
                     ><Save size={14} /></button>
                     <button className={styles.walletFieldCancel} onClick={() => setEditingName(false)}><X size={14} /></button>
                   </div>
                 ) : (
                   <div className={styles.walletFieldValue}>
-                    <span>{wallet?.name || 'Sem nome'}</span>
+                    <span>{wallet?.name || 'Unnamed'}</span>
                     <button className={styles.walletFieldEditBtn} onClick={() => { setNewWalletName(wallet?.name || ''); setEditingName(true); }}>
                       <Edit3 size={14} />
                     </button>
@@ -483,7 +483,7 @@ const AdminRewards: React.FC = () => {
               <div className={styles.walletField}>
                 <span className={styles.walletFieldLabel}>
                   <Lock size={14} />
-                  Endereço de Distribuição
+                  Distribution Address
                 </span>
                 {editingAddress ? (
                   <div className={styles.walletFieldEdit}>
@@ -492,7 +492,7 @@ const AdminRewards: React.FC = () => {
                       value={newAddress}
                       onChange={(e) => setNewAddress(e.target.value)}
                       className={styles.walletFieldInput}
-                      placeholder="5Grwva... (endereço SS58)"
+                      placeholder="5Grwva... (SS58 address)"
                       style={{ fontFamily: 'monospace' }}
                     />
                     <button
@@ -500,7 +500,7 @@ const AdminRewards: React.FC = () => {
                       onClick={async () => {
                         setWalletMessage(null);
                         if (newAddress.length < 30) {
-                          setWalletMessage({ type: 'error', text: 'Endereço inválido (mínimo 30 caracteres)' });
+                          setWalletMessage({ type: 'error', text: 'Invalid address (minimum 30 characters)' });
                           return;
                         }
                         try {
@@ -511,13 +511,13 @@ const AdminRewards: React.FC = () => {
                           });
                           const data = await res.json();
                           if (res.ok) {
-                            setWalletMessage({ type: 'success', text: 'Endereço atualizado com sucesso!' });
+                            setWalletMessage({ type: 'success', text: 'Address updated successfully!' });
                             reloadWallet();
                             setEditingAddress(false);
                           } else {
-                            setWalletMessage({ type: 'error', text: data.error || 'Erro ao atualizar endereço' });
+                            setWalletMessage({ type: 'error', text: data.error || 'Failed to update address' });
                           }
-                        } catch { setWalletMessage({ type: 'error', text: 'Erro de conexão' }); }
+                        } catch { setWalletMessage({ type: 'error', text: 'Connection error' }); }
                       }}
                     ><Save size={14} /></button>
                     <button className={styles.walletFieldCancel} onClick={() => setEditingAddress(false)}><X size={14} /></button>
@@ -526,17 +526,17 @@ const AdminRewards: React.FC = () => {
                   <div className={styles.walletFieldValue}>
                     <code className={styles.walletCode}>
                       {showAddress
-                        ? wallet?.address || 'Não configurado'
+                        ? wallet?.address || 'Not configured'
                         : wallet?.address
                           ? `${wallet.address.slice(0, 8)}${'•'.repeat(20)}${wallet.address.slice(-6)}`
-                          : 'Não configurado'
+                          : 'Not configured'
                       }
                     </code>
                     <div className={styles.walletAddressActions}>
                       <button
                         className={styles.walletFieldEditBtn}
                         onClick={() => setShowAddress(!showAddress)}
-                        title={showAddress ? 'Ocultar' : 'Mostrar'}
+                        title={showAddress ? 'Hide' : 'Show'}
                       >
                         {showAddress ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
@@ -547,14 +547,14 @@ const AdminRewards: React.FC = () => {
                           setCopiedAddress(true);
                           setTimeout(() => setCopiedAddress(false), 2000);
                         }}
-                        title="Copiar"
+                        title="Copy"
                       >
                         {copiedAddress ? <Check size={14} /> : <Copy size={14} />}
                       </button>
                       <button
                         className={styles.walletFieldEditBtn}
                         onClick={() => { setNewAddress(wallet?.address || ''); setEditingAddress(true); }}
-                        title="Alterar endereço"
+                        title="Change address"
                       >
                         <Edit3 size={14} />
                       </button>
@@ -570,7 +570,7 @@ const AdminRewards: React.FC = () => {
                     <span className={styles.balanceToken}>{tk.toUpperCase()}</span>
                     <span className={styles.balanceValue}>{formatNumber(balance)}</span>
                     <span className={styles.balanceDaily}>
-                      {formatNumber(wallet.dailyDistributed[tk] || 0)} distribuídos hoje
+                      {formatNumber(wallet.dailyDistributed[tk] || 0)} distributed today
                     </span>
                   </div>
                 ))}
@@ -579,10 +579,10 @@ const AdminRewards: React.FC = () => {
           </Card>
 
           {/* Seed Generation */}
-          <Card title="Gerar Nova Carteira" icon={<KeySquare size={18} />}>
+          <Card title="Generate New Wallet" icon={<KeySquare size={18} />}>
             <div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
-                Gere uma seed phrase (mnemônico) para criar uma nova carteira de distribuição. <strong style={{ color: '#ff284c' }}>Salve a seed em local seguro — ela não será armazenada no sistema.</strong>
+                Generate a seed phrase (mnemonic) to create a new distribution wallet. <strong style={{ color: '#ff284c' }}>Save the seed in a safe place — it will not be stored in the system.</strong>
               </p>
 
               {!generatedSeed ? (
@@ -590,7 +590,7 @@ const AdminRewards: React.FC = () => {
                   onClick={handleGenerateSeed}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: '1px solid rgba(108,56,255,0.3)', background: 'rgba(108,56,255,0.08)', color: 'var(--color-brand-400)', fontWeight: 600, fontSize: 13, cursor: 'pointer', alignSelf: 'flex-start', transition: 'all 0.15s' }}
                 >
-                  <KeySquare size={16} /> Gerar Seed Phrase
+                  <KeySquare size={16} /> Generate Seed Phrase
                 </button>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -599,20 +599,20 @@ const AdminRewards: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         <Lock size={12} style={{ marginRight: 4, verticalAlign: -1 }} />
-                        Seed Phrase (12 palavras)
+                        Seed Phrase (12 words)
                       </span>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button
                           onClick={() => setShowSeed(!showSeed)}
                           style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          title={showSeed ? 'Ocultar' : 'Mostrar'}
+                          title={showSeed ? 'Hide' : 'Show'}
                         >
                           {showSeed ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
                         <button
                           onClick={() => { navigator.clipboard.writeText(generatedSeed || ''); setCopiedSeed(true); setTimeout(() => setCopiedSeed(false), 2000); }}
                           style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: copiedSeed ? '#26d07c' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          title="Copiar seed"
+                          title="Copy seed"
                         >
                           {copiedSeed ? <Check size={14} /> : <Copy size={14} />}
                         </button>
@@ -626,7 +626,7 @@ const AdminRewards: React.FC = () => {
                   {/* Generated Address */}
                   <div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>
-                      Endereço Gerado (SS58)
+                      Generated Address (SS58)
                     </span>
                     <code style={{ display: 'block', padding: '10px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-all' }}>
                       {generatedAddress}
@@ -637,7 +637,7 @@ const AdminRewards: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}>
                       <input type="checkbox" checked={seedConfirmed} onChange={e => setSeedConfirmed(e.target.checked)} />
-                      Confirmei que salvei a seed em local seguro
+                      I confirm that I saved the seed in a safe place
                     </label>
                   </div>
 
@@ -646,20 +646,20 @@ const AdminRewards: React.FC = () => {
                       onClick={handleGenerateSeed}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}
                     >
-                      <RefreshCw size={14} /> Gerar Outra
+                      <RefreshCw size={14} /> Generate Another
                     </button>
                     <button
                       onClick={handleApplyGeneratedAddress}
                       disabled={!seedConfirmed}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: 'none', background: seedConfirmed ? '#26d07c' : 'rgba(255,255,255,0.06)', color: seedConfirmed ? 'white' : 'var(--text-muted)', fontWeight: 600, fontSize: 13, cursor: seedConfirmed ? 'pointer' : 'not-allowed', transition: 'all 0.15s' }}
                     >
-                      <ShieldCheck size={14} /> Aplicar como Endereço de Distribuição
+                      <ShieldCheck size={14} /> Apply as Distribution Address
                     </button>
                     <button
                       onClick={() => { setGeneratedSeed(null); setGeneratedAddress(null); setShowSeed(false); setSeedConfirmed(false); }}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}
                     >
-                      <X size={14} /> Cancelar
+                      <X size={14} /> Cancel
                     </button>
                   </div>
                 </div>
@@ -668,7 +668,7 @@ const AdminRewards: React.FC = () => {
           </Card>
 
           {/* Refill */}
-          <Card title="Recarregar Carteira" icon={<Plus size={18} />}>
+          <Card title="Refill Wallet" icon={<Plus size={18} />}>
             <div className={styles.refillSection}>
               <div className={styles.refillTokenSelect}>
                 {(['lunes', 'lusdt', 'pidchat'] as const).map(tk => (
@@ -685,7 +685,7 @@ const AdminRewards: React.FC = () => {
               <div className={styles.refillInput}>
                 <input
                   type="number"
-                  placeholder={`Quantidade (${refillToken.toUpperCase()})`}
+                  placeholder={`Amount (${refillToken.toUpperCase()})`}
                   value={refillAmount}
                   onChange={(e) => setRefillAmount(e.target.value)}
                   className={styles.amountInput}
@@ -698,7 +698,7 @@ const AdminRewards: React.FC = () => {
                   {refillLoading ? (
                     <Loader2 size={18} className={styles.spinner} />
                   ) : (
-                    <><Plus size={18} /> Adicionar</>
+                    <><Plus size={18} /> Add</>
                   )}
                 </button>
               </div>
@@ -714,7 +714,7 @@ const AdminRewards: React.FC = () => {
 
           {/* Change Log */}
           <Card
-            title="Histórico de Alterações"
+            title="Change History"
             icon={<History size={18} />}
           >
             <div className={styles.changelogSection}>
@@ -722,28 +722,28 @@ const AdminRewards: React.FC = () => {
                 className={styles.changelogToggle}
                 onClick={() => setShowChangelog(!showChangelog)}
               >
-                {showChangelog ? 'Ocultar Histórico' : 'Mostrar Histórico'}
+                {showChangelog ? 'Hide History' : 'Show History'}
               </button>
               {showChangelog && (
                 <div className={styles.changelogList}>
                   {changelog.length === 0 ? (
-                    <p className={styles.changelogEmpty}>Nenhuma alteração registrada.</p>
+                    <p className={styles.changelogEmpty}>No changes recorded.</p>
                   ) : (
                     changelog.map((entry) => (
                       <div key={entry.id} className={styles.changelogEntry}>
                         <div className={styles.changelogDot} data-action={entry.action} />
                         <div className={styles.changelogContent}>
                           <span className={styles.changelogAction}>
-                            {entry.action === 'address_changed' ? '🔑 Endereço alterado'
-                              : entry.action === 'wallet_paused' ? '⏸️ Distribuição pausada'
-                              : entry.action === 'wallet_resumed' ? '▶️ Distribuição reativada'
-                              : entry.action === 'wallet_renamed' ? '✏️ Nome alterado'
-                              : entry.action === 'balance_refilled' ? '💰 Saldo recarregado'
+                            {entry.action === 'address_changed' ? '🔑 Address changed'
+                              : entry.action === 'wallet_paused' ? '⏸️ Distribution paused'
+                              : entry.action === 'wallet_resumed' ? '▶️ Distribution resumed'
+                              : entry.action === 'wallet_renamed' ? '✏️ Name changed'
+                              : entry.action === 'balance_refilled' ? '💰 Balance refilled'
                               : entry.action}
                           </span>
                           {entry.details && <span className={styles.changelogDetails}>{entry.details}</span>}
                           <span className={styles.changelogMeta}>
-                            por {entry.changedBy} em {new Date(entry.timestamp).toLocaleString('pt-BR')}
+                            by {entry.changedBy} on {new Date(entry.timestamp).toLocaleString('en-US')}
                           </span>
                         </div>
                       </div>

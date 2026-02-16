@@ -32,10 +32,10 @@ export default function SettingsTab() {
       <div className={styles.settingsHeader}>
         <h2 className={styles.settingsTitle}>
           <Shield size={22} />
-          Configurações & Segurança
+          Settings & Security
         </h2>
         <p className={styles.settingsSubtitle}>
-          Gerencie sua senha e controle o acesso da equipe ao painel administrativo.
+          Manage your password and control team access to the admin panel.
         </p>
       </div>
 
@@ -45,14 +45,14 @@ export default function SettingsTab() {
           onClick={() => setActiveSection('password')}
         >
           <Lock size={16} />
-          Minha Senha
+          My Password
         </button>
         <button
           className={`${styles.settingsTabBtn} ${activeSection === 'team' ? styles.active : ''}`}
           onClick={() => setActiveSection('team')}
         >
           <Users size={16} />
-          Equipe
+          Team
         </button>
       </div>
 
@@ -77,11 +77,11 @@ function PasswordSection({ token }: { token: string | null }) {
     setMessage(null);
 
     if (newPassword !== confirmPassword) {
-      setMessage({ type: 'error', text: 'As senhas não coincidem.' });
+      setMessage({ type: 'error', text: 'Passwords do not match.' });
       return;
     }
     if (newPassword.length < 6) {
-      setMessage({ type: 'error', text: 'A nova senha deve ter pelo menos 6 caracteres.' });
+      setMessage({ type: 'error', text: 'New password must be at least 6 characters.' });
       return;
     }
 
@@ -97,15 +97,15 @@ function PasswordSection({ token }: { token: string | null }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Senha alterada com sucesso!' });
+        setMessage({ type: 'success', text: 'Password changed successfully!' });
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        setMessage({ type: 'error', text: data.error || 'Erro ao alterar senha.' });
+        setMessage({ type: 'error', text: data.error || 'Failed to change password.' });
       }
     } catch {
-      setMessage({ type: 'error', text: 'Erro de conexão com o servidor.' });
+      setMessage({ type: 'error', text: 'Server connection error.' });
     } finally {
       setLoading(false);
     }
@@ -117,8 +117,8 @@ function PasswordSection({ token }: { token: string | null }) {
         <div className={styles.settingsCardHeader}>
           <KeyRound size={20} />
           <div>
-            <h3>Alterar Senha</h3>
-            <p>Atualize sua senha de acesso ao painel administrativo.</p>
+            <h3>Change Password</h3>
+            <p>Update your admin panel access password.</p>
           </div>
         </div>
 
@@ -131,13 +131,13 @@ function PasswordSection({ token }: { token: string | null }) {
 
         <form onSubmit={handleSubmit} className={styles.settingsForm}>
           <div className={styles.settingsFormGroup}>
-            <label>Senha Atual</label>
+            <label>Current Password</label>
             <div className={styles.passwordInput}>
               <input
                 type={showCurrent ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Digite sua senha atual"
+                placeholder="Enter your current password"
                 required
               />
               <button type="button" className={styles.togglePassword} onClick={() => setShowCurrent(!showCurrent)}>
@@ -148,13 +148,13 @@ function PasswordSection({ token }: { token: string | null }) {
 
           <div className={styles.settingsFormRow}>
             <div className={styles.settingsFormGroup}>
-              <label>Nova Senha</label>
+              <label>New Password</label>
               <div className={styles.passwordInput}>
                 <input
                   type={showNew ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Minimum 6 characters"
                   required
                   minLength={6}
                 />
@@ -164,12 +164,12 @@ function PasswordSection({ token }: { token: string | null }) {
               </div>
             </div>
             <div className={styles.settingsFormGroup}>
-              <label>Confirmar Nova Senha</label>
+              <label>Confirm New Password</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repita a nova senha"
+                placeholder="Repeat the new password"
                 required
                 minLength={6}
               />
@@ -179,7 +179,7 @@ function PasswordSection({ token }: { token: string | null }) {
           {newPassword && confirmPassword && newPassword !== confirmPassword && (
             <div className={`${styles.settingsAlert} ${styles.error}`}>
               <AlertCircle size={16} />
-              As senhas não coincidem.
+              Passwords do not match.
             </div>
           )}
 
@@ -190,7 +190,7 @@ function PasswordSection({ token }: { token: string | null }) {
               disabled={loading || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
             >
               {loading ? <Loader2 size={16} className={styles.spinning} /> : <Save size={16} />}
-              {loading ? 'Salvando...' : 'Alterar Senha'}
+              {loading ? 'Saving...' : 'Change Password'}
             </button>
           </div>
         </form>
@@ -256,7 +256,7 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: 'success', text: `${newName} adicionado com sucesso!` });
+        setMessage({ type: 'success', text: `${newName} added successfully!` });
         setShowAddForm(false);
         setNewEmail('');
         setNewName('');
@@ -264,10 +264,10 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
         setNewRole('editor');
         fetchMembers();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Erro ao adicionar membro.' });
+        setMessage({ type: 'error', text: data.error || 'Failed to add member.' });
       }
     } catch {
-      setMessage({ type: 'error', text: 'Erro de conexão.' });
+      setMessage({ type: 'error', text: 'Connection error.' });
     }
   };
 
@@ -284,21 +284,21 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Membro atualizado com sucesso!' });
+        setMessage({ type: 'success', text: 'Member updated successfully!' });
         setEditingId(null);
         fetchMembers();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Erro ao atualizar.' });
+        setMessage({ type: 'error', text: data.error || 'Failed to update.' });
       }
     } catch {
-      setMessage({ type: 'error', text: 'Erro de conexão.' });
+      setMessage({ type: 'error', text: 'Connection error.' });
     }
   };
 
   const handleResetPassword = async (id: number) => {
     setMessage(null);
     if (resetPassword.length < 6) {
-      setMessage({ type: 'error', text: 'A senha deve ter pelo menos 6 caracteres.' });
+      setMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
       return;
     }
     try {
@@ -312,14 +312,14 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Senha resetada com sucesso!' });
+        setMessage({ type: 'success', text: 'Password reset successfully!' });
         setResetPasswordId(null);
         setResetPassword('');
       } else {
-        setMessage({ type: 'error', text: data.error || 'Erro ao resetar senha.' });
+        setMessage({ type: 'error', text: data.error || 'Failed to reset password.' });
       }
     } catch {
-      setMessage({ type: 'error', text: 'Erro de conexão.' });
+      setMessage({ type: 'error', text: 'Connection error.' });
     }
   };
 
@@ -335,16 +335,16 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
         body: JSON.stringify({ is_active: !member.is_active }),
       });
       if (res.ok) {
-        setMessage({ type: 'success', text: `${member.full_name} ${!member.is_active ? 'ativado' : 'desativado'}.` });
+        setMessage({ type: 'success', text: `${member.full_name} ${!member.is_active ? 'activated' : 'deactivated'}.` });
         fetchMembers();
       }
     } catch {
-      setMessage({ type: 'error', text: 'Erro de conexão.' });
+      setMessage({ type: 'error', text: 'Connection error.' });
     }
   };
 
   const handleDelete = async (member: TeamMember) => {
-    if (!confirm(`Tem certeza que deseja remover ${member.full_name}? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm(`Are you sure you want to remove ${member.full_name}? This action cannot be undone.`)) return;
     setMessage(null);
     try {
       const res = await fetch(`${API}/admin/team/${member.id}`, {
@@ -353,13 +353,13 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: 'success', text: `${member.full_name} removido com sucesso.` });
+        setMessage({ type: 'success', text: `${member.full_name} removed successfully.` });
         fetchMembers();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Erro ao remover.' });
+        setMessage({ type: 'error', text: data.error || 'Failed to remove.' });
       }
     } catch {
-      setMessage({ type: 'error', text: 'Erro de conexão.' });
+      setMessage({ type: 'error', text: 'Connection error.' });
     }
   };
 
@@ -389,7 +389,7 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
       <div className={styles.settingsSection}>
         <div className={styles.settingsLoading}>
           <Loader2 size={24} className={styles.spinning} />
-          <span>Carregando equipe...</span>
+          <span>Loading team...</span>
         </div>
       </div>
     );
@@ -408,8 +408,8 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
         <div className={styles.settingsCardHeader}>
           <Users size={20} />
           <div>
-            <h3>Membros da Equipe</h3>
-            <p>Gerencie quem tem acesso ao painel administrativo.</p>
+            <h3>Team Members</h3>
+            <p>Manage who has access to the admin panel.</p>
           </div>
           {isOwnerOrAdmin && (
             <button
@@ -418,7 +418,7 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
               style={{ marginLeft: 'auto' }}
             >
               {showAddForm ? <X size={16} /> : <Plus size={16} />}
-              {showAddForm ? 'Cancelar' : 'Novo Membro'}
+              {showAddForm ? 'Cancel' : 'New Member'}
             </button>
           )}
         </div>
@@ -427,12 +427,12 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
           <form onSubmit={handleAdd} className={styles.addMemberForm}>
             <div className={styles.settingsFormRow}>
               <div className={styles.settingsFormGroup}>
-                <label>Nome Completo</label>
+                <label>Full Name</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Ex: João Silva"
+                  placeholder="e.g. John Smith"
                   required
                 />
               </div>
@@ -442,35 +442,35 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="Ex: joao@lunes.io"
+                  placeholder="e.g. john@lunes.io"
                   required
                 />
               </div>
             </div>
             <div className={styles.settingsFormRow}>
               <div className={styles.settingsFormGroup}>
-                <label>Senha Inicial</label>
+                <label>Initial Password</label>
                 <input
                   type="text"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Minimum 6 characters"
                   required
                   minLength={6}
                 />
               </div>
               <div className={styles.settingsFormGroup}>
-                <label>Função</label>
+                <label>Role</label>
                 <select value={newRole} onChange={(e) => setNewRole(e.target.value as 'admin' | 'editor')}>
-                  <option value="editor">Editor — Pode editar conteúdo</option>
-                  <option value="admin">Admin — Acesso total exceto deletar</option>
+                  <option value="editor">Editor — Can edit content</option>
+                  <option value="admin">Admin — Full access except delete</option>
                 </select>
               </div>
             </div>
             <div className={styles.settingsFormActions}>
               <button type="submit" className={styles.settingsPrimaryBtn}>
                 <Plus size={16} />
-                Adicionar Membro
+                Add Member
               </button>
             </div>
           </form>
@@ -483,7 +483,7 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                 <div className={styles.teamMemberEdit}>
                   <div className={styles.settingsFormRow}>
                     <div className={styles.settingsFormGroup}>
-                      <label>Nome</label>
+                      <label>Name</label>
                       <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} />
                     </div>
                     <div className={styles.settingsFormGroup}>
@@ -492,7 +492,7 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                     </div>
                     {member.role !== 'owner' && (
                       <div className={styles.settingsFormGroup}>
-                        <label>Função</label>
+                        <label>Role</label>
                         <select value={editRole} onChange={(e) => setEditRole(e.target.value as 'admin' | 'editor')}>
                           <option value="editor">Editor</option>
                           <option value="admin">Admin</option>
@@ -502,10 +502,10 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                   </div>
                   <div className={styles.teamMemberEditActions}>
                     <button className={styles.settingsPrimaryBtn} onClick={() => handleEdit(member.id)}>
-                      <Save size={14} /> Salvar
+                      <Save size={14} /> Save
                     </button>
                     <button className={styles.settingsSecondaryBtn} onClick={() => setEditingId(null)}>
-                      <X size={14} /> Cancelar
+                      <X size={14} /> Cancel
                     </button>
                   </div>
                 </div>
@@ -513,22 +513,22 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                 <div className={styles.teamMemberEdit}>
                   <div className={styles.settingsFormRow}>
                     <div className={styles.settingsFormGroup}>
-                      <label>Nova Senha para {member.full_name}</label>
+                      <label>New Password for {member.full_name}</label>
                       <input
                         type="text"
                         value={resetPassword}
                         onChange={(e) => setResetPassword(e.target.value)}
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder="Minimum 6 characters"
                         minLength={6}
                       />
                     </div>
                   </div>
                   <div className={styles.teamMemberEditActions}>
                     <button className={styles.settingsPrimaryBtn} onClick={() => handleResetPassword(member.id)}>
-                      <KeyRound size={14} /> Resetar Senha
+                      <KeyRound size={14} /> Reset Password
                     </button>
                     <button className={styles.settingsSecondaryBtn} onClick={() => { setResetPasswordId(null); setResetPassword(''); }}>
-                      <X size={14} /> Cancelar
+                      <X size={14} /> Cancel
                     </button>
                   </div>
                 </div>
@@ -544,14 +544,14 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                         {getRoleBadge(member.role)}
                         {!member.is_active && (
                           <span className={styles.inactiveBadge}>
-                            <UserX size={12} /> Inativo
+                            <UserX size={12} /> Inactive
                           </span>
                         )}
                       </div>
                       <div className={styles.teamMemberEmail}>{member.email}</div>
                       <div className={styles.teamMemberMeta}>
-                        Criado em {new Date(member.created_at).toLocaleDateString('pt-BR')}
-                        {member.last_login && ` · Último login: ${new Date(member.last_login).toLocaleDateString('pt-BR')}`}
+                        Joined {new Date(member.created_at).toLocaleDateString('en-US')}
+                        {member.last_login && ` · Last login: ${new Date(member.last_login).toLocaleDateString('en-US')}`}
                       </div>
                     </div>
                   </div>
@@ -560,21 +560,21 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                       <button
                         className={styles.teamActionBtn}
                         onClick={() => startEdit(member)}
-                        title="Editar"
+                        title="Edit"
                       >
                         <Edit3 size={14} />
                       </button>
                       <button
                         className={styles.teamActionBtn}
                         onClick={() => { setResetPasswordId(member.id); setEditingId(null); setResetPassword(''); }}
-                        title="Resetar Senha"
+                        title="Reset Password"
                       >
                         <KeyRound size={14} />
                       </button>
                       <button
                         className={`${styles.teamActionBtn} ${member.is_active ? styles.deactivate : styles.activate}`}
                         onClick={() => handleToggleActive(member)}
-                        title={member.is_active ? 'Desativar' : 'Ativar'}
+                        title={member.is_active ? 'Deactivate' : 'Activate'}
                       >
                         {member.is_active ? <UserX size={14} /> : <UserCheck size={14} />}
                       </button>
@@ -582,7 +582,7 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                         <button
                           className={`${styles.teamActionBtn} ${styles.danger}`}
                           onClick={() => handleDelete(member)}
-                          title="Remover"
+                          title="Remove"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -591,7 +591,7 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
                   )}
                   {member.id === currentUser?.id && member.role === 'owner' && (
                     <div className={styles.teamMemberActions}>
-                      <span className={styles.ownerLabel}>Você (Owner)</span>
+                      <span className={styles.ownerLabel}>You (Owner)</span>
                     </div>
                   )}
                 </>
@@ -601,22 +601,22 @@ function TeamSection({ token, currentUser }: { token: string | null; currentUser
         </div>
 
         <div className={styles.rolesExplanation}>
-          <h4>Funções e Permissões</h4>
+          <h4>Roles & Permissions</h4>
           <div className={styles.rolesGrid}>
             <div className={styles.roleCard}>
               <ShieldCheck size={18} className={styles.roleIconOwner} />
               <strong>Owner</strong>
-              <span>Acesso total. Pode adicionar, editar e remover membros. Não pode ser removido.</span>
+              <span>Full access. Can add, edit and remove members. Cannot be removed.</span>
             </div>
             <div className={styles.roleCard}>
               <ShieldAlert size={18} className={styles.roleIconAdmin} />
               <strong>Admin</strong>
-              <span>Pode gerenciar equipe, editar conteúdo e acessar todas as funcionalidades.</span>
+              <span>Can manage team, edit content and access all features.</span>
             </div>
             <div className={styles.roleCard}>
               <Edit3 size={18} className={styles.roleIconEditor} />
               <strong>Editor</strong>
-              <span>Pode editar banners, projetos, tokens e anúncios. Sem acesso a gerenciamento de equipe.</span>
+              <span>Can edit banners, projects, tokens and ads. No team management access.</span>
             </div>
           </div>
         </div>
