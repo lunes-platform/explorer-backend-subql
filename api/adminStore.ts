@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import 'dotenv/config';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -26,18 +27,37 @@ interface AdminData {
 const SALT = process.env.ADMIN_SALT || 'lunes-explorer-2024';
 const TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || crypto.randomBytes(32).toString('hex');
 
+const BCRYPT_ROUNDS = 12;
+
 function hashPassword(password: string): string {
-  return crypto.createHmac('sha256', SALT).update(password).digest('hex');
+  return bcrypt.hashSync(password, BCRYPT_ROUNDS);
 }
 
-// Legacy hash (plain SHA-256) for migration
+// Legacy hashes for migration (HMAC-SHA256 and plain SHA-256)
+function hashPasswordHmac(password: string): string {
+  return crypto.createHmac('sha256', SALT).update(password).digest('hex');
+}
 function hashPasswordLegacy(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 export function verifyPassword(password: string, hash: string): boolean {
-  // Try new HMAC hash first, then fall back to legacy for migration
-  return hashPassword(password) === hash || hashPasswordLegacy(password) === hash;
+  // Try bcrypt first (new format)
+  if (hash.startsWith('$2a$') || hash.startsWith('$2b$')) {
+    return bcrypt.compareSync(password, hash);
+  }
+  // Fall back to legacy HMAC-SHA256 and plain SHA-256 for migration
+  return hashPasswordHmac(password) === hash || hashPasswordLegacy(password) === hash;
+}
+
+// Auto-upgrade legacy hash to bcrypt on successful login
+function upgradeHashIfNeeded(user: AdminUser, password: string): void {
+  if (!user.password.startsWith('$2a$') && !user.password.startsWith('$2b$')) {
+    user.password = hashPassword(password);
+    user.updated_at = new Date().toISOString();
+    saveData(adminData);
+    console.log(`[Security] Upgraded password hash to bcrypt for user ${user.email}`);
+  }
 }
 
 function loadData(): AdminData {
@@ -78,6 +98,8 @@ export function authenticateUser(email: string, password: string): AdminUser | n
   const user = adminData.users.find(u => u.email === email && u.is_active);
   if (!user) return null;
   if (!verifyPassword(password, user.password)) return null;
+  // Auto-upgrade legacy hash to bcrypt
+  upgradeHashIfNeeded(user, password);
   user.last_login = new Date().toISOString();
   saveData(adminData);
   return user;

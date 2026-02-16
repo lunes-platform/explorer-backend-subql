@@ -109,7 +109,7 @@ export function useClaimRewards() {
       const res = await fetch(`${API_BASE_URL}/rewards/${address}/claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenId }),
+        body: JSON.stringify({ tokenId, callerAddress: address }),
       });
       const data = await res.json();
       setResult(data);

@@ -57,7 +57,19 @@ const PORT = process.env.API_PORT || 4000;
 const UPLOADS_DIR = join(process.cwd(), 'data', 'uploads');
 if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR, { recursive: true });
 
-app.use(cors({ origin: '*' }));
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000').split(',').map(s => s.trim());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, server-to-server, mobile apps)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      // Reject: don't set CORS headers (browser will block), but don't crash server
+      callback(null, false);
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // ─── Security Headers ───
@@ -177,20 +189,35 @@ app.get('/api/projects/:slug', (req, res) => {
 });
 
 app.post('/api/projects', (req, res) => {
+  // Require minimum fields to prevent spam
+  if (!req.body.name || typeof req.body.name !== 'string' || req.body.name.trim().length < 2) {
+    return res.status(400).json({ error: 'Project name is required (min 2 characters)' });
+  }
+  if (!req.body.ownerAddress || typeof req.body.ownerAddress !== 'string' || req.body.ownerAddress.length < 10) {
+    return res.status(400).json({ error: 'Valid ownerAddress is required' });
+  }
   const result = createProject(req.body);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.status(201).json(result);
 });
 
 app.put('/api/projects/:slug', (req, res) => {
-  // Ownership check: ownerAddress MUST be provided and match
+  // Ownership check: admin token OR matching ownerAddress required
   const existing = getProject(req.params.slug);
   if (!existing) return res.status(404).json({ error: 'Project not found' });
-  if (!req.body.ownerAddress) {
-    return res.status(400).json({ error: 'ownerAddress is required' });
-  }
-  if (existing.ownerAddress && existing.ownerAddress !== req.body.ownerAddress) {
-    return res.status(403).json({ error: 'Not the project owner' });
+
+  // Check if caller is authenticated admin
+  const authHeader = req.headers.authorization;
+  const isAdmin = authHeader && authHeader.startsWith('Bearer ') && getUserByToken(authHeader.replace('Bearer ', ''));
+
+  if (!isAdmin) {
+    // Non-admin: require ownerAddress match
+    if (!req.body.ownerAddress) {
+      return res.status(400).json({ error: 'ownerAddress is required' });
+    }
+    if (existing.ownerAddress && existing.ownerAddress !== req.body.ownerAddress) {
+      return res.status(403).json({ error: 'Not the project owner' });
+    }
   }
   const result = updateProject(req.params.slug, req.body);
   if (result.error) return res.status(result.status).json({ error: result.error });
@@ -198,15 +225,21 @@ app.put('/api/projects/:slug', (req, res) => {
 });
 
 app.delete('/api/projects/:slug', (req, res) => {
-  // Ownership check: ownerAddress must match
+  // Ownership check: admin token OR matching ownerAddress required
   const existing = getProject(req.params.slug);
   if (!existing) return res.status(404).json({ error: 'Project not found' });
-  const ownerAddress = req.body.ownerAddress || req.query.ownerAddress;
-  if (!ownerAddress) {
-    return res.status(400).json({ error: 'ownerAddress is required' });
-  }
-  if (existing.ownerAddress && existing.ownerAddress !== ownerAddress) {
-    return res.status(403).json({ error: 'Not the project owner' });
+
+  const authHeader = req.headers.authorization;
+  const isAdmin = authHeader && authHeader.startsWith('Bearer ') && getUserByToken(authHeader.replace('Bearer ', ''));
+
+  if (!isAdmin) {
+    const ownerAddress = req.body.ownerAddress || req.query.ownerAddress;
+    if (!ownerAddress) {
+      return res.status(400).json({ error: 'ownerAddress is required' });
+    }
+    if (existing.ownerAddress && existing.ownerAddress !== ownerAddress) {
+      return res.status(403).json({ error: 'Not the project owner' });
+    }
   }
   const result = deleteProject(req.params.slug);
   if (result.error) return res.status(result.status).json({ error: result.error });
@@ -220,7 +253,7 @@ app.post('/api/projects/:slug/verify', (req, res) => {
   res.json(result);
 });
 
-app.post('/api/projects/:slug/review', (req, res) => {
+app.post('/api/projects/:slug/review', requireAuth, (req, res) => {
   const { decision, reviewedBy, notes } = req.body;
   if (!['verified', 'rejected', 'pending'].includes(decision)) {
     return res.status(400).json({ error: 'Invalid decision' });
@@ -533,17 +566,24 @@ app.post('/api/rewards/:address/points', requireAuth, (req, res) => {
   res.json({ success: true, user });
 });
 
-// Update user stats
+// Update user stats — caller must prove ownership via matching callerAddress
 app.post('/api/rewards/:address/stats', (req, res) => {
-  const { transactionCount, stakeAmount } = req.body;
+  const { transactionCount, stakeAmount, callerAddress } = req.body;
+  // Verify the caller claims to be the address owner
+  if (!callerAddress || callerAddress !== req.params.address) {
+    return res.status(403).json({ error: 'callerAddress must match the target address' });
+  }
   const user = updateUserStats(req.params.address, { transactionCount, stakeAmount });
   res.json({ success: true, user });
 });
 
-// Claim rewards
+// Claim rewards — caller must prove ownership via matching callerAddress
 app.post('/api/rewards/:address/claim', (req, res) => {
-  const { tokenId } = req.body;
-  
+  const { tokenId, callerAddress } = req.body;
+
+  if (!callerAddress || callerAddress !== req.params.address) {
+    return res.status(403).json({ error: 'callerAddress must match the target address' });
+  }
   if (!tokenId || !['lunes', 'lusdt', 'pidchat'].includes(tokenId)) {
     return res.status(400).json({ error: 'Invalid tokenId. Use: lunes, lusdt, pidchat' });
   }
@@ -670,12 +710,35 @@ function requireAuth(req, res, next) {
 }
 
 // ─── Admin Auth ───
+const loginAttempts = new Map(); // ip -> { count, resetAt }
+const LOGIN_WINDOW_MS = 15 * 60_000; // 15 minutes
+const LOGIN_MAX_ATTEMPTS = 5;
+
 app.post('/api/auth/login', (req, res) => {
+  // Brute force protection
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  let attempt = loginAttempts.get(ip);
+  if (!attempt || now > attempt.resetAt) {
+    attempt = { count: 0, resetAt: now + LOGIN_WINDOW_MS };
+    loginAttempts.set(ip, attempt);
+  }
+  attempt.count++;
+  if (attempt.count > LOGIN_MAX_ATTEMPTS) {
+    const retryAfter = Math.ceil((attempt.resetAt - now) / 1000);
+    return res.status(429).json({
+      error: 'Too many login attempts. Try again later.',
+      retryAfter,
+    });
+  }
+
   const { username, password } = req.body;
   const user = authenticateUser(username, password);
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
+  // Reset attempts on successful login
+  loginAttempts.delete(ip);
   const token = generateToken(user);
   storeToken(token, user.id);
   return res.json({ access_token: token, token_type: 'bearer' });
