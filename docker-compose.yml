@@ -1,6 +1,7 @@
 version: "3"
 
 services:
+  # ── PostgreSQL ──
   postgres:
     image: postgres:16-alpine
     ports:
@@ -10,11 +11,12 @@ services:
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # ── Backend Python (FastAPI) ──
   backend-py:
     build: ./backend-py
     ports:
@@ -26,8 +28,23 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: sh -c "python seed.py && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    restart: always
+    command: sh -c "python seed.py && uvicorn main:app --host 0.0.0.0 --port 8000"
 
+  # ── API Express (Node.js) ──
+  api:
+    build: ./api
+    ports:
+      - 4000:4000
+    env_file:
+      - ./api/.env
+    environment:
+      - INDEXER_URL=http://graphql-engine:3000
+    depends_on:
+      - postgres
+    restart: always
+
+  # ── SubQuery Node (Indexer) ──
   subquery-node:
     image: onfinality/subql-node:latest
     depends_on:
@@ -49,6 +66,7 @@ services:
       - --workers=4
       - --disable-historical
 
+  # ── GraphQL Engine (SubQuery Query) ──
   graphql-engine:
     image: onfinality/subql-query:latest
     ports:
