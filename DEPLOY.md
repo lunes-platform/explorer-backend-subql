@@ -128,10 +128,10 @@ npm run build
 cd ..
 ```
 
-### 5. Subir com Docker
+### 5. Subir com Docker (Produção)
 
 ```bash
-docker compose up --build -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
 Verificar:
@@ -149,7 +149,7 @@ sudo nano /etc/nginx/sites-available/explorer.lunes.io
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/s;
-limit_req_zone $binary_remote_addr zone=static_limit:10m rate=50r/s;
+limit_req_zone $static_limit zone=static_limit:10m rate=50r/s;
 
 server {
     listen 443 ssl http2;
@@ -158,18 +158,15 @@ server {
     ssl_certificate /etc/letsencrypt/live/explorer.lunes.io/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/explorer.lunes.io/privkey.pem;
     
-    root /opt/lunes-explorer/frontend/dist;
-    index index.html;
-    
+    # Proxy para o Frontend Docker (Porta 5175)
     location / {
         limit_req zone=static_limit burst=100 nodelay;
-        try_files $uri $uri/ /index.html;
-    }
-    
-    location /assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
+        proxy_pass http://127.0.0.1:5175;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
     }
     
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -224,8 +221,7 @@ sudo certbot renew --dry-run
 ```bash
 cd /opt/lunes-explorer
 git pull origin main
-cd frontend && npm install && npm run build && cd ..
-docker compose up --build -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 docker compose ps
 ```
 

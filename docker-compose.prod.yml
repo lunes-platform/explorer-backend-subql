@@ -1,0 +1,36 @@
+services:
+  # ── Frontend (Production Build) ──
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    restart: always
+    volumes: [] # No source code mount in prod
+    ports:
+      - 5175:80 # Maps external 5175 to internal Nginx 80
+    environment:
+      - NODE_ENV=production
+
+  # ── Backend Python (Production) ──
+  backend-py:
+    build:
+      context: ./backend-py
+      target: production
+    restart: always
+    volumes: [] # No source code mount in prod
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+
+  # ── Node API (Production) ──
+  api:
+    restart: always
+    volumes: []
+
+  # ── Postgres ──
+  postgres:
+    restart: always
+
+  # ── SubQuery ──
+  subquery-node:
+    restart: always
+  graphql-engine:
+    restart: always
