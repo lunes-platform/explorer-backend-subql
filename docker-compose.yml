@@ -84,8 +84,8 @@ services:
     command:
       - -f=/app
       - --db-schema=app
-      - --batch-size=100
-      - --workers=4
+      - --batch-size=200
+      - --workers=8
       - --disable-historical
     networks:
       - explorer-network
