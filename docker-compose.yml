@@ -56,6 +56,16 @@ services:
     networks:
       - explorer-network
 
+  # ── SubQuery Build (compiles TypeScript → dist/) ──
+  subquery-build:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: sh -c "npm install && npm run build"
+    profiles:
+      - build
+
   # ── SubQuery Node (Indexer) ──
   subquery-node:
     image: onfinality/subql-node:latest
