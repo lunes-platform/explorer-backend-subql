@@ -65,8 +65,8 @@ frontend/.env
 frontend/.env.local
 
 # API data (contains admin credentials, configs)
-data/
-data/uploads/
+/data/
+/data/uploads/
 
 # Frontend build
 frontend/dist/
