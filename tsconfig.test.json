@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "es2020",
+    "rootDir": "src",
+    "outDir": "dist-test",
+    "skipLibCheck": true,
+    "types": ["jest", "node"]
+  },
+  "include": [
+    "src/tests/**/*"
+  ],
+  "exclude": []
+}

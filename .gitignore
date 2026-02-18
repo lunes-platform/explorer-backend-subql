@@ -25,9 +25,10 @@ package-lock.json
 
 # Generated files
 target/
-dist/
-src/types
-project.yaml
+# dist/ and src/types are committed — SubQuery needs them in production
+# dist/
+# src/types
+# project.yaml is committed — SubQuery needs it to start
 
 # JetBrains IDE
 .idea/

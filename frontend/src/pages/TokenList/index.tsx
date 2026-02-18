@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Coins, Search, Loader2, Users, Lock, Unlock } from 'lucide-react';
+import { Coins, Search, Loader2, Users, Lock, Unlock, FileCode } from 'lucide-react';
+import { useQuery } from '@apollo/client/react';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
+import { GET_TOKEN_MARKET_DATA } from '../../services/graphql/queries';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
@@ -19,24 +21,45 @@ function formatSupply(supply: number, decimals: number = 2): string {
   return supply.toFixed(decimals);
 }
 
+interface Psp22TokenNode {
+  id: string;
+  name: string;
+  symbol: string;
+  contractAddress: string;
+  totalSupply: string;
+  decimals: number;
+  verified: boolean;
+}
+interface TokenMarketDataResponse {
+  psp22Tokens: { nodes: Psp22TokenNode[] };
+}
+
 const TokenList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: assets, loading, error, refetch } = useAssets();
   const { data: chainStats, loading: statsLoading } = useDashboardStats();
+  const { data: psp22Data, loading: psp22Loading } = useQuery<TokenMarketDataResponse>(GET_TOKEN_MARKET_DATA);
   const health = useHealthStatus();
   const { price: lunesPrice } = useLunesPrice();
   const { getByAssetId } = useTokenPrices();
   const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
   const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
+  const psp22Tokens = psp22Data?.psp22Tokens?.nodes || [];
 
   let displayAssets = assets || [];
+  let displayPsp22 = psp22Tokens;
   if (searchTerm) {
     const term = searchTerm.toLowerCase();
     displayAssets = displayAssets.filter(a =>
       a.name.toLowerCase().includes(term) ||
       a.symbol.toLowerCase().includes(term) ||
       a.id.includes(term)
+    );
+    displayPsp22 = displayPsp22.filter((t: Psp22TokenNode) =>
+      t.name.toLowerCase().includes(term) ||
+      t.symbol.toLowerCase().includes(term) ||
+      t.contractAddress.toLowerCase().includes(term)
     );
   }
 
@@ -69,6 +92,10 @@ const TokenList: React.FC = () => {
         <div className={styles.statCard}>
           <span className={styles.statValue}>{loading ? '...' : (assets?.length || 0)}</span>
           <span className={styles.statLabel}>Pallet Assets</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statValue}>{psp22Loading ? '...' : psp22Tokens.length}</span>
+          <span className={styles.statLabel}>PSP22 Contracts</span>
         </div>
         <div className={styles.statCard}>
           <span className={styles.statValue}>
@@ -176,6 +203,47 @@ const TokenList: React.FC = () => {
                 </td>
               </tr>
             )}
+            {/* PSP22 ink! contracts from SubQuery */}
+            {!psp22Loading && displayPsp22.map((token: Psp22TokenNode, index: number) => (
+              <tr key={token.id} className={styles.assetRow}>
+                <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{index + 2}</td>
+                <td>
+                  <div className={styles.assetCell}>
+                    <div className={styles.assetIcon} style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
+                      <FileCode size={16} />
+                    </div>
+                    <div className={styles.assetInfo}>
+                      <span className={styles.assetName}>{token.name}</span>
+                      <span className={styles.assetId}>
+                        <CopyToClipboard text={token.contractAddress} truncate truncateLength={8} />
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td><span className={styles.assetSymbol}>{token.symbol}</span></td>
+                <td style={{ textAlign: 'right' }}><span className={styles.assetDecimals}>{token.decimals}</span></td>
+                <td style={{ textAlign: 'right' }}>
+                  <span className={styles.assetSupply}>
+                    {token.totalSupply && token.totalSupply !== '0'
+                      ? formatSupply(Number(BigInt(token.totalSupply)) / Math.pow(10, token.decimals))
+                      : '—'}
+                    {' '}{token.symbol}
+                  </span>
+                </td>
+                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                <td>
+                  <span style={{ fontSize: 11, padding: '3px 8px', background: 'rgba(99,102,241,0.15)', borderRadius: 4, color: '#818cf8' }}>
+                    PSP22
+                  </span>
+                </td>
+                <td>
+                  <CopyToClipboard text={token.contractAddress} truncate truncateLength={8} />
+                </td>
+              </tr>
+            ))}
+
+            {/* Pallet-assets from RPC */}
             {!loading && displayAssets.map((asset, index) => (
               <tr key={asset.id} className={styles.assetRow}>
                 <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{index + 2}</td>

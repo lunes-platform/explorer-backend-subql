@@ -128,7 +128,17 @@ npm run build
 cd ..
 ```
 
-### 5. Subir com Docker (Produção)
+### 5. Compilar SubQuery (OBRIGATÓRIO na primeira vez)
+
+```bash
+# Compila TypeScript → dist/ (necessário para o subquery-node)
+docker compose run --rm subquery-build
+```
+
+> O `dist/` e `src/types` estão no git — em atualizações normais basta `git pull`.
+> Rode `subquery-build` apenas quando houver mudanças nos handlers (`src/mappings/` ou `src/handlers/`).
+
+### 6. Subir com Docker (Produção)
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d

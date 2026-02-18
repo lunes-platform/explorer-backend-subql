@@ -271,6 +271,26 @@ export interface AssetAccount {
     };
 }
 
+export interface AssetAccountWithAsset {
+    id: string;
+    balance: string;
+    asset: {
+        id: string;
+        name: string | null;
+        symbol: string | null;
+        decimals: number | null;
+        totalSupply: string;
+        assetType: string;
+        verified: boolean;
+    };
+}
+
+export interface GetAccountAssetsResponse {
+    assetAccounts: {
+        nodes: AssetAccountWithAsset[];
+    };
+}
+
 export interface AssetTransfer {
     id: string;
     fromId: string;

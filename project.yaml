@@ -1,0 +1,138 @@
+# // Auto-generated , DO NOT EDIT
+specVersion: 1.0.0
+version: 0.0.1
+name: explorer-lunes-backend
+description: >-
+  Lunes Nightly is an exciting Rust-based blockchain project that aims to
+  revolutionize the world of decentralized finance and autonomous governance. As
+  a reference implementation for blockchain application development, Lunes
+  Nightly provides a solid foundation for building innovative and scalable
+  solutions.
+runner:
+  node:
+    name: '@subql/node'
+    version: '>=3.0.1'
+  query:
+    name: '@subql/query'
+    version: '*'
+schema:
+  file: ./schema.graphql
+network:
+  chainId: '0xb9926ab2c88b882cad89f1393fcf74ee90d40ef98ae99080b08289036c61efac'
+  endpoint:
+    - 'wss://ws-archive.lunes.io'
+    - 'wss://ws-lunes-main-02.lunes.io'
+    - 'wss://ws-lunes-main-01.lunes.io'
+dataSources:
+  - kind: substrate/Runtime
+    startBlock: 9400000
+    mapping:
+      file: ./dist/index.js
+      handlers:
+        - kind: substrate/BlockHandler
+          handler: handleBlock
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: balances
+            method: Transfer
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: balances
+            method: Deposit
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: assets
+            method: Transferred
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: assets
+            method: Created
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: assets
+            method: Issued
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: contracts
+            method: ContractEmitted
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: contracts
+            method: Instantiated
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: contracts
+            method: Terminated
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: nfts
+            method: Transferred
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: nfts
+            method: Issued
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: nfts
+            method: Created
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: assets
+            method: MetadataSet
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: assets
+            method: Destroyed
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: staking
+            method: Bonded
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: staking
+            method: Unbonded
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: staking
+            method: Withdrawn
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: staking
+            method: Rewarded
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: staking
+            method: Slashed
+        - kind: substrate/EventHandler
+          handler: handleEvent
+          filter:
+            module: transactionPayment
+            method: TransactionFeePaid
+        - kind: substrate/CallHandler
+          handler: handleCall
+          filter:
+            module: contracts
+            method: call
+        - kind: substrate/CallHandler
+          handler: handleCall
+          filter:
+            module: contracts
+            method: instantiateWithCode

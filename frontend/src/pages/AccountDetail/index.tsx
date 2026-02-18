@@ -34,12 +34,15 @@ import { useAccountInfo, useAccountStaking, useAccountTransfers } from '../../ho
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { 
   GET_ACCOUNT_TOKENS, 
-  GET_ACCOUNT_NFTS 
+  GET_ACCOUNT_NFTS,
+  GET_ACCOUNT_ASSETS
 } from '../../services/graphql/queries';
 import type { 
   GetAccountTokensResponse,
   GetAccountNftsResponse,
+  GetAccountAssetsResponse,
   PSP22Account,
+  AssetAccountWithAsset,
   NftAccount
 } from '../../types';
 import { useAIExplanation } from '../../hooks/useAIExplanation';
@@ -84,6 +87,12 @@ const AccountDetail: React.FC = () => {
   // SubQuery data for tokens/nfts
   const { data: tokensData, loading: tokensLoading } = 
     useQuery<GetAccountTokensResponse>(GET_ACCOUNT_TOKENS, {
+      variables: { accountId: id },
+      skip: !id || activeTab !== 'tokens'
+    });
+
+  const { data: assetsData, loading: assetsLoading } =
+    useQuery<GetAccountAssetsResponse>(GET_ACCOUNT_ASSETS, {
       variables: { accountId: id },
       skip: !id || activeTab !== 'tokens'
     });
@@ -137,6 +146,7 @@ const AccountDetail: React.FC = () => {
 
   const transfers = rpcTransfers || [];
   const tokenAccounts = tokensData?.psp22Accounts?.nodes || [];
+  const nativeAssetAccounts = assetsData?.assetAccounts?.nodes || [];
   const nftAccounts = nftsData?.nftAccounts?.nodes || [];
 
   // Handle AI explain for a transfer
@@ -463,7 +473,7 @@ const AccountDetail: React.FC = () => {
 
         {activeTab === 'tokens' && (
           <Card title="Token Holdings" icon={<Hexagon size={18} />}>
-            {tokensLoading ? (
+            {(tokensLoading || assetsLoading) ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <Skeleton height={18} width="80%" />
                 <Skeleton height={18} width="60%" />
@@ -471,14 +481,36 @@ const AccountDetail: React.FC = () => {
                 <Skeleton height={18} width="50%" />
                 <Skeleton height={18} width="65%" />
               </div>
-            ) : tokenAccounts.length === 0 ? (
+            ) : tokenAccounts.length === 0 && nativeAssetAccounts.length === 0 ? (
               <EmptyState 
                 type="no-data" 
-                message="No PSP22 tokens found for this account"
+                message="No tokens found for this account"
                 action={{ label: 'View All Tokens', onClick: () => window.location.href = '/tokens' }}
               />
             ) : (
               <div className={styles.tokensList}>
+                {/* pallet-assets (LUSDT, etc.) */}
+                {nativeAssetAccounts.map((aa: AssetAccountWithAsset) => (
+                  <div key={aa.id} className={styles.tokenItem}>
+                    <div className={styles.tokenIcon} style={{ background: 'rgba(38,208,124,0.15)', color: '#26d07c' }}>
+                      {aa.asset.symbol?.slice(0, 1) || '#'}
+                    </div>
+                    <div className={styles.tokenInfo}>
+                      <span className={styles.tokenName}>{aa.asset.name || `Asset #${aa.asset.id}`}</span>
+                      <span className={styles.tokenSymbol} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {aa.asset.symbol || '???'}
+                        <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.07)', color: 'var(--text-muted)' }}>pallet-assets</span>
+                      </span>
+                    </div>
+                    <div className={styles.tokenBalance}>
+                      <span className={styles.tokenBalanceValue}>
+                        {(parseInt(aa.balance) / Math.pow(10, aa.asset.decimals ?? 0)).toLocaleString()}
+                      </span>
+                      <span className={styles.tokenBalanceSymbol}>{aa.asset.symbol}</span>
+                    </div>
+                  </div>
+                ))}
+                {/* PSP22 ink! contracts */}
                 {tokenAccounts.map((tokenAccount: PSP22Account) => (
                   <div key={tokenAccount.id} className={styles.tokenItem}>
                     <div className={styles.tokenIcon}>
@@ -486,7 +518,10 @@ const AccountDetail: React.FC = () => {
                     </div>
                     <div className={styles.tokenInfo}>
                       <span className={styles.tokenName}>{tokenAccount.token.name || 'Unknown Token'}</span>
-                      <span className={styles.tokenSymbol}>{tokenAccount.token.symbol || '???'}</span>
+                      <span className={styles.tokenSymbol} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {tokenAccount.token.symbol || '???'}
+                        <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.07)', color: 'var(--text-muted)' }}>PSP22</span>
+                      </span>
                     </div>
                     <div className={styles.tokenBalance}>
                       <span className={styles.tokenBalanceValue}>

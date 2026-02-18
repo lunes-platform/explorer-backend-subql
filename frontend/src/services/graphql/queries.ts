@@ -268,6 +268,26 @@ export const GET_ACCOUNT_TOKENS = gql`
   }
 `;
 
+export const GET_ACCOUNT_ASSETS = gql`
+  query GetAccountAssets($accountId: String!) {
+    assetAccounts(filter: { accountId: { equalTo: $accountId } }, first: 50) {
+      nodes {
+        id
+        balance
+        asset {
+          id
+          name
+          symbol
+          decimals
+          totalSupply
+          assetType
+          verified
+        }
+      }
+    }
+  }
+`;
+
 export const GET_ACCOUNT_NFTS = gql`
   query GetAccountNfts($accountId: String!) {
     nftAccounts(filter: { accountId: { equalTo: $accountId } }, first: 50) {

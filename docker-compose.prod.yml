@@ -1,15 +1,68 @@
 services:
-  # ── Frontend (Production Build) ──
-  frontend:
-    build:
-      context: ./frontend
-      target: production
+  # ── PostgreSQL (Production) ──
+  postgres:
+    image: postgres:16-alpine
     restart: always
-    volumes: [] # No source code mount in prod
-    ports:
-      - 5175:80 # Maps external 5175 to internal Nginx 80
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     environment:
-      - NODE_ENV=production
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - explorer-network
+
+  # ── SubQuery Node (Indexer) ──
+  subquery-node:
+    image: onfinality/subql-node:latest
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_USER: postgres
+      DB_PASS: ${DB_PASSWORD}
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+    volumes:
+      - ./:/app
+    command:
+      - -f=/app
+      - --db-schema=app
+      - --batch-size=30
+      - --workers=4
+      - --disable-historical
+      - --store-cache-threshold=1
+      - --store-get-cache-size=200
+      - --store-flush-interval=1
+    networks:
+      - explorer-network
+
+  # ── GraphQL Engine (SubQuery Query) ──
+  graphql-engine:
+    image: onfinality/subql-query:latest
+    restart: always
+    ports:
+      - 3000:3000
+    depends_on:
+      - postgres
+      - subquery-node
+    environment:
+      DB_USER: postgres
+      DB_PASS: ${DB_PASSWORD}
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+    command:
+      - --name=app
+      - --playground
+      - --indexer=http://subquery-node:3000
+    networks:
+      - explorer-network
 
   # ── Backend Python (Production) ──
   backend-py:
@@ -17,20 +70,53 @@ services:
       context: ./backend-py
       target: production
     restart: always
-    volumes: [] # No source code mount in prod
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+    volumes: []
+    ports:
+      - 8000:8000
+    environment:
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@postgres:5432/postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - explorer-network
 
-  # ── Node API (Production) ──
+  # ── API Express (Node.js) ──
   api:
+    build: ./api
     restart: always
     volumes: []
+    ports:
+      - 4000:4000
+    environment:
+      - INDEXER_URL=http://graphql-engine:3000
+      - NODE_ENV=production
+    depends_on:
+      - postgres
+      - graphql-engine
+    networks:
+      - explorer-network
 
-  # ── Postgres ──
-  postgres:
+  # ── Frontend (Production — Nginx) ──
+  frontend:
+    build:
+      context: ./frontend
+      target: production
     restart: always
+    volumes: []
+    ports:
+      - 80:80
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - api
+      - graphql-engine
+    networks:
+      - explorer-network
 
-  # ── SubQuery ──
-  subquery-node:
-    restart: always
-  graphql-engine:
-    restart: always
+volumes:
+  postgres_data:
+
+networks:
+  explorer-network:
+    driver: bridge

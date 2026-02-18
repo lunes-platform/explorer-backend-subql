@@ -46,6 +46,8 @@ services:
     build: ./api
     ports:
       - 4000:4000
+    volumes:
+      - ./api/data:/app/data
     env_file:
       - ./api/.env
     environment:
@@ -57,12 +59,13 @@ services:
       - explorer-network
 
   # ── SubQuery Build (compiles TypeScript → dist/) ──
+  # Run manually before first deploy: docker compose run --rm subquery-build
   subquery-build:
     image: node:20-alpine
     working_dir: /app
     volumes:
       - ./:/app
-    command: sh -c "npm install && npm run build"
+    command: sh -c "npm ci --legacy-peer-deps && npm run build"
     profiles:
       - build
 
@@ -84,9 +87,12 @@ services:
     command:
       - -f=/app
       - --db-schema=app
-      - --batch-size=200
-      - --workers=8
+      - --batch-size=30
+      - --workers=4
       - --disable-historical
+      - --store-cache-threshold=1
+      - --store-get-cache-size=200
+      - --store-flush-interval=1
     networks:
       - explorer-network
 
@@ -123,9 +129,9 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:4000
-      - VITE_GRAPHQL_URL=http://localhost:3000
-      - VITE_WS_ENDPOINTS=wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:4000}
+      - VITE_GRAPHQL_URL=${VITE_GRAPHQL_URL:-http://localhost:3000}
+      - VITE_WS_ENDPOINTS=${VITE_WS_ENDPOINTS:-wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io}
       - HOST=0.0.0.0
     depends_on:
       - api
