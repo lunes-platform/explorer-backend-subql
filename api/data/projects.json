@@ -1,0 +1,280 @@
+[
+  {
+    "id": "lunes-network",
+    "slug": "lunes-network",
+    "name": "Lunes",
+    "ticker": "LUNES",
+    "logo": "",
+    "category": "infrastructure",
+    "description": "High-performance blockchain for RWA tokenization, DeFi, and scalable Web3 infrastructure.",
+    "longDescription": "Lunes Network is a high-performance blockchain built to power the next generation of the digital economy. Founded in 2017, Lunes has evolved into a robust ecosystem focused on Real-World Asset (RWA) tokenization, decentralized finance (DeFi), digital identity, and scalable Web3 applications.\n\nBuilt on the Substrate framework and operating under the Nominated Proof-of-Stake (NPoS) consensus mechanism, the network delivers security, energy efficiency, and decentralized governance. Its smart contracts are developed using Ink! WebAssembly, ensuring high performance, flexibility, and interoperability.\n\nWith a maximum supply of 200 million LUNES and a continuous deflationary policy — including progressive transaction fee burns until reaching 50 million coins — the economic model is designed to promote sustainable scarcity and long-term alignment with the community.\n\nLunes is globally positioned as a blockchain infrastructure for enterprises, governments, and entrepreneurs seeking to tokenize assets, structure DAO models, and build decentralized solutions with transparency, security, and financial inclusion.\n\nMission: To empower individuals and organizations worldwide with decentralized financial tools, democratizing access to the digital economy through a reliable, adaptable, and globally scalable blockchain.\n\nLunes Network — infrastructure for tokenizing the real world.",
+    "status": "active",
+    "launchDate": "2023-01-01",
+    "links": [
+      {
+        "type": "website",
+        "url": "https://lunes.io",
+        "label": "Lunes.io"
+      },
+      {
+        "type": "github",
+        "url": "https://github.com/lunes-platform",
+        "label": "GitHub"
+      },
+      {
+        "type": "x",
+        "url": "https://x.com/LunesPlatform",
+        "label": "@LunesPlatform"
+      },
+      {
+        "type": "telegram",
+        "url": "https://t.me/LunesGlobal",
+        "label": "Telegram"
+      },
+      {
+        "type": "docs",
+        "url": "https://lunes-labs.gitbook.io/dao-lunes-labs-en",
+        "label": "Documentation"
+      },
+      {
+        "type": "website",
+        "url": "https://gov.lunes.io",
+        "label": "Governance"
+      },
+      {
+        "type": "website",
+        "url": "https://safeguard.lunes.io",
+        "label": "Safeguard"
+      },
+      {
+        "type": "website",
+        "url": "https://lunex.lunes.io",
+        "label": "Lunex DEX"
+      },
+      {
+        "type": "website",
+        "url": "https://launchpad.lunes.io",
+        "label": "Launchpad"
+      },
+      {
+        "type": "website",
+        "url": "https://lusdt.lunes.io",
+        "label": "LUSDT Stablecoin"
+      }
+    ],
+    "team": [
+      {
+        "name": "Lunes Foundation",
+        "role": "Core Development"
+      }
+    ],
+    "milestones": [
+      {
+        "title": "Mainnet Launch",
+        "date": "2023-01",
+        "status": "completed",
+        "description": "Lançamento da mainnet Lunes baseada em Substrate"
+      },
+      {
+        "title": "Smart Contracts (Ink!)",
+        "date": "2023-06",
+        "status": "completed",
+        "description": "Ativação do pallet-contracts para smart contracts WASM"
+      },
+      {
+        "title": "Staking NPoS",
+        "date": "2023-06",
+        "status": "completed",
+        "description": "Sistema de staking com Nominated Proof-of-Stake"
+      },
+      {
+        "title": "Pallet Assets",
+        "date": "2024-01",
+        "status": "completed",
+        "description": "Suporte a tokens fungíveis nativos na chain"
+      },
+      {
+        "title": "Pallet NFTs",
+        "date": "2024-03",
+        "status": "completed",
+        "description": "Suporte a NFTs nativos"
+      },
+      {
+        "title": "Explorer v2",
+        "date": "2026-02",
+        "status": "in-progress",
+        "description": "Nova versão do explorer com dados em tempo real via RPC"
+      },
+      {
+        "title": "Cross-Chain Bridge",
+        "date": "2026-Q3",
+        "status": "planned",
+        "description": "Bridge para Ethereum e Polkadot"
+      }
+    ],
+    "tags": [
+      "layer-1",
+      "substrate",
+      "ink",
+      "smart-contracts",
+      "npos",
+      "staking"
+    ],
+    "contractAddresses": [],
+    "tokenIds": [],
+    "nftCollectionIds": [],
+    "assetIds": [],
+    "tokenSymbol": "lunes",
+    "verification": {
+      "status": "verified",
+      "verifiedAt": "2023-01-01"
+    },
+    "ownerAddress": "5C8Kq8Wd1ZqQJSdZiGNAcbYGmyJy5cKjFg2BgPFEH2EFeXZU",
+    "createdAt": "2023-01-01T00:00:00.000Z",
+    "updatedAt": "2026-02-16T01:04:03.824Z",
+    "coingeckoId": "lunes",
+    "donationAddress": "5C8Kq8Wd1ZqQJSdZiGNAcbYGmyJy5cKjFg2BgPFEH2EFeXZU"
+  },
+  {
+    "id": "lusdt-stablecoin",
+    "slug": "lusdt",
+    "name": "LUSDT",
+    "ticker": "LUSDT",
+    "logo": "",
+    "category": "defi",
+    "description": "Stablecoin pareada ao dólar americano na rede Lunes, emitida como asset nativo via pallet-assets.",
+    "longDescription": "LUSDT é uma stablecoin na rede Lunes pareada 1:1 ao dólar americano (USD). Diferente de stablecoins em smart contracts, LUSDT é um asset nativo da blockchain, criado via pallet-assets, o que garante maior performance e menor custo de transação. É o principal par de trading no ecossistema Lunes e serve como base para DeFi na rede.",
+    "status": "beta",
+    "launchDate": "2024-01-15",
+    "links": [
+      {
+        "type": "website",
+        "url": "https://lusdt.lunes.io",
+        "label": "LUSDT"
+      },
+      {
+        "type": "x",
+        "url": "https://x.com/LunesPlatform",
+        "label": "@LunesPlatform"
+      },
+      {
+        "type": "telegram",
+        "url": "https://t.me/LunesGlobal",
+        "label": "Telegram"
+      }
+    ],
+    "team": [
+      {
+        "name": "Lunes Foundation",
+        "role": "Issuer"
+      }
+    ],
+    "milestones": [
+      {
+        "title": "Asset Creation",
+        "date": "2024-01",
+        "status": "completed",
+        "description": "Criação do asset LUSDT na chain"
+      },
+      {
+        "title": "Liquidity Pools",
+        "date": "2026-Q2",
+        "status": "planned",
+        "description": "Pools de liquidez LUNES/LUSDT"
+      }
+    ],
+    "tags": [
+      "stablecoin",
+      "usd",
+      "defi",
+      "native-asset"
+    ],
+    "contractAddresses": [],
+    "tokenIds": [],
+    "nftCollectionIds": [],
+    "assetIds": [
+      "2"
+    ],
+    "tokenSymbol": "",
+    "verification": {
+      "status": "verified",
+      "verifiedAt": "2024-01-15"
+    },
+    "ownerAddress": "5C8Kq8Wd1ZqQJSdZiGNAcbYGmyJy5cKjFg2BgPFEH2EFeXZU",
+    "createdAt": "2024-01-15T00:00:00.000Z",
+    "updatedAt": "2026-02-16T03:31:20.327Z",
+    "coingeckoId": "tether",
+    "donationAddress": "5C8Kq8Wd1ZqQJSdZiGNAcbYGmyJy5cKjFg2BgPFEH2EFeXZU"
+  },
+  {
+    "id": "pidchat",
+    "slug": "pidchat",
+    "name": "PidChat",
+    "ticker": "PID",
+    "logo": "http://localhost:4000/uploads/pidchat-simbolo_1771442771747.png",
+    "category": "social",
+    "description": "Decentralized communication protocol built on the Lunes Network with a native social token.",
+    "longDescription": "PidChat is a decentralized messaging and communication protocol built on the Lunes Network. The project uses Ink! smart contracts to manage identities and communication channels, and features a native social token registered as an asset on the blockchain. Its goal is to create a censorship-resistant communication platform where users have full control over their data and digital identity.",
+    "status": "development",
+    "launchDate": "2024-06-01",
+    "links": [
+      {
+        "type": "website",
+        "url": "https://pidchat.io",
+        "label": "PidChat.io"
+      },
+      {
+        "type": "telegram",
+        "url": "https://t.me/pidchat",
+        "label": "Telegram"
+      }
+    ],
+    "team": [
+      {
+        "name": "PidChat Team",
+        "role": "Development"
+      }
+    ],
+    "milestones": [
+      {
+        "title": "Token Launch",
+        "date": "2024-06",
+        "status": "completed",
+        "description": "Lançamento do token PIDCHAT como asset nativo"
+      },
+      {
+        "title": "Protocol Beta",
+        "date": "2026-Q2",
+        "status": "planned",
+        "description": "Versão beta do protocolo de mensagens"
+      },
+      {
+        "title": "Mainnet Launch",
+        "date": "2026-Q4",
+        "status": "planned",
+        "description": "Lançamento completo com app mobile"
+      }
+    ],
+    "tags": [
+      "social",
+      "messaging",
+      "decentralized",
+      "web3"
+    ],
+    "contractAddresses": [],
+    "tokenIds": [],
+    "nftCollectionIds": [],
+    "assetIds": [
+      "1"
+    ],
+    "tokenSymbol": "pidchat",
+    "verification": {
+      "status": "unverified"
+    },
+    "ownerAddress": "",
+    "createdAt": "2024-06-01T00:00:00.000Z",
+    "updatedAt": "2026-02-18T19:26:21.262Z",
+    "donationAddress": "",
+    "tokenSymbolImage": "http://localhost:4000/uploads/pidchat-simbolo_1771442771747.png"
+  }
+]

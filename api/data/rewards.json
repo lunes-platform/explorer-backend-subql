@@ -1,0 +1,173 @@
+{
+  "config": {
+    "minClaimPoints": 100,
+    "claimCooldownHours": 24,
+    "rewardToken": "lunes",
+    "conversionRate": 100,
+    "dailyLimit": 10,
+    "dailyLimits": {
+      "lunes": 10,
+      "lusdt": 1,
+      "pidchat": 50
+    },
+    "conversionRates": {
+      "lunes": 100,
+      "lusdt": 1000,
+      "pidchat": 500
+    },
+    "tiers": [
+      {
+        "id": "bronze",
+        "name": "Bronze",
+        "minTransactions": 10,
+        "minStakeAmount": 100,
+        "multiplier": 1,
+        "badge": "🥉",
+        "color": "#CD7F32"
+      },
+      {
+        "id": "silver",
+        "name": "Silver",
+        "minTransactions": 50,
+        "minStakeAmount": 1000,
+        "multiplier": 1.5,
+        "badge": "🥈",
+        "color": "#C0C0C0"
+      },
+      {
+        "id": "gold",
+        "name": "Gold",
+        "minTransactions": 200,
+        "minStakeAmount": 10000,
+        "multiplier": 2,
+        "badge": "🥇",
+        "color": "#FFD700"
+      },
+      {
+        "id": "platinum",
+        "name": "Platinum",
+        "minTransactions": 500,
+        "minStakeAmount": 50000,
+        "multiplier": 3,
+        "badge": "💎",
+        "color": "#E5E4E2"
+      },
+      {
+        "id": "diamond",
+        "name": "Diamond",
+        "minTransactions": 1000,
+        "minStakeAmount": 100000,
+        "multiplier": 5,
+        "badge": "💠",
+        "color": "#B9F2FF"
+      }
+    ],
+    "goals": [
+      {
+        "id": "daily_transaction",
+        "name": "Daily Transaction",
+        "description": "Complete at least 1 transaction per day",
+        "basePoints": 10,
+        "cooldownHours": 24,
+        "maxPerDay": 1,
+        "icon": "Send",
+        "enabled": true
+      },
+      {
+        "id": "volume_transaction",
+        "name": "Transaction Volume",
+        "description": "Transact more than 100 LUNES in a day",
+        "basePoints": 50,
+        "cooldownHours": 24,
+        "maxPerDay": 5,
+        "icon": "TrendingUp",
+        "enabled": true
+      },
+      {
+        "id": "staking_deposit",
+        "name": "Staking",
+        "description": "Stake LUNES tokens",
+        "basePoints": 100,
+        "cooldownHours": 0,
+        "maxPerDay": 999,
+        "icon": "Shield",
+        "enabled": true
+      },
+      {
+        "id": "staking_duration",
+        "name": "Long-Term Staking",
+        "description": "Maintain stake for 30+ days",
+        "basePoints": 200,
+        "cooldownHours": 720,
+        "maxPerDay": 1,
+        "icon": "Clock",
+        "enabled": true
+      },
+      {
+        "id": "nft_mint",
+        "name": "NFT Mint",
+        "description": "Create a new NFT on the blockchain",
+        "basePoints": 150,
+        "cooldownHours": 0,
+        "maxPerDay": 10,
+        "icon": "Image",
+        "enabled": true
+      },
+      {
+        "id": "token_transfer",
+        "name": "Token Transfer",
+        "description": "Transfer ecosystem tokens",
+        "basePoints": 20,
+        "cooldownHours": 1,
+        "maxPerDay": 20,
+        "icon": "Coins",
+        "enabled": true
+      },
+      {
+        "id": "contract_interaction",
+        "name": "Smart Contract Interaction",
+        "description": "Interact with ecosystem contracts",
+        "basePoints": 30,
+        "cooldownHours": 0,
+        "maxPerDay": 50,
+        "icon": "FileCode",
+        "enabled": true
+      },
+      {
+        "id": "validator_nomination",
+        "name": "Validator Nomination",
+        "description": "Nominate a validator on the network",
+        "basePoints": 75,
+        "cooldownHours": 0,
+        "maxPerDay": 5,
+        "icon": "Users",
+        "enabled": true
+      }
+    ]
+  },
+  "wallet": {
+    "address": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "name": "Lunes Rewards Treasury",
+    "balances": {
+      "lunes": 10000,
+      "lusdt": 1000,
+      "pidchat": 50000
+    },
+    "dailyDistributed": {
+      "lunes": 0,
+      "lusdt": 0,
+      "pidchat": 0
+    },
+    "totalDistributed": {
+      "lunes": 0,
+      "lusdt": 0,
+      "pidchat": 0
+    },
+    "lastReset": "2026-02-23T15:15:48.243Z",
+    "isActive": true,
+    "changeLog": []
+  },
+  "users": {},
+  "leaderboard": [],
+  "lastUpdated": "2026-02-23T15:15:48.243Z"
+}

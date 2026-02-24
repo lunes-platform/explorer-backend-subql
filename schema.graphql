@@ -173,7 +173,7 @@ type Psp37Account @entity {
 type SmartContract @entity {
   id: ID! # Contract Address
   contractAddress: String!
-  deployer: Account!
+  deployer: Account
   codeHash: String
   standard: String # PSP22, PSP34, PSP37, Custom, etc.
   name: String

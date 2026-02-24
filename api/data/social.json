@@ -1,0 +1,14 @@
+[
+  {
+    "type": "like",
+    "projectSlug": "lunes-network",
+    "userAddress": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "createdAt": "2026-02-18T22:15:58.643Z"
+  },
+  {
+    "type": "follow",
+    "projectSlug": "lunes-network",
+    "userAddress": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "createdAt": "2026-02-18T22:16:01.952Z"
+  }
+]

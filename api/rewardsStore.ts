@@ -3,6 +3,7 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { getWalletByPurpose } from './financialStore.ts';
 
 const DATA_DIR = './data';
 const REWARDS_FILE = join(DATA_DIR, 'rewards.json');
@@ -89,6 +90,9 @@ export interface RewardGoalConfig {
 export interface RewardConfig {
   minClaimPoints: number;
   claimCooldownHours: number;
+  rewardToken: 'lunes' | 'lusdt' | 'pidchat';
+  conversionRate: number;
+  dailyLimit: number;
   dailyLimits: Record<string, number>;
   conversionRates: Record<string, number>;
   tiers: RewardTierConfig[];
@@ -112,6 +116,9 @@ export interface RewardTierConfig {
 const DEFAULT_CONFIG: RewardConfig = {
   minClaimPoints: 100,
   claimCooldownHours: 24,
+  rewardToken: 'lunes',
+  conversionRate: 100,
+  dailyLimit: 10,
   dailyLimits: {
     lunes: 10,
     lusdt: 1,
@@ -339,8 +346,7 @@ export interface ClaimResult {
 }
 
 export function claimRewards(
-  address: string,
-  tokenId: 'lunes' | 'lusdt' | 'pidchat'
+  address: string
 ): ClaimResult {
   const user = getUserRewards(address);
   if (!user) {
@@ -349,6 +355,7 @@ export function claimRewards(
   
   const config = rewardsData.config;
   const wallet = rewardsData.wallet;
+  const tokenId = config.rewardToken;
   
   // Check minimum points
   if (user.availablePoints < config.minClaimPoints) {
@@ -369,13 +376,13 @@ export function claimRewards(
   
   // Check daily limit
   const dailyClaims = user.dailyClaims[tokenId] || 0;
-  const dailyLimit = config.dailyLimits[tokenId] || 0;
+  const dailyLimit = config.dailyLimit;
   if (dailyClaims >= dailyLimit) {
     return { success: false, error: `Daily limit of ${dailyLimit} ${tokenId.toUpperCase()} reached` };
   }
   
   // Check wallet balance
-  const conversionRate = config.conversionRates[tokenId];
+  const conversionRate = config.conversionRate;
   const tokensToReceive = Math.floor(user.availablePoints / conversionRate);
   const walletBalance = wallet.balances[tokenId] || 0;
   
@@ -574,6 +581,12 @@ export async function seedFromIndexer(): Promise<number> {
 // ============================================================================
 
 export function getWallet(): RewardWallet {
+  // Sync address from centralized financialStore
+  const centralWallet = getWalletByPurpose('rewards');
+  if (centralWallet && centralWallet.address !== rewardsData.wallet.address) {
+    rewardsData.wallet.address = centralWallet.address;
+  }
+
   // Reset daily counters if needed
   const lastReset = new Date(rewardsData.wallet.lastReset);
   const now = new Date();

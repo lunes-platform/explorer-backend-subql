@@ -14,7 +14,6 @@ interface Banner {
   linkLabel?: string;
 }
 
-const API_BASE = API_BASE_URL;
 const AUTO_PLAY_INTERVAL = 6000;
 
 const BannerSlider: React.FC = () => {
@@ -24,7 +23,7 @@ const BannerSlider: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/banners`)
+    fetch(`${API_BASE_URL}/banners`)
       .then(res => res.json())
       .then((data: Banner[]) => {
         if (Array.isArray(data) && data.length > 0) {

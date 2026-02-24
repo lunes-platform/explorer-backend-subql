@@ -23,6 +23,7 @@ const Footer = () => {
             { label: 'Projects', href: '/projects' },
             { label: 'Register Project', href: '/project/register' },
             { label: 'Verify Project', href: '/project/verify' },
+            { label: 'Advertise', href: '/advertise' },
         ],
     };
 

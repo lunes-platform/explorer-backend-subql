@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, Coins, FolderOpen } from 'lucide-react';
+import { ArrowRight, Loader2, Coins, FolderOpen, FileCode } from 'lucide-react';
+import { useQuery } from '@apollo/client/react';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { formatAbbreviatedNumber } from '../../data/tokenomics';
@@ -8,7 +9,21 @@ import { getProjectByAssetId } from '../../data/knownProjects';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { WatchlistButton } from '../../components/common/WatchlistButton';
 import { useWatchlist } from '../../hooks/useWatchlist';
+import { GET_TOKEN_MARKET_DATA } from '../../services/graphql/queries';
 import classes from './Home.module.css';
+
+interface Psp22TokenNode {
+    id: string;
+    name: string;
+    symbol: string;
+    contractAddress: string;
+    totalSupply: string;
+    decimals: number;
+    verified: boolean;
+}
+interface TokenMarketDataResponse {
+    psp22Tokens: { nodes: Psp22TokenNode[] };
+}
 
 function formatSupply(supply: number, decimals: number = 2): string {
     if (supply >= 1e12) return `${(supply / 1e12).toFixed(decimals)}T`;
@@ -26,6 +41,9 @@ const TopTokens: React.FC = () => {
     const { isWatched, toggleItem } = useWatchlist();
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
+
+    const { data: psp22Data } = useQuery<TokenMarketDataResponse>(GET_TOKEN_MARKET_DATA);
+    const psp22Tokens = psp22Data?.psp22Tokens?.nodes || [];
 
     const loading = priceLoading || assetsLoading || statsLoading;
     const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
@@ -136,6 +154,50 @@ const TopTokens: React.FC = () => {
                                 />
                             </td>
                         </tr>
+
+                        {/* PSP22 ink! contracts from SubQuery */}
+                        {psp22Tokens.map((token, index) => (
+                            <tr
+                                key={token.id}
+                                className={classes.clickableRow}
+                                onClick={() => navigate(`/account/${token.contractAddress}`)}
+                            >
+                                <td className={classes.rankCell}>{index + 2}</td>
+                                <td>
+                                    <div className={classes.tokenInfo}>
+                                        <div className={classes.tokenIconPlaceholder} style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8' }}>
+                                            <FileCode size={16} />
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span className={classes.tokenSim}>{token.name}</span>
+                                                <span className={classes.tokenName}>{token.symbol}</span>
+                                                <span style={{ fontSize: '10px', padding: '2px 6px', background: 'rgba(99,102,241,0.15)', borderRadius: '4px', color: '#818cf8' }}>PSP22</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                                <td style={{ textAlign: 'right' }}>
+                                    <div className={classes.supplyContainer} style={{ marginLeft: 'auto' }}>
+                                        <span>{token.totalSupply && token.totalSupply !== '0' ? formatSupply(Number(BigInt(token.totalSupply)) / Math.pow(10, token.decimals)) : '—'} {token.symbol}</span>
+                                    </div>
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                    <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(99,102,241,0.15)', borderRadius: '4px', color: '#818cf8' }}>PSP22</span>
+                                </td>
+                                <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                    <WatchlistButton
+                                        isWatched={isWatched(token.id, 'token')}
+                                        onToggle={() => toggleItem({ id: token.id, type: 'token', symbol: token.symbol, name: token.name })}
+                                        size="sm"
+                                    />
+                                </td>
+                            </tr>
+                        ))}
 
                         {/* Chain assets from RPC */}
                         {assetsLoading && (

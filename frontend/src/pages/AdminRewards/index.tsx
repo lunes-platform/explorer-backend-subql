@@ -63,11 +63,10 @@ const AdminRewards: React.FC = () => {
   const [refillAmount, setRefillAmount] = useState('');
   const [refillLoading, setRefillLoading] = useState(false);
   const [refillResult, setRefillResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [configValues, setConfigValues] = useState({ minClaimPoints: 100, claimCooldownHours: 24, dailyLunes: 10, dailyLusdt: 1, dailyPidchat: 50 });
+  const [configValues, setConfigValues] = useState({ minClaimPoints: 100, claimCooldownHours: 24, rewardToken: 'lunes' as 'lunes' | 'lusdt' | 'pidchat', conversionRate: 100, dailyLimit: 10 });
   const [configSaving, setConfigSaving] = useState(false);
   const [configResult, setConfigResult] = useState<{ success: boolean; message: string } | null>(null);
   const [tiers, setTiers] = useState<{ id: string; name: string; minTransactions: number; minStakeAmount: number; multiplier: number; badge: string; color: string }[]>([]);
-  const [conversionRates, setConversionRates] = useState<Record<string, number>>({ lunes: 100, lusdt: 1000, pidchat: 500 });
   const [goals, setGoals] = useState<{ id: string; name: string; description: string; basePoints: number; cooldownHours: number; maxPerDay: number; icon: string; enabled: boolean }[]>([]);
   const [configLoaded, setConfigLoaded] = useState(false);
 
@@ -149,12 +148,11 @@ const AdminRewards: React.FC = () => {
           setConfigValues({
             minClaimPoints: cfg.minClaimPoints ?? 100,
             claimCooldownHours: cfg.claimCooldownHours ?? 24,
-            dailyLunes: cfg.dailyLimits?.lunes ?? 10,
-            dailyLusdt: cfg.dailyLimits?.lusdt ?? 1,
-            dailyPidchat: cfg.dailyLimits?.pidchat ?? 50,
+            rewardToken: cfg.rewardToken ?? 'lunes',
+            conversionRate: cfg.conversionRate ?? 100,
+            dailyLimit: cfg.dailyLimit ?? 10,
           });
           if (cfg.tiers?.length) setTiers(cfg.tiers);
-          if (cfg.conversionRates) setConversionRates(cfg.conversionRates);
           if (cfg.goals?.length) setGoals(cfg.goals);
           setConfigLoaded(true);
         }
@@ -193,9 +191,10 @@ const AdminRewards: React.FC = () => {
         body: JSON.stringify({
           minClaimPoints: configValues.minClaimPoints,
           claimCooldownHours: configValues.claimCooldownHours,
-          dailyLimits: { lunes: configValues.dailyLunes, lusdt: configValues.dailyLusdt, pidchat: configValues.dailyPidchat },
+          rewardToken: configValues.rewardToken,
+          conversionRate: configValues.conversionRate,
+          dailyLimit: configValues.dailyLimit,
           tiers: tiers.filter(t => t.name.trim()),
-          conversionRates,
           goals: goals.filter(g => g.name.trim()),
         }),
       });
@@ -777,46 +776,46 @@ const AdminRewards: React.FC = () => {
               </div>
               <div className={styles.configItem}>
                 <div className={styles.configInfo}>
-                  <span className={styles.configLabel}>Daily LUNES Limit</span>
-                  <span className={styles.configDesc}>Max LUNES per user per day</span>
+                  <span className={styles.configLabel}>Daily Claim Limit</span>
+                  <span className={styles.configDesc}>Max tokens a user can claim per day</span>
                 </div>
-                <input type="number" value={configValues.dailyLunes} onChange={e => setConfigValues(v => ({ ...v, dailyLunes: Number(e.target.value) }))} className={styles.configInput} />
-              </div>
-              <div className={styles.configItem}>
-                <div className={styles.configInfo}>
-                  <span className={styles.configLabel}>Daily LUSDT Limit</span>
-                  <span className={styles.configDesc}>Max LUSDT per user per day</span>
-                </div>
-                <input type="number" value={configValues.dailyLusdt} onChange={e => setConfigValues(v => ({ ...v, dailyLusdt: Number(e.target.value) }))} className={styles.configInput} />
-              </div>
-              <div className={styles.configItem}>
-                <div className={styles.configInfo}>
-                  <span className={styles.configLabel}>Daily PIDCHAT Limit</span>
-                  <span className={styles.configDesc}>Max PIDCHAT per user per day</span>
-                </div>
-                <input type="number" value={configValues.dailyPidchat} onChange={e => setConfigValues(v => ({ ...v, dailyPidchat: Number(e.target.value) }))} className={styles.configInput} />
+                <input type="number" value={configValues.dailyLimit} onChange={e => setConfigValues(v => ({ ...v, dailyLimit: Number(e.target.value) }))} className={styles.configInput} />
               </div>
             </div>
           </Card>
 
-          {/* Conversion Rates */}
-          <Card title="Conversion Rates (Points → Token)" icon={<Coins size={18} />}>
+          {/* Reward Token & Conversion Rate */}
+          <Card title="Reward Token (Points → Token)" icon={<Coins size={18} />}>
             <div className={styles.configSection}>
-              {Object.entries(conversionRates).map(([tk, rate]) => (
-                <div key={tk} className={styles.configItem}>
-                  <div className={styles.configInfo}>
-                    <span className={styles.configLabel}>{tk.toUpperCase()}</span>
-                    <span className={styles.configDesc}>{rate} points = 1 {tk.toUpperCase()}</span>
-                  </div>
-                  <input
-                    type="number"
-                    value={rate}
-                    onChange={e => setConversionRates(prev => ({ ...prev, [tk]: Number(e.target.value) }))}
-                    className={styles.configInput}
-                    min={1}
-                  />
+              <div className={styles.configItem}>
+                <div className={styles.configInfo}>
+                  <span className={styles.configLabel}>Reward Token</span>
+                  <span className={styles.configDesc}>The token users receive when claiming rewards</span>
                 </div>
-              ))}
+                <select
+                  value={configValues.rewardToken}
+                  onChange={e => setConfigValues(v => ({ ...v, rewardToken: e.target.value as 'lunes' | 'lusdt' | 'pidchat' }))}
+                  className={styles.configInput}
+                  style={{ minWidth: 140 }}
+                >
+                  <option value="lunes">🌙 LUNES</option>
+                  <option value="lusdt">💵 LUSDT</option>
+                  <option value="pidchat">💬 PIDCHAT</option>
+                </select>
+              </div>
+              <div className={styles.configItem}>
+                <div className={styles.configInfo}>
+                  <span className={styles.configLabel}>Conversion Rate</span>
+                  <span className={styles.configDesc}>{configValues.conversionRate} points = 1 {configValues.rewardToken.toUpperCase()}</span>
+                </div>
+                <input
+                  type="number"
+                  value={configValues.conversionRate}
+                  onChange={e => setConfigValues(v => ({ ...v, conversionRate: Number(e.target.value) }))}
+                  className={styles.configInput}
+                  min={1}
+                />
+              </div>
             </div>
           </Card>
 

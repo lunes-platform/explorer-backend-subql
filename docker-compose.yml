@@ -52,6 +52,7 @@ services:
       - ./api/.env
     environment:
       - INDEXER_URL=http://graphql-engine:3000
+      - API_PUBLIC_URL=${API_PUBLIC_URL:-http://localhost:4000}
     depends_on:
       - postgres
     restart: always
@@ -87,12 +88,7 @@ services:
     command:
       - -f=/app
       - --db-schema=app
-      - --batch-size=30
-      - --workers=4
       - --disable-historical
-      - --store-cache-threshold=1
-      - --store-get-cache-size=200
-      - --store-flush-interval=1
     networks:
       - explorer-network
 
@@ -124,7 +120,7 @@ services:
       context: ./frontend
       target: development
     ports:
-      - 5175:5173
+      - 5175:5175
     volumes:
       - ./frontend:/app
       - /app/node_modules

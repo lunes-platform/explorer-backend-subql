@@ -4,7 +4,8 @@ import { EventRecord, Balance } from "@polkadot/types/interfaces";
 export function createTransfer(
   blockNumber: bigint,
   index: number,
-  event: EventRecord
+  event: EventRecord,
+  blockTimestamp?: Date
 ): Transfer {
   const {
     event: {
@@ -21,6 +22,12 @@ export function createTransfer(
     blockId: blockNumber.toString(),
     blockNumber: blockNumber,
     eventIndex: index,
+    ...(blockTimestamp
+      ? {
+          timestamp: BigInt(blockTimestamp.getTime()),
+          date: blockTimestamp,
+        }
+      : {}),
   });
   entity.save();
   return entity;  

@@ -102,13 +102,13 @@ export function useClaimRewards() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; tokensReceived?: number; tokenSymbol?: string; error?: string } | null>(null);
 
-  const claim = useCallback(async (address: string, tokenId: 'lunes' | 'lusdt' | 'pidchat') => {
+  const claim = useCallback(async (address: string) => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/rewards/${address}/claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenId, callerAddress: address }),
+        body: JSON.stringify({ callerAddress: address }),
       });
       const data = await res.json();
       setResult(data);
@@ -129,6 +129,9 @@ export function useClaimRewards() {
 export interface RewardsConfig {
   minClaimPoints: number;
   claimCooldownHours: number;
+  rewardToken: 'lunes' | 'lusdt' | 'pidchat';
+  conversionRate: number;
+  dailyLimit: number;
   dailyLimits: Record<string, number>;
   conversionRates: Record<string, number>;
   tiers: {

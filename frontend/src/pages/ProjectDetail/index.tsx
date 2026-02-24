@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -43,6 +43,7 @@ import {
   type ProjectLink,
 } from '../../data/knownProjects';
 import { useProjects, useProject } from '../../hooks/useProjects';
+import { API_BASE } from '../../config';
 import styles from './ProjectDetail.module.css';
 
 const XIcon = () => (
@@ -87,8 +88,21 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
     toggleFollow, recordDonation, addComment, addCommentReaction, isConnected: socialConnected,
   } = useSocialInteractions(project.id, userAddr);
   const [showDonate, setShowDonate] = useState(false);
+  const [lunesDonationWallet, setLunesDonationWallet] = useState<string>('');
 
-  const donationReceiver = (project as any).donationAddress || project.contractAddresses[0] || VERIFICATION_RECEIVER;
+  // For lunes-network, fetch the donation wallet configured by admin in Financial tab
+  useEffect(() => {
+    if (project.id === 'lunes-network') {
+      fetch(`${API_BASE}/api/wallets/donations`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.address) setLunesDonationWallet(data.address); })
+        .catch(() => {});
+    }
+  }, [project.id]);
+
+  const donationReceiver = project.id === 'lunes-network'
+    ? (lunesDonationWallet || (project as any).donationAddress || VERIFICATION_RECEIVER)
+    : ((project as any).donationAddress || project.contractAddresses[0] || VERIFICATION_RECEIVER);
 
   const hasOnChain = project.contractAddresses.length > 0 ||
     project.assetIds.length > 0 ||
@@ -108,7 +122,18 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
 
         <div className={styles.projectHeader}>
           <div className={styles.projectLogo}>
-            {project.id === 'lunes-network' ? <LunesLogo size={32} /> : project.name.charAt(0)}
+            {project.id === 'lunes-network' ? (
+              <LunesLogo size={32} />
+            ) : project.logo ? (
+              <img
+                src={project.logo}
+                alt={project.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.textContent = project.name.charAt(0); }}
+              />
+            ) : (
+              project.name.charAt(0)
+            )}
           </div>
           <div className={styles.projectTitle}>
             <h1 className={styles.projectName}>{project.name}</h1>
@@ -177,6 +202,7 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
           onDonate={() => setShowDonate(true)}
           onComment={addComment}
           onCommentReaction={addCommentReaction}
+          hasDonationAddress={!!donationReceiver}
         />
       </Card>
 
@@ -510,8 +536,20 @@ const ProjectsList: React.FC = () => {
                   background: 'linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 18, fontWeight: 700, color: 'white',
+                  overflow: 'hidden',
                 }}>
-                  {project.id === 'lunes-network' ? <LunesLogo size={24} /> : project.name.charAt(0)}
+                  {project.id === 'lunes-network' ? (
+                    <LunesLogo size={24} />
+                  ) : project.logo ? (
+                    <img
+                      src={project.logo}
+                      alt={project.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    project.name.charAt(0)
+                  )}
                 </div>
 
                 {/* Info */}

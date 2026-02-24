@@ -22,6 +22,7 @@ interface SocialActionsProps {
   onDonate: () => void;
   onComment: (text: string, metadata?: { gif?: string | null }) => void;
   onCommentReaction?: (commentId: string, emoji: string) => void;
+  hasDonationAddress?: boolean;
 }
 
 const MAX_COMMENT_LENGTH = 350;
@@ -52,6 +53,7 @@ export const SocialActions: React.FC<SocialActionsProps> = ({
   onDonate,
   onComment,
   onCommentReaction,
+  hasDonationAddress = true,
 }) => {
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
@@ -121,8 +123,8 @@ export const SocialActions: React.FC<SocialActionsProps> = ({
 
         <div style={{ flex: 1 }} />
 
-        {/* Donate */}
-        <button
+        {/* Donate — only shown when a donation address is configured */}
+        {hasDonationAddress && <button
           onClick={onDonate}
           disabled={!isConnected}
           style={{
@@ -148,7 +150,7 @@ export const SocialActions: React.FC<SocialActionsProps> = ({
               {socialData.donations}
             </span>
           )}
-        </button>
+        </button>}
 
         {/* Comment toggle */}
         <button

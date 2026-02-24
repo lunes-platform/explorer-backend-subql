@@ -17,7 +17,11 @@ import {
 import {
   getActiveAds, getAllAds, getAd,
   createAd, updateAd, deleteAd,
-  trackImpression, trackClick
+  trackImpression, trackClick,
+  getAdPricing, updateAdPricing,
+  submitAd, confirmAdPayment, reviewAd,
+  getAdsByAdvertiser, getAdvertiserProfile, getAllAdvertisers,
+  calculateAdCost
 } from './adsStore.ts';
 import {
   authenticateUser, generateToken, storeToken, getUserByToken,
@@ -46,6 +50,13 @@ import {
 } from './rewardsStore.ts';
 import { getPrice, getPriceStats } from './priceCache.ts';
 import { getTokenPrices, getTokenPriceStats } from './tokenPriceCache.ts';
+import {
+  getFinancialConfig, updateFinancialConfig,
+  recordVerificationPayment, updatePaymentStatus,
+  getVerificationPayments, getFinancialSummary,
+  getAllWallets, getWalletByPurpose, updateWalletAddress,
+  toggleWallet, getAuditLog, isValidSS58Address
+} from './financialStore.ts';
 
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, extname } from 'path';
@@ -373,63 +384,63 @@ app.post('/api/anomalies', async (req, res) => {
   }
 });
 
-// Server-side scan: fetches data from RPC and runs detection
+// Server-side scan: fetches data from SubQuery GraphQL (fast, local) and runs detection
 app.post('/api/anomalies/scan', async (req, res) => {
   const { blockCount = 20, transferCount = 50 } = req.body;
+  const GRAPHQL_URL = process.env.INDEXER_URL || 'http://graphql-engine:3000';
+  const TIMEOUT_MS = 10000;
   
   try {
-    const { ApiPromise, WsProvider } = await import('@polkadot/api');
-    const RPC_URL = process.env.RPC_URL || 'wss://ws.lunes.io';
-    const provider = new WsProvider(RPC_URL);
-    const api = await ApiPromise.create({ provider, noInitWarn: true });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
     
-    const header = await api.rpc.chain.getHeader();
-    const latestBlock = header.number.toNumber();
+    // Fetch recent blocks and transfers from SubQuery GraphQL in parallel
+    const [blocksRes, transfersRes] = await Promise.all([
+      fetch(GRAPHQL_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `{ blocks(first: ${Math.min(blockCount, 50)}, orderBy: NUMBER_DESC) { nodes { number timestamp } } }`
+        }),
+        signal: controller.signal,
+      }),
+      fetch(GRAPHQL_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `{ transfers(first: ${Math.min(transferCount, 100)}, orderBy: BLOCK_NUMBER_DESC) { nodes { id fromId toId amount blockNumber } } }`
+        }),
+        signal: controller.signal,
+      }),
+    ]);
     
-    const blocks = [];
-    const transfers = [];
-    const scanCount = Math.min(blockCount, 50);
+    clearTimeout(timeout);
     
-    for (let i = 0; i < scanCount; i++) {
-      const blockNum = latestBlock - i;
-      if (blockNum < 0) break;
-      
-      try {
-        const blockHash = await api.rpc.chain.getBlockHash(blockNum);
-        const [signedBlock, events] = await Promise.all([
-          api.rpc.chain.getBlock(blockHash),
-          api.query.system.events.at(blockHash),
-        ]);
-        
-        const timestampExt = signedBlock.block.extrinsics.find(
-          ex => ex.method.section === 'timestamp' && ex.method.method === 'set'
-        );
-        const ts = timestampExt ? Number(timestampExt.method.args[0].toString()) : Date.now();
-        
-        blocks.push({
-          number: blockNum,
-          extrinsicCount: signedBlock.block.extrinsics.length,
-          timestamp: ts,
-        });
-        
-        events.forEach((record) => {
-          const { event } = record;
-          if (event.section === 'balances' && event.method === 'Transfer') {
-            const [from, to, amount] = event.data;
-            transfers.push({
-              from: from.toString(),
-              to: to.toString(),
-              amountFormatted: Number(BigInt(amount.toString())) / 1e8,
-              blockNumber: blockNum,
-              hash: blockHash.toString(),
-            });
-          }
-        });
-      } catch { /* skip failed blocks */ }
-    }
+    const blocksData = await blocksRes.json();
+    const transfersData = await transfersRes.json();
     
-    await api.disconnect();
+    const rawBlocks = blocksData?.data?.blocks?.nodes || [];
+    const rawTransfers = transfersData?.data?.transfers?.nodes || [];
     
+    // Count transfers per block to estimate activity
+    const txPerBlock = {};
+    rawTransfers.forEach(t => { txPerBlock[t.blockNumber] = (txPerBlock[t.blockNumber] || 0) + 1; });
+    
+    const blocks = rawBlocks.map(b => ({
+      number: Number(b.number),
+      extrinsicCount: txPerBlock[b.number] || 0,
+      timestamp: Number(b.timestamp) || Date.now(),
+    }));
+    
+    const transfers = rawTransfers.map(t => ({
+      from: t.fromId,
+      to: t.toId,
+      amountFormatted: Number(BigInt(t.amount || '0')) / 1e8,
+      blockNumber: Number(t.blockNumber),
+      hash: t.id,
+    }));
+    
+    const latestBlock = blocks.length > 0 ? blocks[0].number : 0;
     const anomalies = detectAnomalies(transfers, blocks);
     
     res.json({
@@ -441,8 +452,90 @@ app.post('/api/anomalies/scan', async (req, res) => {
     });
   } catch (err) {
     console.error('[Anomaly Scan] Error:', err);
-    res.status(500).json({ error: 'Failed to scan blockchain' });
+    // Fallback: return empty scan instead of 500
+    res.json({
+      anomalies: [],
+      blocksScanned: 0,
+      transfersFound: 0,
+      latestBlock: 0,
+      generatedAt: new Date().toISOString(),
+      warning: 'Indexer unavailable, no data to scan',
+    });
   }
+});
+
+// ─── Financial Config ───
+
+// Public: get verification wallet + fee
+app.get('/api/config/financial', (_req, res) => {
+  res.json(getFinancialConfig());
+});
+
+// Admin: update financial config
+app.put('/api/admin/config/financial', requireAuth, (req, res) => {
+  const config = updateFinancialConfig(req.body, req.adminUser?.email || 'admin');
+  res.json({ success: true, config });
+});
+
+// Admin: get financial summary
+app.get('/api/admin/financial/summary', requireAuth, (_req, res) => {
+  res.json(getFinancialSummary());
+});
+
+// ─── Unified Wallet Management (Admin) ───
+
+app.get('/api/admin/wallets', requireAuth, (_req, res) => {
+  res.json(getAllWallets());
+});
+
+app.get('/api/admin/wallets/:purpose', requireAuth, (req, res) => {
+  const wallet = getWalletByPurpose(req.params.purpose);
+  if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
+  res.json(wallet);
+});
+
+app.put('/api/admin/wallets/:purpose/address', requireAuth, (req, res) => {
+  const { address } = req.body;
+  if (!address) return res.status(400).json({ error: 'Address is required' });
+  const result = updateWalletAddress(req.params.purpose, address, req.adminUser?.email || 'admin');
+  if (!result.success) return res.status(400).json({ error: result.error });
+  res.json({ success: true, wallet: result.wallet });
+});
+
+app.put('/api/admin/wallets/:purpose/toggle', requireAuth, (req, res) => {
+  const result = toggleWallet(req.params.purpose, req.adminUser?.email || 'admin');
+  if (!result.success) return res.status(404).json({ error: 'Wallet not found' });
+  res.json({ success: true, wallet: result.wallet });
+});
+
+app.get('/api/admin/wallets-audit', requireAuth, (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  const purpose = req.query.purpose || undefined;
+  res.json(getAuditLog(limit, purpose));
+});
+
+// Admin: get verification payments
+app.get('/api/admin/financial/payments', requireAuth, (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  res.json(getVerificationPayments(limit));
+});
+
+// Record a verification payment (called by frontend after tx)
+app.post('/api/financial/verification-payment', (req, res) => {
+  try {
+    const payment = recordVerificationPayment(req.body);
+    res.json({ success: true, payment });
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to record payment' });
+  }
+});
+
+// Admin: update payment status
+app.put('/api/admin/financial/payments/:id/status', requireAuth, (req, res) => {
+  const { status } = req.body;
+  const payment = updatePaymentStatus(req.params.id, status);
+  if (!payment) return res.status(404).json({ error: 'Payment not found' });
+  res.json({ success: true, payment });
 });
 
 // ─── Price Cache ───
@@ -579,17 +672,15 @@ app.post('/api/rewards/:address/stats', (req, res) => {
 });
 
 // Claim rewards — caller must prove ownership via matching callerAddress
+// Token is determined by admin config (rewardToken), not by the user
 app.post('/api/rewards/:address/claim', (req, res) => {
-  const { tokenId, callerAddress } = req.body;
+  const { callerAddress } = req.body;
 
   if (!callerAddress || callerAddress !== req.params.address) {
     return res.status(403).json({ error: 'callerAddress must match the target address' });
   }
-  if (!tokenId || !['lunes', 'lusdt', 'pidchat'].includes(tokenId)) {
-    return res.status(400).json({ error: 'Invalid tokenId. Use: lunes, lusdt, pidchat' });
-  }
   
-  const result = claimRewards(req.params.address, tokenId);
+  const result = claimRewards(req.params.address);
   res.json(result);
 });
 
@@ -683,6 +774,11 @@ app.put('/api/admin/projects/:slug', requireAuth, (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Project not found' });
   // Admin can edit any project — no ownership check
   const { ownerAddress, ...updates } = req.body;
+  // Normalize tokenSymbolImage -> logo so the frontend can read project.logo
+  if (updates.tokenSymbolImage !== undefined) {
+    updates.logo = updates.tokenSymbolImage;
+    delete updates.tokenSymbolImage;
+  }
   const result = updateProject(req.params.slug, updates);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
@@ -877,9 +973,75 @@ app.post('/api/ads/:id/click', (req, res) => {
   res.json({ success: true });
 });
 
+// ─── Public: Donations Wallet ───
+app.get('/api/wallets/donations', (_req, res) => {
+  const wallet = getWalletByPurpose('donations');
+  res.json({ address: wallet?.address || '', isActive: wallet?.isActive ?? true });
+});
+
+// ─── Ads Pricing (Public) ───
+app.get('/api/ads/pricing', (_req, res) => {
+  res.json(getAdPricing());
+});
+
+app.get('/api/ads/calculate', (req, res) => {
+  const impressions = parseInt(req.query.impressions) || 1000;
+  const cost = calculateAdCost(impressions);
+  res.json({ impressions, cost, currency: 'LUNES' });
+});
+
+// ─── Ads Self-Service ───
+app.post('/api/ads/submit', (req, res) => {
+  try {
+    const { title, description, ctaText, ctaUrl, imageUrl, placement,
+            advertiserAddress, advertiserName, advertiserEmail, purchasedImpressions } = req.body;
+    if (!title || !ctaUrl || !advertiserAddress || !advertiserName || !advertiserEmail || !purchasedImpressions) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const pricing = getAdPricing();
+    if (purchasedImpressions < pricing.minImpressions || purchasedImpressions > pricing.maxImpressions) {
+      return res.status(400).json({ error: `Impressions must be between ${pricing.minImpressions} and ${pricing.maxImpressions}` });
+    }
+    const ad = submitAd({ title, description, ctaText, ctaUrl, imageUrl, placement,
+                          advertiserAddress, advertiserName, advertiserEmail, purchasedImpressions });
+    res.status(201).json(ad);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to submit ad' });
+  }
+});
+
+app.get('/api/ads/my/:address', (req, res) => {
+  res.json(getAdsByAdvertiser(req.params.address));
+});
+
+app.get('/api/ads/advertiser/:address', (req, res) => {
+  const profile = getAdvertiserProfile(req.params.address);
+  if (!profile) return res.status(404).json({ error: 'Advertiser not found' });
+  const ads = getAdsByAdvertiser(req.params.address);
+  res.json({ profile, ads });
+});
+
+app.post('/api/ads/:id/pay', (req, res) => {
+  const { txHash } = req.body;
+  if (!txHash) return res.status(400).json({ error: 'txHash is required' });
+  const ad = confirmAdPayment(req.params.id, txHash);
+  if (!ad) return res.status(404).json({ error: 'Ad not found or not pending payment' });
+  res.json({ success: true, ad });
+});
+
 // ─── Ads (Admin) ───
+// NOTE: Specific routes (/pricing, /review, /advertisers) MUST come before generic /:id routes
 app.get('/api/admin/ads', requireAuth, (_req, res) => {
   res.json(getAllAds());
+});
+
+app.put('/api/admin/ads/pricing', requireAuth, (req, res) => {
+  const pricing = updateAdPricing(req.body);
+  res.json({ success: true, pricing });
+});
+
+app.get('/api/admin/advertisers', requireAuth, (_req, res) => {
+  res.json(getAllAdvertisers());
 });
 
 app.post('/api/admin/ads', requireAuth, (req, res) => {
@@ -889,9 +1051,19 @@ app.post('/api/admin/ads', requireAuth, (req, res) => {
     title, description: description || '', ctaText: ctaText || 'Learn More', ctaUrl,
     imageUrl, placement: placement || 'home_stats',
     isActive: isActive !== false, priority: priority ?? 0,
-    startDate, endDate,
+    startDate, endDate, status: 'active',
   });
   res.status(201).json(ad);
+});
+
+app.put('/api/admin/ads/:id/review', requireAuth, (req, res) => {
+  const { decision, notes } = req.body;
+  if (!['approved', 'rejected'].includes(decision)) {
+    return res.status(400).json({ error: 'Decision must be approved or rejected' });
+  }
+  const ad = reviewAd(req.params.id, decision, notes);
+  if (!ad) return res.status(404).json({ error: 'Ad not found' });
+  res.json({ success: true, ad });
 });
 
 app.put('/api/admin/ads/:id', requireAuth, (req, res) => {

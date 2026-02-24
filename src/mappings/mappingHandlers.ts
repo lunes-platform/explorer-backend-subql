@@ -24,94 +24,136 @@ import {
   ensurePsp22Token,
   ensurePsp34Collection,
 } from "../handlers";
-import { Asset, Psp34Collection, Psp34Token, NftAccount, SmartContract } from "../types";
+import { Asset, Psp34Collection, Psp34Token, NftAccount, SmartContract, Transfer } from "../types";
 import { SubstrateEvent, SubstrateExtrinsic } from "@subql/types";
 
-// Handler for individual events (used by event filters)
-export async function handleEvent(event: SubstrateEvent): Promise<void> {
-  const { event: { section, method } } = event;
-  const blockNumber = event.block.block.header.number.toBigInt();
-  const eventIndex = event.idx;
-  const eventRecord = event as any; // Cast to compatible type
-  
-  
-  try {
-    // Handle specific event types
-    if (section === "balances" && method === "Transfer") {
-      createTransfer(blockNumber, eventIndex, eventRecord, event.block.timestamp);
-    }
-    else if (section === "assets" && method === "Transferred") {
-      await createAssetTransfer(blockNumber, eventIndex, eventRecord);
-    }
-    else if (section === "assets" && method === "Created") {
-      await handleAssetCreated(blockNumber, eventRecord);
-    }
-    else if (section === "assets" && method === "Issued") {
-      await handleAssetIssued(blockNumber, eventRecord);
-    }
-    else if (section === "assets" && method === "MetadataSet") {
-      await handleAssetMetadataSet(eventRecord);
-    }
-    else if (section === "assets" && method === "Destroyed") {
-      await handleAssetDestroyed(eventRecord);
-    }
-    else if (section === "staking") {
-      await handleStakingEvent(blockNumber, eventIndex, eventRecord);
-    }
-    else if (section === "contracts" && method === "ContractEmitted") {
-      await handleContractEvent(blockNumber, eventIndex, eventRecord);
-      
-      // Detectar eventos PSP baseado na estrutura dos dados
-      try {
-        await detectAndHandlePspEvent(blockNumber, eventIndex, eventRecord);
-      } catch (error) {
-        logger.warn(`Error parsing PSP event: ${error}`);
-      }
-    }
-    else if (section === "contracts" && method === "Instantiated") {
-      await handleContractInstantiated(blockNumber, eventIndex, eventRecord);
-    }
-    else if ((section === "nfts" || section === "uniques") && method === "Transferred") {
-      await handleNftsPalletTransfer(blockNumber, eventIndex, eventRecord);
-    }
-    else if ((section === "nfts" || section === "uniques") && method === "Issued") {
-      await handleNftsPalletIssued(blockNumber, eventIndex, eventRecord);
-    }
-    else if ((section === "nfts" || section === "uniques") && method === "Created") {
-      await handleNftsPalletCreated(blockNumber, eventRecord);
-    }
-    
-    // Create generic event record
-    createEvent(blockNumber, eventIndex, eventRecord);
-    
-  } catch (error) {
-    logger.error(`Error handling event ${section}.${method}: ${error}`);
-  }
-}
-
-// Handler for individual calls (used by call filters)
-export async function handleCall(call: SubstrateExtrinsic): Promise<void> {
-  const { extrinsic: { method: { section, method } } } = call;
-  const blockNumber = call.block.block.header.number.toBigInt();
-  
-  
-  try {
-    if (section === "contracts") {
-      await handleContractCall(blockNumber, call);
-    }
-    
-    // Create generic extrinsic record
-    createExtrinsic(blockNumber, call);
-    
-  } catch (error) {
-    logger.error(`Error handling call ${section}.${method}: ${error}`);
-  }
-}
-
+// Main block handler — processes ALL events and extrinsics from within the block.
+// This approach uses block.events directly (already fetched with the block),
+// avoiding separate RPC calls that can timeout on rate-limited endpoints.
 export async function handleBlock(block: SubstrateBlock): Promise<void> {
-  // ONLY create the block record — event/call handlers do the rest via filters
+  const blockNumber = block.block.header.number.toBigInt();
+
+  // Create block record
   await createBlock(block);
+
+  // Process all events in block
+  const transfers: any[] = [];
+
+  for (let idx = 0; idx < block.events.length; idx++) {
+    const evt = block.events[idx] as any;
+    const { event: { section, method } } = evt;
+
+    // Create generic event record
+    createEvent(blockNumber, idx, evt);
+
+    try {
+      if (section === "balances" && method === "Transfer") {
+        const transfer = createTransfer(blockNumber, idx, evt, block.timestamp);
+        transfers.push(transfer);
+      }
+      else if (section === "assets" && method === "Transferred") {
+        await createAssetTransfer(blockNumber, idx, evt);
+        // Also create a Transfer record so the frontend can display asset transfers
+        const assetEvtData = evt.event.data;
+        if (assetEvtData && assetEvtData.length >= 4) {
+          const [, assetFrom, assetTo, assetAmount] = assetEvtData;
+          const assetTransferEntity = Transfer.create({
+            id: `${blockNumber.toString()}-${idx.toString()}`,
+            fromId: assetFrom.toString(),
+            toId: assetTo.toString(),
+            amount: BigInt(assetAmount.toString().replace(/,/g, '')),
+            value: BigInt(assetAmount.toString().replace(/,/g, '')),
+            blockId: blockNumber.toString(),
+            blockNumber: blockNumber,
+            eventIndex: idx,
+            ...(block.timestamp
+              ? {
+                  timestamp: BigInt(block.timestamp.getTime()),
+                  date: block.timestamp,
+                }
+              : {}),
+          });
+          await assetTransferEntity.save();
+          transfers.push(assetTransferEntity);
+        }
+      }
+      else if (section === "assets" && method === "Created") {
+        await handleAssetCreated(blockNumber, evt);
+      }
+      else if (section === "assets" && method === "Issued") {
+        await handleAssetIssued(blockNumber, evt);
+      }
+      else if (section === "assets" && method === "MetadataSet") {
+        await handleAssetMetadataSet(evt);
+      }
+      else if (section === "assets" && method === "Destroyed") {
+        await handleAssetDestroyed(evt);
+      }
+      else if (section === "staking") {
+        await handleStakingEvent(blockNumber, idx, evt);
+      }
+      else if (section === "contracts" && method === "ContractEmitted") {
+        await handleContractEvent(blockNumber, idx, evt);
+        try {
+          await detectAndHandlePspEvent(blockNumber, idx, evt);
+        } catch (error) {
+          logger.warn(`Error parsing PSP event: ${error}`);
+        }
+      }
+      else if (section === "contracts" && method === "Instantiated") {
+        await handleContractInstantiated(blockNumber, idx, evt);
+      }
+      else if ((section === "nfts" || section === "uniques") && method === "Transferred") {
+        await handleNftsPalletTransfer(blockNumber, idx, evt);
+      }
+      else if ((section === "nfts" || section === "uniques") && method === "Issued") {
+        await handleNftsPalletIssued(blockNumber, idx, evt);
+      }
+      else if ((section === "nfts" || section === "uniques") && method === "Created") {
+        await handleNftsPalletCreated(blockNumber, evt);
+      }
+    } catch (error) {
+      logger.error(`Error processing event ${section}.${method} at ${idx}: ${error}`);
+    }
+  }
+
+  // Process all extrinsics in block
+  const extrinsics = wrapExtrinsics(block);
+  for (const ext of extrinsics) {
+    try {
+      createExtrinsic(blockNumber, ext);
+      if (ext.extrinsic.method.section === "contracts") {
+        await handleContractCall(blockNumber, ext);
+      }
+    } catch (error) {
+      logger.error(`Error processing extrinsic ${ext.idx}: ${error}`);
+    }
+  }
+
+  // Update account balances
+  const accountIDs = new Set<string>();
+  extrinsics.forEach((e) => {
+    if (e.extrinsic.signer) {
+      accountIDs.add(e.extrinsic.signer.toString());
+    }
+  });
+  transfers.forEach((t) => {
+    accountIDs.add(t.fromId);
+    accountIDs.add(t.toId);
+  });
+  for (const accountId of accountIDs) {
+    try {
+      const data = await api.query.system.account(accountId);
+      await ensureAccount(accountId, BigInt(data.data.free.toString()));
+    } catch (error) {
+      logger.warn(`Error querying account ${accountId}: ${error}`);
+    }
+  }
 }
+
+// Keep handleEvent and handleCall exported for backwards compatibility
+export async function handleEvent(event: SubstrateEvent): Promise<void> {}
+export async function handleCall(call: SubstrateExtrinsic): Promise<void> {}
 
 // ─── nfts pallet handlers (substrate nfts, NOT ink! PSP34) ───────────────────
 // Event structures differ from PSP34 ink! contracts:

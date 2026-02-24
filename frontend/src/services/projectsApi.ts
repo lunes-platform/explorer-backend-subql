@@ -256,7 +256,7 @@ export function toKnownProject(api: ApiProject): KnownProject {
     id: api.id,
     name: api.name,
     slug: api.slug,
-    logo: api.logo || undefined,
+    logo: api.logo || (api as any).tokenSymbolImage || undefined,
     category: api.category,
     description: api.description,
     longDescription: api.longDescription || undefined,

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FolderCheck, CheckCircle, XCircle, ExternalLink, Clock, Pencil, X, Save, Loader2 } from 'lucide-react';
+import { FolderCheck, CheckCircle, XCircle, ExternalLink, Clock, Pencil, X, Save, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useAdminProjectReviews } from '../../hooks/useAdminData';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { getAllProjects, type KnownProject } from '../../data/knownProjects';
+import ImageUpload from '../../components/common/ImageUpload';
 import styles from './Admin.module.css';
 import { API_BASE_URL } from '../../config';
 
@@ -66,6 +67,7 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
     status: project.status || 'development',
     tags: (project.tags || []).join(', '),
     tokenSymbol: project.tokenSymbol || '',
+    tokenSymbolImage: (project as any).tokenSymbolImage || (project as any).logo || '',
     donationAddress: (project as any).donationAddress || '',
   });
   const [links, setLinks] = useState<{ type: string; url: string; label: string }[]>(
@@ -122,6 +124,7 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
         status: form.status,
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
         tokenSymbol: form.tokenSymbol,
+        tokenSymbolImage: form.tokenSymbolImage,
         donationAddress: form.donationAddress,
         links: links.filter(l => l.url.trim()),
         team: team.filter(t => t.name.trim()),
@@ -194,6 +197,20 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
           <div>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Token Symbol</label>
             <input style={inputStyle} value={form.tokenSymbol} onChange={e => handleChange('tokenSymbol', e.target.value)} placeholder="e.g. lunes" />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+              <ImageIcon size={12} style={{ verticalAlign: -1, marginRight: 4 }} /> Token Symbol Image (Logo)
+            </label>
+            <ImageUpload
+              value={form.tokenSymbolImage}
+              onChange={(url) => handleChange('tokenSymbolImage', url)}
+              label="Logo image (SVG, PNG, JPG)"
+              placeholder="https://..."
+            />
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+              Upload or paste URL for the token/project logo. Recommended: 200x200px, transparent background.
+            </span>
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Tags (comma separated)</label>

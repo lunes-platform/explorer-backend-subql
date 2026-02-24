@@ -1,22 +1,42 @@
 import React, { useState } from 'react';
-import { 
-  Coins, 
-  Search,
-  Loader2,
-  Users,
-  Lock,
-  Unlock,
-} from 'lucide-react';
+import { Coins, Search, Loader2, FolderOpen, FileCode } from 'lucide-react';
+import { useQuery } from '@apollo/client/react';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { LunesLogo } from '../../components/common/LunesLogo';
-import { CopyToClipboard } from '../../components/common/CopyToClipboard';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { getProjectByAssetId } from '../../data/knownProjects';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { useTokenPrices } from '../../hooks/useTokenPrices';
+import { WatchlistButton } from '../../components/common/WatchlistButton';
+import { useWatchlist } from '../../hooks/useWatchlist';
+import { GET_TOKEN_MARKET_DATA } from '../../services/graphql/queries';
 import styles from './Assets.module.css';
+
+const BADGE_STYLES = {
+  native: { bg: 'rgba(38,208,124,0.15)',  color: '#26D07C', label: 'Native'        },
+  psp22:  { bg: 'rgba(99,102,241,0.15)',  color: '#818cf8', label: 'PSP22'         },
+  pallet: { bg: 'rgba(0,163,255,0.15)',   color: '#00a3ff', label: 'pallet-assets' },
+};
+const TypeBadge: React.FC<{ type: keyof typeof BADGE_STYLES }> = ({ type }) => {
+  const s = BADGE_STYLES[type];
+  return <span style={{ fontSize: 10, padding: '2px 7px', background: s.bg, borderRadius: 4, color: s.color, fontWeight: 600 }}>{s.label}</span>;
+};
+
+interface Psp22TokenNode {
+  id: string;
+  name: string;
+  symbol: string;
+  contractAddress: string;
+  totalSupply: string;
+  decimals: number;
+  verified: boolean;
+}
+interface TokenMarketDataResponse {
+  psp22Tokens: { nodes: Psp22TokenNode[] };
+}
 
 function formatSupply(supply: number, decimals: number = 2): string {
   if (supply >= 1e12) return `${(supply / 1e12).toFixed(decimals)}T`;
@@ -27,23 +47,33 @@ function formatSupply(supply: number, decimals: number = 2): string {
 }
 
 const Assets: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const { data: assets, loading, error, refetch } = useAssets();
   const { data: chainStats, loading: statsLoading } = useDashboardStats();
+  const { data: psp22Data, loading: psp22Loading } = useQuery<TokenMarketDataResponse>(GET_TOKEN_MARKET_DATA);
   const health = useHealthStatus();
   const { price: lunesPrice } = useLunesPrice();
   const { getByAssetId } = useTokenPrices();
+  const { isWatched, toggleItem } = useWatchlist();
   const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
   const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
+  const psp22Tokens = psp22Data?.psp22Tokens?.nodes || [];
 
   let displayAssets = assets || [];
+  let displayPsp22 = psp22Tokens;
   if (searchTerm) {
     const term = searchTerm.toLowerCase();
     displayAssets = displayAssets.filter(a =>
       a.name.toLowerCase().includes(term) ||
       a.symbol.toLowerCase().includes(term) ||
       a.id.includes(term)
+    );
+    displayPsp22 = displayPsp22.filter((t: Psp22TokenNode) =>
+      t.name.toLowerCase().includes(term) ||
+      t.symbol.toLowerCase().includes(term) ||
+      t.contractAddress.toLowerCase().includes(term)
     );
   }
 
@@ -183,8 +213,10 @@ const Assets: React.FC = () => {
                 </td>
               </tr>
             )}
-            {!loading && displayAssets.map((asset, index) => (
-              <tr key={asset.id} className={styles.assetRow}>
+            {!loading && displayAssets.map((asset, index) => {
+              const project = getProjectByAssetId(asset.id);
+              return (
+              <tr key={asset.id} className={styles.assetRow} style={{ cursor: project ? 'pointer' : undefined }} onClick={project ? () => window.location.href = `/project/${project.slug}` : undefined}>
                 <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{index + 2}</td>
                 <td>
                   <div className={styles.assetCell}>
@@ -200,6 +232,16 @@ const Assets: React.FC = () => {
                     <div className={styles.assetInfo}>
                       <span className={styles.assetName}>{asset.name}</span>
                       <span className={styles.assetId}>Asset #{asset.id}</span>
+                      {project && (
+                        <Link
+                          to={`/project/${project.slug}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ fontSize: 11, color: 'var(--color-brand-400)', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', marginTop: 2 }}
+                        >
+                          <FolderOpen size={10} />
+                          {project.name}
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -245,7 +287,8 @@ const Assets: React.FC = () => {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {!loading && !error && displayAssets.length === 0 && searchTerm && (
               <tr>
                 <td colSpan={9}>

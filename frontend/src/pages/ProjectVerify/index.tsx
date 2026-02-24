@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { WS_ENDPOINTS } from '../../config';
+import { WS_ENDPOINTS, API_BASE_URL } from '../../config';
 import {
   ArrowLeft,
   ShieldCheck,
@@ -19,8 +19,8 @@ import Card from '../../components/common/Card';
 import { VerifiedBadge } from '../../components/common/VerifiedBadge';
 import { useWalletAuth } from '../../context/WalletAuthContext';
 import {
-  VERIFICATION_FEE_LUNES,
-  VERIFICATION_RECEIVER,
+  VERIFICATION_FEE_LUNES as DEFAULT_FEE,
+  VERIFICATION_RECEIVER as DEFAULT_RECEIVER,
   getAllProjects,
   type KnownProject,
 } from '../../data/knownProjects';
@@ -59,6 +59,20 @@ const ProjectVerify: React.FC = () => {
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [paymentError, setPaymentError] = useState('');
   const [txHash, setTxHash] = useState('');
+
+  // Dynamic config from admin
+  const [verificationFee, setVerificationFee] = useState(DEFAULT_FEE);
+  const [verificationReceiver, setVerificationReceiver] = useState(DEFAULT_RECEIVER);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/config/financial`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.verificationFee) setVerificationFee(data.verificationFee);
+        if (data?.verificationWallet) setVerificationReceiver(data.verificationWallet);
+      })
+      .catch(() => {});
+  }, []);
 
   const projects = getAllProjects();
   const ownedUnverifiedProjects = projects.filter(
@@ -99,8 +113,8 @@ const ProjectVerify: React.FC = () => {
       const injector = await web3FromSource(wallet.account.meta.source || 'polkadot-js');
 
       const transfer = api.tx.balances.transferKeepAlive(
-        VERIFICATION_RECEIVER,
-        BigInt(VERIFICATION_FEE_LUNES) * BigInt(10 ** 12)
+        verificationReceiver,
+        BigInt(verificationFee) * BigInt(10 ** 12)
       );
 
       const hash = await transfer.signAndSend(
@@ -122,6 +136,22 @@ const ProjectVerify: React.FC = () => {
       const existing = JSON.parse(localStorage.getItem('lunes-verification-requests') || '[]');
       existing.push(verificationRequest);
       localStorage.setItem('lunes-verification-requests', JSON.stringify(existing));
+
+      // Record payment to backend
+      fetch(`${API_BASE_URL}/financial/verification-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectSlug: form.projectSlug,
+          projectName: selectedProject?.name || form.projectSlug,
+          payerAddress: wallet.account.address,
+          receiverAddress: verificationReceiver,
+          amount: verificationFee,
+          txHash: hash.toString(),
+          status: 'pending',
+          submittedAt: new Date().toISOString(),
+        }),
+      }).catch(() => {});
 
       setPaymentStatus('sent');
       setStep('success');
@@ -146,7 +176,7 @@ const ProjectVerify: React.FC = () => {
         <h1 className={styles.title}>Project Verification (KYC)</h1>
         <p className={styles.subtitle}>
           Get the <VerifiedBadge status="verified" size="sm" /> seal for your project.
-          Prove your identity and pay the verification fee of {VERIFICATION_FEE_LUNES} LUNES.
+          Prove your identity and pay the verification fee of {verificationFee} LUNES.
         </p>
       </div>
 
@@ -181,7 +211,7 @@ const ProjectVerify: React.FC = () => {
         <div className={styles.feeInfo}>
           <div className={styles.feeLabel}>Verification Fee</div>
           <div>
-            <span className={styles.feeAmount}>{VERIFICATION_FEE_LUNES.toLocaleString()}</span>
+            <span className={styles.feeAmount}>{verificationFee.toLocaleString()}</span>
             <span className={styles.feeCurrency}>LUNES</span>
           </div>
         </div>
@@ -246,7 +276,7 @@ const ProjectVerify: React.FC = () => {
 
           <div className={styles.infoBox} style={{ marginTop: '16px' }}>
             <strong>How it works:</strong> Submit your project info and the responsible person's identity data.
-            After paying {VERIFICATION_FEE_LUNES} LUNES, the Lunes team will review your submission.
+            After paying {verificationFee} LUNES, the Lunes team will review your submission.
             Once approved, your project gets the <strong>Verified</strong> seal.
           </div>
         </Card>
@@ -373,13 +403,13 @@ const ProjectVerify: React.FC = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>To (Verification)</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{shortAddr(VERIFICATION_RECEIVER)}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{shortAddr(verificationReceiver)}</span>
               </div>
               <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontWeight: 600, fontSize: '15px' }}>Amount</span>
                 <span style={{ fontWeight: 700, fontSize: '18px', color: 'var(--color-brand-400)' }}>
-                  {VERIFICATION_FEE_LUNES.toLocaleString()} LUNES
+                  {verificationFee.toLocaleString()} LUNES
                 </span>
               </div>
             </div>
@@ -416,7 +446,7 @@ const ProjectVerify: React.FC = () => {
                 ) : (
                   <>
                     <Send size={16} />
-                    Pay {VERIFICATION_FEE_LUNES} LUNES
+                    Pay {verificationFee} LUNES
                   </>
                 )}
               </button>

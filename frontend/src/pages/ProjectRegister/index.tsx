@@ -46,7 +46,8 @@ const ProjectRegister: React.FC = () => {
     discord: '',
     telegram: '',
     logoUrl: '',
-    bannerUrl: ''
+    bannerUrl: '',
+    donationAddress: ''
   });
 
   const [teamMembers, setTeamMembers] = useState([
@@ -135,6 +136,7 @@ const ProjectRegister: React.FC = () => {
       nftCollectionIds: [],
       assetIds: assetId ? [assetId] : [],
       ownerAddress: wallet.account.address,
+      donationAddress: formData.donationAddress || undefined,
     });
 
     if (result) {
@@ -340,6 +342,30 @@ const ProjectRegister: React.FC = () => {
                 onChange={(url) => setFormData(prev => ({ ...prev, bannerUrl: url }))}
                 placeholder="https://..."
               />
+            </div>
+          </div>
+        </Card>
+
+        {/* Donation Wallet */}
+        <Card title="Donation Wallet" icon={<Wallet size={18} />}>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroupFull}>
+              <label className={styles.label}>Lunes Wallet Address for Donations</label>
+              <div className={styles.inputWithIcon}>
+                <Wallet size={16} />
+                <input
+                  type="text"
+                  name="donationAddress"
+                  value={formData.donationAddress}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  placeholder="5C... (SS58 Lunes address)"
+                  maxLength={60}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+                Optional. This address will receive LUNES donations from the "Donate LUNES" button on your project page. Leave blank to disable donations.
+              </p>
             </div>
           </div>
         </Card>

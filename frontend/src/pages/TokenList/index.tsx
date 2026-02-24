@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Coins, Search, Loader2, Users, Lock, Unlock, FileCode } from 'lucide-react';
+import { Coins, Search, Loader2, Users, Lock, Unlock, FileCode, FolderOpen } from 'lucide-react';
 import { useQuery } from '@apollo/client/react';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { GET_TOKEN_MARKET_DATA } from '../../services/graphql/queries';
@@ -11,6 +11,7 @@ import EmptyState from '../../components/common/EmptyState';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { useTokenPrices } from '../../hooks/useTokenPrices';
+import { getProjectByAssetId } from '../../data/knownProjects';
 import styles from './TokenList.module.css';
 
 function formatSupply(supply: number, decimals: number = 2): string {
@@ -244,7 +245,9 @@ const TokenList: React.FC = () => {
             ))}
 
             {/* Pallet-assets from RPC */}
-            {!loading && displayAssets.map((asset, index) => (
+            {!loading && displayAssets.map((asset, index) => {
+              const project = getProjectByAssetId(asset.id);
+              return (
               <tr key={asset.id} className={styles.assetRow}>
                 <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{index + 2}</td>
                 <td>
@@ -261,6 +264,16 @@ const TokenList: React.FC = () => {
                     <div className={styles.assetInfo}>
                       <span className={styles.assetName}>{asset.name}</span>
                       <span className={styles.assetId}>Asset #{asset.id}</span>
+                      {project && (
+                        <Link
+                          to={`/project/${project.slug}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ fontSize: 11, color: 'var(--color-brand-400)', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', marginTop: 2 }}
+                        >
+                          <FolderOpen size={10} />
+                          {project.name}
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -306,7 +319,8 @@ const TokenList: React.FC = () => {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {!loading && !error && displayAssets.length === 0 && searchTerm && (
               <tr>
                 <td colSpan={9}>

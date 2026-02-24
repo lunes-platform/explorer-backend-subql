@@ -65,7 +65,6 @@ const Rewards: React.FC = () => {
   const { data: backendConfig } = useRewardsConfig();
   
   const [activeTab, setActiveTab] = useState<'overview' | 'leaderboard' | 'history'>('overview');
-  const [selectedToken, setSelectedToken] = useState<'lunes' | 'lusdt' | 'pidchat'>('lunes');
 
   // Use backend-managed tiers if available, fallback to static
   const tiers = backendConfig?.tiers?.map(t => ({
@@ -78,9 +77,11 @@ const Rewards: React.FC = () => {
     color: t.color,
   })) || REWARD_TIERS;
 
-  // Conversion rates from backend config
-  const conversionRates = backendConfig?.conversionRates || { lunes: 100, lusdt: 1000, pidchat: 500 };
+  // Reward token and conversion rate from admin config
+  const rewardToken = backendConfig?.rewardToken || 'lunes';
+  const conversionRate = backendConfig?.conversionRate || 100;
   const minClaimPoints = backendConfig?.minClaimPoints ?? 100;
+  const tokenIcons: Record<string, string> = { lunes: '🌙', lusdt: '💵', pidchat: '💬' };
 
   // Use backend-managed goals if available, fallback to static REWARD_CATEGORIES
   const categories = backendConfig?.goals?.filter(g => g.enabled)?.map(g => ({
@@ -97,7 +98,7 @@ const Rewards: React.FC = () => {
   
   const handleClaim = async () => {
     if (!address) return;
-    await claim(address, selectedToken);
+    await claim(address);
   };
 
   const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -197,39 +198,18 @@ const Rewards: React.FC = () => {
         <Card title="Claim Rewards" icon={<Gift size={18} />}>
           <div className={styles.claimSection}>
             <div className={styles.tokenSelect}>
-              <button
-                className={`${styles.tokenBtn} ${selectedToken === 'lunes' ? styles.active : ''}`}
-                onClick={() => setSelectedToken('lunes')}
-              >
-                <span className={styles.tokenIcon}>🌙</span>
-                <span>LUNES</span>
-                <span className={styles.tokenRate}>{conversionRates.lunes} pts = 1 LUNES</span>
-              </button>
-              <button
-                className={`${styles.tokenBtn} ${selectedToken === 'lusdt' ? styles.active : ''}`}
-                onClick={() => setSelectedToken('lusdt')}
-              >
-                <span className={styles.tokenIcon}>💵</span>
-                <span>LUSDT</span>
-                <span className={styles.tokenRate}>{conversionRates.lusdt} pts = 1 LUSDT</span>
-              </button>
-              <button
-                className={`${styles.tokenBtn} ${selectedToken === 'pidchat' ? styles.active : ''}`}
-                onClick={() => setSelectedToken('pidchat')}
-              >
-                <span className={styles.tokenIcon}>💬</span>
-                <span>PIDCHAT</span>
-                <span className={styles.tokenRate}>{conversionRates.pidchat} pts = 1 PIDCHAT</span>
-              </button>
+              <div className={`${styles.tokenBtn} ${styles.active}`}>
+                <span className={styles.tokenIcon}>{tokenIcons[rewardToken] || '🪙'}</span>
+                <span>{rewardToken.toUpperCase()}</span>
+                <span className={styles.tokenRate}>{conversionRate} pts = 1 {rewardToken.toUpperCase()}</span>
+              </div>
             </div>
 
             <div className={styles.claimInfo}>
               <div className={styles.claimAmount}>
                 <span className={styles.claimLabel}>You will receive:</span>
                 <span className={styles.claimValue}>
-                  {Math.floor(userRewards.availablePoints / 
-                    (conversionRates[selectedToken] || 100)
-                  ).toLocaleString()} {selectedToken.toUpperCase()}
+                  {Math.floor(userRewards.availablePoints / conversionRate).toLocaleString()} {rewardToken.toUpperCase()}
                 </span>
               </div>
               

@@ -67,7 +67,7 @@ const Header: React.FC = () => {
                         Market Cap: <span>{marketCap}</span>
                     </div>
                     <div className={classes.tickerItem}>
-                        Supply Evolution: <span>{formatLunesAmount(LUNES_INITIAL_SUPPLY)} → {currentSupply > 0 ? currentSupply.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '...'}</span>
+                        Supply Evolution: <span style={{ color: 'var(--color-brand-400)' }}>{formatLunesAmount(LUNES_INITIAL_SUPPLY)}</span><span style={{ color: 'rgba(255,255,255,0.35)', margin: '0 4px' }}>→</span><span style={{ color: 'var(--color-brand-400)' }}>{currentSupply > 0 ? currentSupply.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '...'}</span>
                     </div>
                     <div className={classes.tickerItem}>
                         Transactions: <span>{totalTransfers.toLocaleString()}</span>

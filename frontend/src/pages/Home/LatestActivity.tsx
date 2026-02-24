@@ -41,7 +41,10 @@ interface IndexerTransfer {
 }
 
 function timeAgo(ts: number): string {
-    const diff = Math.floor((Date.now() - ts) / 1000);
+    if (!ts || Number.isNaN(ts)) return 'No timestamp';
+    const msTs = ts < 1e12 ? ts * 1000 : ts;
+    const diff = Math.floor((Date.now() - msTs) / 1000);
+    if (diff < 0) return new Date(msTs).toLocaleString('pt-BR');
     if (diff < 60) return `${diff}s ago`;
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
