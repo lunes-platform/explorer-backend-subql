@@ -81,3 +81,8 @@ frontend/test-results/
 
 # Temp/analysis files
 REQUIREMENTS_GAP_ANALYSIS.md
+api/.env
+api/data
+src/types
+yarn.lock
+dist
