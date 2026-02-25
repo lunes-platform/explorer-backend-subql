@@ -240,6 +240,51 @@ export async function getAssetBalance(assetId: string, address: string): Promise
   return '0';
 }
 
+export interface AccountAssetBalance {
+  assetId: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  balance: string;
+  totalSupply: string;
+}
+
+export async function getAccountAssetBalances(address: string): Promise<AccountAssetBalance[]> {
+  const api = await getApi();
+  const assetKeys = await api.query.assets.asset.keys();
+  const results: AccountAssetBalance[] = [];
+
+  for (const key of assetKeys) {
+    try {
+      const assetId = key.args[0].toString();
+      const balanceOpt = await api.query.assets.account(assetId, address);
+      if (!(balanceOpt as any).isSome) continue;
+      const bal = (balanceOpt as any).unwrap().balance.toString();
+      if (bal === '0') continue;
+
+      const [assetOpt, metadataRaw] = await Promise.all([
+        api.query.assets.asset(assetId),
+        api.query.assets.metadata(assetId),
+      ]);
+      const asset: any = (assetOpt as any).isSome ? (assetOpt as any).unwrap() : assetOpt;
+      const metadata: any = metadataRaw;
+      const name = (metadata.name?.toHuman?.() as string) || `Asset #${assetId}`;
+      const symbol = (metadata.symbol?.toHuman?.() as string) || assetId;
+      const decimals = metadata.decimals?.toNumber?.() ?? 0;
+
+      results.push({
+        assetId,
+        name,
+        symbol,
+        decimals,
+        balance: bal,
+        totalSupply: asset?.supply?.toString?.() ?? '0',
+      });
+    } catch { /* skip asset */ }
+  }
+  return results;
+}
+
 // ==================== CONTRACTS ====================
 
 export interface ChainContract {

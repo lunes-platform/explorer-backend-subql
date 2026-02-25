@@ -13,6 +13,7 @@ import type {
   BlockDetail,
   BlocksPageResult,
   ExtrinsicsPageResult,
+  AccountAssetBalance,
 } from '../services/chain';
 import {
   getChainInfo,
@@ -30,6 +31,7 @@ import {
   getBlockByNumber,
   getBlocksPage,
   getRecentExtrinsics,
+  getAccountAssetBalances,
 } from '../services/chain';
 
 interface UseChainDataResult<T> {
@@ -97,6 +99,14 @@ export function useAccountInfo(address: string | null): UseChainDataResult<Accou
 
 export function useAssets(): UseChainDataResult<ChainAsset[]> {
   return useChainQuery(() => getAssets(), []);
+}
+
+export function useAccountAssetBalances(address: string | null): UseChainDataResult<AccountAssetBalance[]> {
+  return useChainQuery(
+    () => getAccountAssetBalances(address!),
+    [address],
+    !!address
+  );
 }
 
 export function useContracts(): UseChainDataResult<ChainContract[]> {
@@ -296,4 +306,5 @@ export {
   type RichListResult,
   type BlockDetail,
   type BlocksPageResult,
+  type AccountAssetBalance,
 };

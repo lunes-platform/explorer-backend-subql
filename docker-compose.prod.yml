@@ -7,15 +7,22 @@ services:
       - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     networks:
       - explorer-network
 
   # ── SubQuery Node (Indexer) ──
+  # NOTE: --workers NÃO funciona com Lunes RPC (causa timeouts por rate-limit).
+  # Velocidade máxima comprovada: ~10-14 bl/s com single-thread.
   subquery-node:
     image: onfinality/subql-node:latest
     restart: always
@@ -33,12 +40,18 @@ services:
     command:
       - -f=/app
       - --db-schema=app
-      - --batch-size=30
-      - --workers=4
       - --disable-historical
-      - --store-cache-threshold=1
-      - --store-get-cache-size=200
-      - --store-flush-interval=1
+      - --batch-size=300
+      - --timeout=180000
+      - --store-cache-threshold=5000
+      - --store-flush-interval=15
+      - --store-get-cache-size=1000
+      - --scale-batch-size
+      - --store-cache-async
+    deploy:
+      resources:
+        limits:
+          memory: 4G
     networks:
       - explorer-network
 
@@ -47,7 +60,7 @@ services:
     image: onfinality/subql-query:latest
     restart: always
     ports:
-      - 3000:3000
+      - "127.0.0.1:3000:3000"
     depends_on:
       - postgres
       - subquery-node
@@ -70,14 +83,20 @@ services:
       context: ./backend-py
       target: production
     restart: always
-    volumes: []
     ports:
-      - 8000:8000
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - ./backend-py/.env
     environment:
       - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@postgres:5432/postgres
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - explorer-network
 
@@ -85,29 +104,34 @@ services:
   api:
     build: ./api
     restart: always
-    volumes: []
     ports:
-      - 4000:4000
+      - "127.0.0.1:4000:4000"
+    volumes:
+      - ./api/data:/app/data
+    env_file:
+      - ./api/.env
     environment:
       - INDEXER_URL=http://graphql-engine:3000
       - NODE_ENV=production
+      - API_PUBLIC_URL=${API_PUBLIC_URL:-https://api.explorer.lunes.io}
     depends_on:
       - postgres
       - graphql-engine
     networks:
       - explorer-network
 
-  # ── Frontend (Production — Nginx) ──
+  # ── Frontend (Production — Nginx serving static build) ──
   frontend:
     build:
       context: ./frontend
       target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.explorer.lunes.io}
+        VITE_GRAPHQL_URL: ${VITE_GRAPHQL_URL:-https://indexer.explorer.lunes.io}
+        VITE_WS_ENDPOINTS: ${VITE_WS_ENDPOINTS:-wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io,wss://ws-lunes-main-01.lunes.io}
     restart: always
-    volumes: []
     ports:
-      - 80:80
-    environment:
-      - NODE_ENV=production
+      - "80:80"
     depends_on:
       - api
       - graphql-engine

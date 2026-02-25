@@ -30,7 +30,7 @@ import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useWatchlist } from '../../hooks/useWatchlist';
 import { getIndexerDegradedLevel } from '../../utils/indexerHealth';
-import { useAccountInfo, useAccountStaking, useAccountTransfers } from '../../hooks/useChainData';
+import { useAccountInfo, useAccountStaking, useAccountTransfers, useAccountAssetBalances } from '../../hooks/useChainData';
 import { useLunesPrice } from '../../hooks/useLunesPrice';
 import { 
   GET_ACCOUNT_TOKENS, 
@@ -97,6 +97,11 @@ const AccountDetail: React.FC = () => {
       skip: !id || activeTab !== 'tokens'
     });
 
+  // RPC fallback for pallet-assets balances (works even when indexer is behind)
+  const { data: rpcAssetBalances, loading: rpcAssetsLoading } = useAccountAssetBalances(
+    activeTab === 'tokens' ? (id || null) : null
+  );
+
   const { data: nftsData, loading: nftsLoading } = 
     useQuery<GetAccountNftsResponse>(GET_ACCOUNT_NFTS, {
       variables: { accountId: id },
@@ -146,7 +151,23 @@ const AccountDetail: React.FC = () => {
 
   const transfers = rpcTransfers || [];
   const tokenAccounts = tokensData?.psp22Accounts?.nodes || [];
-  const nativeAssetAccounts = assetsData?.assetAccounts?.nodes || [];
+  const indexerAssetAccounts = assetsData?.assetAccounts?.nodes || [];
+  // Merge: use indexer data if available, otherwise build from RPC
+  const nativeAssetAccounts: AssetAccountWithAsset[] = indexerAssetAccounts.length > 0
+    ? indexerAssetAccounts
+    : (rpcAssetBalances || []).map(a => ({
+        id: `${id}-${a.assetId}`,
+        balance: a.balance,
+        asset: {
+          id: a.assetId,
+          name: a.name,
+          symbol: a.symbol,
+          decimals: a.decimals,
+          totalSupply: a.totalSupply,
+          assetType: 'Native',
+          verified: false,
+        },
+      }));
   const nftAccounts = nftsData?.nftAccounts?.nodes || [];
 
   // Handle AI explain for a transfer
@@ -473,7 +494,7 @@ const AccountDetail: React.FC = () => {
 
         {activeTab === 'tokens' && (
           <Card title="Token Holdings" icon={<Hexagon size={18} />}>
-            {(tokensLoading || assetsLoading) ? (
+            {(tokensLoading || assetsLoading || rpcAssetsLoading) ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <Skeleton height={18} width="80%" />
                 <Skeleton height={18} width="60%" />

@@ -4,25 +4,18 @@ import { EventRecord, Balance } from "@polkadot/types/interfaces";
 
 export async function createBlock(block: SubstrateBlock): Promise<void> {
   const blockId = block.block.header.number.toString();
-  const existing = await Block.get(blockId);
-  if (existing) return;
-
   const entity = Block.create({
     id: blockId,
     number: block.block.header.number.toBigInt(),
     hash: block.block.hash.toString(),
     parentHash: block.block.header.parentHash.toString(),
   });
-  
-  // Convert timestamp to bigint
   if (block.timestamp) {
     entity.timestamp = BigInt(block.timestamp.getTime());
   }
-  
   if (block.specVersion) {
     entity.specVersion = block.specVersion;
   }
-
   await entity.save();
 }
 export async function updateFeeBlock(

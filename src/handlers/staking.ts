@@ -1,5 +1,6 @@
 import { SubstrateEvent } from "@subql/types";
 import { StakingPosition, StakingReward } from "../types";
+import { ensureAccount } from "./account";
 
 export async function handleStakingEvent(
   blockNumber: bigint,
@@ -9,7 +10,6 @@ export async function handleStakingEvent(
   const { event: { section, method, data } } = event;
   const timestamp = event.block.timestamp;
   
-  logger.info(`Handling staking event: ${section}.${method}`);
   
   try {
     // Bonded - Stake created or increased
@@ -17,6 +17,9 @@ export async function handleStakingEvent(
       const [stash, amount] = data;
       const stashAddress = stash.toString();
       const stakeAmount = BigInt(amount.toString());
+      
+      // Ensure account exists before creating staking position
+      await ensureAccount(stashAddress, BigInt(0));
       
       // Get or create staking position
       let position = await StakingPosition.get(stashAddress);
@@ -35,7 +38,6 @@ export async function handleStakingEvent(
       }
       
       await position.save();
-      logger.info(`Bonded: ${stashAddress} staked ${stakeAmount}`);
     }
     
     // Unbonded - Stake removed (starts unbonding period)
@@ -44,6 +46,7 @@ export async function handleStakingEvent(
       const stashAddress = stash.toString();
       const unbondAmount = BigInt(amount.toString());
       
+      await ensureAccount(stashAddress, BigInt(0));
       const position = await StakingPosition.get(stashAddress);
       
       if (position) {
@@ -51,7 +54,6 @@ export async function handleStakingEvent(
         position.unbondingEnd = BigInt(timestamp?.getTime() || 0) + BigInt(28 * 24 * 60 * 60 * 1000); // 28 days
         position.status = "Unbonding";
         await position.save();
-        logger.info(`Unbonded: ${stashAddress} unbonding ${unbondAmount}`);
       }
     }
     
@@ -75,7 +77,6 @@ export async function handleStakingEvent(
         }
         
         await position.save();
-        logger.info(`Withdrawn: ${stashAddress} withdrew ${withdrawAmount}`);
       }
     }
     
@@ -85,6 +86,7 @@ export async function handleStakingEvent(
       const stashAddress = stash.toString();
       const rewardAmount = BigInt(amount.toString());
       
+      await ensureAccount(stashAddress, BigInt(0));
       // Update position rewards
       const position = await StakingPosition.get(stashAddress);
       if (position) {
@@ -104,7 +106,6 @@ export async function handleStakingEvent(
       });
       
       await reward.save();
-      logger.info(`Rewarded: ${stashAddress} received ${rewardAmount}`);
     }
     
     // Slashed - Validator slashed (punishment)
@@ -113,7 +114,7 @@ export async function handleStakingEvent(
       const validatorAddress = validator.toString();
       const slashAmount = BigInt(amount.toString());
       
-      logger.warn(`Slashed: ${validatorAddress} slashed ${slashAmount}`);
+      // Slashed event logged only
     }
     
   } catch (error) {
