@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import classes from './Header.module.css';
-import { useLunesPrice } from '../../hooks/useLunesPrice';
+import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { useDashboardStats } from '../../hooks/useChainData';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { GET_HOME_STATS } from '../../services/graphql/queries';
@@ -29,7 +29,7 @@ function getIndexerLagStatus(lag: number | null) {
 
 const Header: React.FC = () => {
     const location = useLocation();
-    const { price, change24h } = useLunesPrice();
+    const { price, change24h, marketCap: apiMarketCap } = useLunesPrice();
     const { data: chainStats } = useDashboardStats();
     const health = useHealthStatus();
     const { query, setQuery, results, showResults, handleSearch, selectResult, dismissResults, isSearching, selectedIndex } = useGlobalSearch();
@@ -44,8 +44,9 @@ const Header: React.FC = () => {
     const rpcStatusColor = health.rpc.status === 'connected' ? 'var(--color-success)'
         : health.rpc.status === 'connecting' ? 'var(--color-warning)'
         : 'var(--color-critical)';
-    const marketCap = price > 0 && currentSupply > 0
-        ? (price * currentSupply).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+    const rawMarketCap = apiMarketCap > 0 ? apiMarketCap : (price > 0 && currentSupply > 0 ? price * currentSupply : 0);
+    const marketCap = rawMarketCap > 0
+        ? rawMarketCap.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
         : '—';
 
     return (
@@ -60,7 +61,7 @@ const Header: React.FC = () => {
                     </div>
                     <div className={classes.tickerItem}>
                         Lunes Price: <span className={change24h >= 0 ? classes.tickerPositive : classes.tickerNegative}>
-                            ${price.toFixed(4)} ({change24h >= 0 ? '+' : ''}{change24h.toFixed(2)}%)
+                            {formatPrice(price)} ({change24h >= 0 ? '+' : ''}{change24h.toFixed(2)}%)
                         </span>
                     </div>
                     <div className={classes.tickerItem}>

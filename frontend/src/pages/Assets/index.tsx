@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Coins, Search, Loader2, FolderOpen, FileCode } from 'lucide-react';
+import { Coins, Search, Loader2, FolderOpen, FileCode, Users, Lock, Unlock } from 'lucide-react';
 import { useQuery } from '@apollo/client/react';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { LunesLogo } from '../../components/common/LunesLogo';
@@ -8,11 +8,12 @@ import { getProjectByAssetId } from '../../data/knownProjects';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
-import { useLunesPrice } from '../../hooks/useLunesPrice';
+import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { useTokenPrices } from '../../hooks/useTokenPrices';
 import { WatchlistButton } from '../../components/common/WatchlistButton';
 import { useWatchlist } from '../../hooks/useWatchlist';
 import { GET_TOKEN_MARKET_DATA } from '../../services/graphql/queries';
+import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import styles from './Assets.module.css';
 
 const BADGE_STYLES = {
@@ -173,7 +174,7 @@ const Assets: React.FC = () => {
               </td>
               <td style={{ textAlign: 'right' }}>
                 <span style={{ color: lunesPrice > 0 ? 'var(--color-brand-400)' : 'var(--text-muted)', fontWeight: 500 }}>
-                  {lunesPrice > 0 ? `$${lunesPrice.toFixed(4)}` : '—'}
+                  {lunesPrice > 0 ? formatPrice(lunesPrice) : '—'}
                 </span>
               </td>
               <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>

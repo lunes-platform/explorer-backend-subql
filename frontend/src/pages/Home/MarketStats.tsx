@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Activity, Box, Shield, Layers, Code2 } from 'lucide-react';
 import { LunesLogo } from '../../components/common/LunesLogo';
-import { useLunesPrice } from '../../hooks/useLunesPrice';
+import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { useDashboardStats } from '../../hooks/useChainData';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { API_BASE_URL } from '../../config';
@@ -75,7 +75,7 @@ const MarketStats: React.FC = () => {
             .catch(() => {});
     }, []);
 
-    const { price, change24h, loading: priceLoading } = useLunesPrice();
+    const { price, change24h, marketCap: apiMarketCap, source: priceSource, loading: priceLoading } = useLunesPrice();
     const { data: chainStats, loading: chainLoading } = useDashboardStats();
     const health = useHealthStatus();
     const rpcHealth: HealthLevel = health.rpc.status === 'connected' ? 'healthy' : health.rpc.status === 'connecting' ? 'delayed' : 'disconnected';
@@ -107,7 +107,12 @@ const MarketStats: React.FC = () => {
         }
     }, [sanity]);
 
-    const marketCap = (price * currentSupply).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    // Use API-provided market cap (from CoinGecko enrichment) if available,
+    // otherwise fall back to local calculation (price × supply)
+    const rawMarketCap = apiMarketCap > 0 ? apiMarketCap : (price * currentSupply);
+    const marketCap = rawMarketCap > 0
+        ? rawMarketCap.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+        : '$0';
 
     return (
         <div className={classes.heroSection}>
@@ -122,20 +127,22 @@ const MarketStats: React.FC = () => {
             <div className={classes.marketStatsGrid}>
                 <StatCard
                     label="Lunes Price"
-                    value={price ? `$${price.toFixed(4)}` : '$0.000'}
+                    value={price > 0 ? formatPrice(price) : '$0.00'}
                     change={`${Math.abs(change24h).toFixed(2)}%`}
                     isPositive={change24h >= 0}
                     loading={priceLoading}
                     icon={<LunesLogo size={20} />}
+                    source={priceSource === 'bitstorage' ? 'API' : priceSource === 'coingecko' ? 'API' : undefined}
+                    freshness={priceSource ? `via ${priceSource === 'bitstorage' ? 'BitStorage' : priceSource}` : undefined}
                 />
                 <StatCard
                     label="Market Cap"
                     value={marketCap}
-                    loading={priceLoading || chainLoading}
+                    loading={priceLoading && chainLoading}
                     icon={<Activity size={20} />}
-                    source="RPC"
+                    source={apiMarketCap > 0 ? 'API' : 'RPC'}
                     freshness={chainUpdatedAt ? `Updated ${chainUpdatedAt}` : undefined}
-                    healthLevel={rpcHealth}
+                    healthLevel={apiMarketCap > 0 ? 'healthy' : rpcHealth}
                 />
                 <StatCard
                     label="Latest Block"

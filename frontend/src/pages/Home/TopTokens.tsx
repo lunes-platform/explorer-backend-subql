@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, Coins, FolderOpen, FileCode } from 'lucide-react';
 import { useQuery } from '@apollo/client/react';
-import { useLunesPrice } from '../../hooks/useLunesPrice';
+import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { formatAbbreviatedNumber } from '../../data/tokenomics';
 import { getProjectByAssetId } from '../../data/knownProjects';
@@ -35,7 +35,7 @@ function formatSupply(supply: number, decimals: number = 2): string {
 
 const TopTokens: React.FC = () => {
     const navigate = useNavigate();
-    const { price, change24h, volume24h, loading: priceLoading } = useLunesPrice();
+    const { price, change24h, volume24h, marketCap: apiMarketCap, loading: priceLoading } = useLunesPrice();
     const { data: assets, loading: assetsLoading } = useAssets();
     const { data: chainStats, loading: statsLoading } = useDashboardStats();
     const { isWatched, toggleItem } = useWatchlist();
@@ -121,13 +121,13 @@ const TopTokens: React.FC = () => {
                                 </div>
                             </td>
                             <td style={{ textAlign: 'right' }} className={classes.price}>
-                                {priceLoading ? '---' : `$${price.toFixed(4)}`}
+                                {priceLoading ? '---' : formatPrice(price)}
                             </td>
                             <td style={{ textAlign: 'right' }} className={change24h >= 0 ? classes.positive : classes.negative}>
                                 {priceLoading ? '---' : `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%`}
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                                {loading ? '---' : `$${formatAbbreviatedNumber(price * totalIssuance)}`}
+                                {loading ? '---' : `$${formatAbbreviatedNumber(apiMarketCap > 0 ? apiMarketCap : price * totalIssuance)}`}
                             </td>
                             <td style={{ textAlign: 'right' }}>
                                 {priceLoading ? '---' : `$${formatAbbreviatedNumber(volume24h)}`}

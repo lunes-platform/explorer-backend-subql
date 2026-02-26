@@ -9,7 +9,7 @@ import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import EmptyState from '../../components/common/EmptyState';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
-import { useLunesPrice } from '../../hooks/useLunesPrice';
+import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { useTokenPrices } from '../../hooks/useTokenPrices';
 import { getProjectByAssetId } from '../../data/knownProjects';
 import styles from './TokenList.module.css';
@@ -164,7 +164,7 @@ const TokenList: React.FC = () => {
               </td>
               <td style={{ textAlign: 'right' }}>
                 <span style={{ color: lunesPrice > 0 ? 'var(--color-brand-400)' : 'var(--text-muted)', fontWeight: 500 }}>
-                  {lunesPrice > 0 ? `$${lunesPrice.toFixed(4)}` : '—'}
+                  {lunesPrice > 0 ? formatPrice(lunesPrice) : '—'}
                 </span>
               </td>
               <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>

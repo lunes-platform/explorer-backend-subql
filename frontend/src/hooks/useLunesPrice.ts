@@ -14,6 +14,26 @@ export interface LunesPriceData {
     lastUpdated: string | null;
 }
 
+/**
+ * Format price with dynamic decimals for sub-cent tokens.
+ * Shows enough decimals to display at least 2 significant digits.
+ * Examples: 1234.56 → "1,234.56", 0.000499 → "0.000499", 0.00000012 → "0.00000012"
+ */
+export function formatPrice(price: number): string {
+    if (price === 0) return '$0.00';
+    if (price >= 1) return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (price >= 0.01) return `$${price.toFixed(4)}`;
+    // Sub-cent: find first significant digit and show 2 significant digits
+    const str = price.toFixed(12);
+    const match = str.match(/^0\.(0*[1-9])/);
+    if (match) {
+        const leadingZeros = match[1].length;
+        const decimals = Math.max(leadingZeros + 1, 4);
+        return `$${price.toFixed(decimals)}`;
+    }
+    return `$${price.toFixed(6)}`;
+}
+
 export const useLunesPrice = () => {
     const [data, setData] = useState<LunesPriceData>({
         price: 0,

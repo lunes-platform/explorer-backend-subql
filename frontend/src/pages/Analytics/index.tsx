@@ -5,7 +5,7 @@ import { GET_HOME_STATS } from '../../services/graphql/queries';
 import { useDashboardStats, useStakingOverview } from '../../hooks/useChainData';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { useLunesPrice } from '../../hooks/useLunesPrice';
+import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import Card from '../../components/common/Card';
 import styles from './AnalyticsDashboard.module.css';
@@ -187,7 +187,7 @@ const AnalyticsDashboard: React.FC = () => {
                 {marketCap > 0 ? `$${marketCap >= 1e6 ? (marketCap / 1e6).toFixed(2) + 'M' : (marketCap / 1e3).toFixed(1) + 'K'}` : '—'}
               </span>
               <span className={styles.growthSub}>
-                {price > 0 ? `@ $${price.toFixed(4)}/LUNES` : 'Price unavailable'}
+                {price > 0 ? `@ ${formatPrice(price)}/LUNES` : 'Price unavailable'}
               </span>
             </div>
           </div>

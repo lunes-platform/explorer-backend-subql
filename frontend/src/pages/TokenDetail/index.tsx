@@ -5,7 +5,7 @@ import {
   Shield, Hash, Snowflake, Loader2, BarChart3, ExternalLink,
 } from 'lucide-react';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
-import { useLunesPrice } from '../../hooks/useLunesPrice';
+import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
@@ -62,7 +62,7 @@ const TokenDetail: React.FC = () => {
                 decimals: chainStats?.tokenDecimals || 8,
                 totalSupply: totalIssuance,
                 marketCap: marketCap > 0 ? `$${marketCap.toFixed(2)}` : '',
-                price: price > 0 ? `$${price.toFixed(6)}` : '',
+                price: price > 0 ? formatPrice(price) : '',
                 change24h: `${change24h.toFixed(2)}%`,
                 validators: chainStats?.activeValidators || 0,
               }]}
@@ -128,7 +128,7 @@ const TokenDetail: React.FC = () => {
             reservedFormatted: 0,
             nonce: chainStats?.activeValidators || 0,
             sources: [
-              `Price: $${price.toFixed(6)}`,
+              `Price: ${formatPrice(price)}`,
               `Market Cap: $${formatAbbreviatedNumber(marketCap)}`,
               `Supply: ${formatSupply(totalIssuance)} LUNES`,
               `${chainStats?.activeValidators || 0} validators`,
@@ -141,7 +141,7 @@ const TokenDetail: React.FC = () => {
         {/* Price */}
         <div className={styles.nativePrice}>
           <span className={styles.priceValue}>
-            {priceLoading ? '...' : `$${price.toFixed(6)}`}
+            {priceLoading ? '...' : formatPrice(price)}
           </span>
           {!priceLoading && (
             <span className={`${styles.priceChange} ${change24h >= 0 ? styles.positive : styles.negative}`}>

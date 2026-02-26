@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Coins, BarChart3, Database, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDashboardStats, useAssets } from '../../hooks/useChainData';
-import { useLunesPrice } from '../../hooks/useLunesPrice';
+import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { formatAbbreviatedNumber } from '../../data/tokenomics';
 import styles from './ProjectTokenStats.module.css';
 
@@ -36,7 +36,7 @@ const ProjectTokenStats: React.FC<ProjectTokenStatsProps> = ({ tokenSymbol }) =>
             <Coins size={20} className={styles.tokenIcon} />
             <span className={styles.tokenLabel}>LUNES</span>
             <span className={styles.tokenPriceValue}>
-              {loading ? '...' : `$${price.toFixed(6)}`}
+              {loading ? '...' : formatPrice(price)}
             </span>
             {!priceLoading && (
               <span className={`${styles.tokenChange} ${change24h >= 0 ? styles.positive : styles.negative}`}>
