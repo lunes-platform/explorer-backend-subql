@@ -102,7 +102,7 @@
   color: var(--text-muted);
 }
 
-/* Table */
+/* Table — Home tokensTable visual pattern */
 .tableContainer {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
@@ -111,105 +111,95 @@
   margin-bottom: var(--space-5);
 }
 
-.table {
+.tokensTable {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-.table th {
-  background: var(--surface-glass);
-  padding: var(--space-3) var(--space-4);
+.tokensTable th {
   text-align: left;
-  font-size: var(--text-xs);
-  font-weight: 600;
+  padding: 10px 12px;
   color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-default);
+  background-color: transparent;
+  white-space: nowrap;
 }
 
-.table td {
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
+.tokensTable td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font-size: 13px;
+  vertical-align: middle;
 }
 
-.assetRow:hover {
-  background: var(--surface-glass);
+.tokensTable tr:last-child td {
+  border-bottom: none;
 }
 
-/* Asset Cell */
-.assetCell {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+.clickableRow {
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.assetIcon {
+.clickableRow:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.rankCell {
   width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* Token Info — circular icons like Home */
+.tokenInfo {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.tokenIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
   justify-content: center;
+  align-items: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
   flex-shrink: 0;
 }
 
-.assetInfo {
+.tokenSim {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tokenName {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.price {
+  font-weight: 600;
+}
+
+.positive { color: var(--color-success); }
+.negative { color: var(--color-critical); }
+
+.supplyContainer {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-}
-
-.assetName {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.assetId {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  font-family: monospace;
-}
-
-/* Asset Symbol */
-.assetSymbol {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-/* Asset Decimals */
-.assetDecimals {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-/* Asset Supply */
-.assetSupply {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-primary);
-  font-family: monospace;
-}
-
-/* Owner Link */
-.ownerLink {
-  color: var(--color-brand-400);
-  font-size: var(--text-sm);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color var(--transition-fast);
-}
-
-.ownerLink:hover {
-  color: var(--color-brand-300);
-  text-decoration: underline;
-}
-
-.noContract {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
+  gap: 4px;
+  width: 120px;
 }
 
 @media (max-width: 1024px) {
@@ -241,7 +231,7 @@
     overflow-x: auto;
   }
 
-  .table {
+  .tokensTable {
     min-width: 800px;
   }
 }

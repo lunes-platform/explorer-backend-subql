@@ -110,6 +110,18 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
 
   return (
     <div className={styles.container}>
+      {/* Banner */}
+      {project.banner && (
+        <div className={styles.projectBanner}>
+          <img
+            src={project.banner}
+            alt={`${project.name} banner`}
+            className={styles.projectBannerImg}
+            onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+          />
+        </div>
+      )}
+
       <div className={styles.header}>
         <button 
           onClick={() => navigate(-1)}

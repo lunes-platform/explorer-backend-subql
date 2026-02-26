@@ -11,7 +11,7 @@ import EmptyState from '../../components/common/EmptyState';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { useTokenPrices } from '../../hooks/useTokenPrices';
-import { getProjectByAssetId } from '../../data/knownProjects';
+import { useProjectLookup } from '../../hooks/useProjects';
 import styles from './TokenList.module.css';
 
 function formatSupply(supply: number, decimals: number = 2): string {
@@ -43,6 +43,7 @@ const TokenList: React.FC = () => {
   const health = useHealthStatus();
   const { price: lunesPrice } = useLunesPrice();
   const { getByAssetId } = useTokenPrices();
+  const { getByAssetId: getProjectByAssetId } = useProjectLookup();
   const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
   const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
@@ -98,12 +99,6 @@ const TokenList: React.FC = () => {
           <span className={styles.statValue}>{psp22Loading ? '...' : psp22Tokens.length}</span>
           <span className={styles.statLabel}>PSP22 Contracts</span>
         </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>
-            {loading ? '...' : (assets?.reduce((s, a) => s + a.accounts, 0) || 0)}
-          </span>
-          <span className={styles.statLabel}>Asset Holders</span>
-        </div>
       </div>
 
       {/* Search */}
@@ -122,7 +117,7 @@ const TokenList: React.FC = () => {
 
       {/* Assets Table */}
       <div className={styles.tableContainer}>
-        <table className={styles.table}>
+        <table className={styles.tokensTable}>
           <thead>
             <tr>
               <th>#</th>
@@ -138,29 +133,26 @@ const TokenList: React.FC = () => {
           </thead>
           <tbody>
             {/* LUNES native token - always first */}
-            <tr 
-              className={styles.assetRow}
-              style={{ cursor: 'pointer' }}
+            <tr
+              className={styles.clickableRow}
               onClick={() => window.location.href = '/project/lunes-network'}
             >
-              <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>1</td>
+              <td className={styles.rankCell}>1</td>
               <td>
-                <div className={styles.assetCell}>
-                  <div className={styles.assetIcon} style={{ backgroundColor: 'rgba(38,208,124,0.12)', color: '#26D07C' }}>
+                <div className={styles.tokenInfo}>
+                  <div className={styles.tokenIcon} style={{ backgroundColor: 'rgba(38,208,124,0.12)', color: '#26D07C' }}>
                     <LunesLogo size={20} />
                   </div>
-                  <div className={styles.assetInfo}>
-                    <span className={styles.assetName}>Lunes</span>
-                    <span className={styles.assetId}>Native Token</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span className={styles.tokenSim}>Lunes</span>
+                    <span className={styles.tokenName}>Native Token</span>
                   </div>
                 </div>
               </td>
-              <td><span className={styles.assetSymbol}>LUNES</span></td>
-              <td style={{ textAlign: 'right' }}><span className={styles.assetDecimals}>8</span></td>
-              <td style={{ textAlign: 'right' }}>
-                <span className={styles.assetSupply}>
-                  {statsLoading ? '...' : formatSupply(totalIssuance)}
-                </span>
+              <td style={{ fontWeight: 500 }}>LUNES</td>
+              <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>8</td>
+              <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>
+                {statsLoading ? '...' : formatSupply(totalIssuance)}
               </td>
               <td style={{ textAlign: 'right' }}>
                 <span style={{ color: lunesPrice > 0 ? 'var(--color-brand-400)' : 'var(--text-muted)', fontWeight: 500 }}>
@@ -174,9 +166,9 @@ const TokenList: React.FC = () => {
                 </span>
               </td>
               <td>
-                <Link 
-                  to="/project/lunes-network" 
-                  className={styles.ownerLink}
+                <Link
+                  to="/project/lunes-network"
+                  style={{ color: 'var(--color-brand-400)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   Lunes Network
@@ -184,7 +176,45 @@ const TokenList: React.FC = () => {
               </td>
             </tr>
 
-            {/* Chain assets from RPC */}
+            {/* PSP22 ink! contracts from SubQuery */}
+            {!psp22Loading && displayPsp22.map((token: Psp22TokenNode, index: number) => (
+              <tr key={token.id} className={styles.clickableRow}>
+                <td className={styles.rankCell}>{index + 2}</td>
+                <td>
+                  <div className={styles.tokenInfo}>
+                    <div className={styles.tokenIcon} style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8' }}>
+                      <FileCode size={16} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span className={styles.tokenSim}>{token.name}</span>
+                      <span className={styles.tokenName}>
+                        <CopyToClipboard text={token.contractAddress} truncate truncateLength={8} />
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td style={{ fontWeight: 500 }}>{token.symbol}</td>
+                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{token.decimals}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>
+                  {token.totalSupply && token.totalSupply !== '0'
+                    ? formatSupply(Number(BigInt(token.totalSupply)) / Math.pow(10, token.decimals))
+                    : '—'}
+                  {' '}{token.symbol}
+                </td>
+                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                <td>
+                  <span style={{ fontSize: 11, padding: '3px 8px', background: 'rgba(99,102,241,0.15)', borderRadius: 4, color: '#818cf8' }}>
+                    PSP22
+                  </span>
+                </td>
+                <td>
+                  <CopyToClipboard text={token.contractAddress} truncate truncateLength={8} />
+                </td>
+              </tr>
+            ))}
+
+            {/* Pallet-assets from RPC */}
             {loading && (
               <tr>
                 <td colSpan={9} style={{ textAlign: 'center', padding: 20 }}>
@@ -204,66 +234,40 @@ const TokenList: React.FC = () => {
                 </td>
               </tr>
             )}
-            {/* PSP22 ink! contracts from SubQuery */}
-            {!psp22Loading && displayPsp22.map((token: Psp22TokenNode, index: number) => (
-              <tr key={token.id} className={styles.assetRow}>
-                <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{index + 2}</td>
-                <td>
-                  <div className={styles.assetCell}>
-                    <div className={styles.assetIcon} style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
-                      <FileCode size={16} />
-                    </div>
-                    <div className={styles.assetInfo}>
-                      <span className={styles.assetName}>{token.name}</span>
-                      <span className={styles.assetId}>
-                        <CopyToClipboard text={token.contractAddress} truncate truncateLength={8} />
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td><span className={styles.assetSymbol}>{token.symbol}</span></td>
-                <td style={{ textAlign: 'right' }}><span className={styles.assetDecimals}>{token.decimals}</span></td>
-                <td style={{ textAlign: 'right' }}>
-                  <span className={styles.assetSupply}>
-                    {token.totalSupply && token.totalSupply !== '0'
-                      ? formatSupply(Number(BigInt(token.totalSupply)) / Math.pow(10, token.decimals))
-                      : '—'}
-                    {' '}{token.symbol}
-                  </span>
-                </td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
-                <td>
-                  <span style={{ fontSize: 11, padding: '3px 8px', background: 'rgba(99,102,241,0.15)', borderRadius: 4, color: '#818cf8' }}>
-                    PSP22
-                  </span>
-                </td>
-                <td>
-                  <CopyToClipboard text={token.contractAddress} truncate truncateLength={8} />
-                </td>
-              </tr>
-            ))}
-
-            {/* Pallet-assets from RPC */}
             {!loading && displayAssets.map((asset, index) => {
               const project = getProjectByAssetId(asset.id);
+              const projectLogo = project?.logo;
               return (
-              <tr key={asset.id} className={styles.assetRow}>
-                <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{index + 2}</td>
+              <tr key={asset.id} className={styles.clickableRow} onClick={project ? () => window.location.href = `/project/${project.slug}` : undefined}>
+                <td className={styles.rankCell}>{psp22Tokens.length + index + 2}</td>
                 <td>
-                  <div className={styles.assetCell}>
+                  <div className={styles.tokenInfo}>
                     <div
-                      className={styles.assetIcon}
+                      className={styles.tokenIcon}
                       style={{
-                        backgroundColor: `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 15%)`,
-                        color: `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 55%)`,
+                        background: projectLogo ? 'transparent' : `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)`,
+                        overflow: 'hidden',
                       }}
                     >
-                      {asset.symbol.charAt(0)}
+                      {projectLogo ? (
+                        <img
+                          src={projectLogo}
+                          alt={asset.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                          onError={(e) => {
+                            const el = e.target as HTMLImageElement;
+                            el.style.display = 'none';
+                            el.parentElement!.style.background = `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)`;
+                            el.parentElement!.textContent = asset.symbol.charAt(0);
+                          }}
+                        />
+                      ) : (
+                        asset.symbol.charAt(0)
+                      )}
                     </div>
-                    <div className={styles.assetInfo}>
-                      <span className={styles.assetName}>{asset.name}</span>
-                      <span className={styles.assetId}>Asset #{asset.id}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span className={styles.tokenSim}>{asset.name}</span>
+                      <span className={styles.tokenName}>Asset #{asset.id}</span>
                       {project && (
                         <Link
                           to={`/project/${project.slug}`}
@@ -277,11 +281,9 @@ const TokenList: React.FC = () => {
                     </div>
                   </div>
                 </td>
-                <td><span className={styles.assetSymbol}>{asset.symbol}</span></td>
-                <td style={{ textAlign: 'right' }}><span className={styles.assetDecimals}>{asset.decimals}</span></td>
-                <td style={{ textAlign: 'right' }}>
-                  <span className={styles.assetSupply}>{formatSupply(asset.supplyFormatted)} {asset.symbol}</span>
-                </td>
+                <td style={{ fontWeight: 500 }}>{asset.symbol}</td>
+                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{asset.decimals}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{formatSupply(asset.supplyFormatted)} {asset.symbol}</td>
                 <td style={{ textAlign: 'right' }}>
                   {(() => {
                     const tp = getByAssetId(asset.id);
@@ -315,13 +317,13 @@ const TokenList: React.FC = () => {
                   {asset.owner ? (
                     <CopyToClipboard text={asset.owner} truncate truncateLength={8} />
                   ) : (
-                    <span className={styles.noContract}>—</span>
+                    <span style={{ color: 'var(--text-muted)' }}>—</span>
                   )}
                 </td>
               </tr>
               );
             })}
-            {!loading && !error && displayAssets.length === 0 && searchTerm && (
+            {!loading && !error && displayAssets.length === 0 && displayPsp22.length === 0 && searchTerm && (
               <tr>
                 <td colSpan={9}>
                   <EmptyState type="no-data" message="No assets found matching your search" />

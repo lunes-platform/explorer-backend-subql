@@ -44,6 +44,7 @@ export interface KnownProject {
   name: string;
   slug: string;
   logo?: string;
+  banner?: string;
   category: 'defi' | 'nft' | 'social' | 'infrastructure' | 'gaming' | 'dao' | 'token' | 'other';
   description: string;
   longDescription?: string;
@@ -149,6 +150,7 @@ criado via pallet-assets, o que garante maior performance e menor custo de trans
     id: 'pidchat',
     name: 'PidChat',
     slug: 'pidchat',
+    logo: 'https://pidchat.io/favicon.ico',
     category: 'social',
     description: 'Protocolo de comunicação descentralizada construído na Lunes Network com token social nativo.',
     longDescription: `PidChat é um protocolo de mensagens e comunicação descentralizada construído sobre a Lunes Network.

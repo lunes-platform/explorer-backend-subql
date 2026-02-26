@@ -779,6 +779,11 @@ app.put('/api/admin/projects/:slug', requireAuth, (req, res) => {
     updates.logo = updates.tokenSymbolImage;
     delete updates.tokenSymbolImage;
   }
+  // Normalize bannerImage -> banner so the frontend can read project.banner
+  if (updates.bannerImage !== undefined) {
+    updates.banner = updates.bannerImage;
+    delete updates.bannerImage;
+  }
   const result = updateProject(req.params.slug, updates);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);

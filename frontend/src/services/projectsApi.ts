@@ -23,6 +23,7 @@ export interface ApiProject {
   name: string;
   ticker: string;
   logo: string;
+  banner?: string;
   category: KnownProject['category'];
   description: string;
   longDescription: string;
@@ -49,6 +50,7 @@ export interface CreateProjectPayload {
   name: string;
   ticker?: string;
   logo?: string;
+  banner?: string;
   category?: KnownProject['category'];
   description?: string;
   longDescription?: string;
@@ -257,6 +259,7 @@ export function toKnownProject(api: ApiProject): KnownProject {
     name: api.name,
     slug: api.slug,
     logo: api.logo || (api as any).tokenSymbolImage || undefined,
+    banner: api.banner || (api as any).bannerImage || undefined,
     category: api.category,
     description: api.description,
     longDescription: api.longDescription || undefined,

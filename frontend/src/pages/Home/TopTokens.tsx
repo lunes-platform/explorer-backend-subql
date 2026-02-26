@@ -5,7 +5,7 @@ import { useQuery } from '@apollo/client/react';
 import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { formatAbbreviatedNumber } from '../../data/tokenomics';
-import { getProjectByAssetId } from '../../data/knownProjects';
+import { useProjectLookup } from '../../hooks/useProjects';
 import { LunesLogo } from '../../components/common/LunesLogo';
 import { WatchlistButton } from '../../components/common/WatchlistButton';
 import { useWatchlist } from '../../hooks/useWatchlist';
@@ -39,6 +39,7 @@ const TopTokens: React.FC = () => {
     const { data: assets, loading: assetsLoading } = useAssets();
     const { data: chainStats, loading: statsLoading } = useDashboardStats();
     const { isWatched, toggleItem } = useWatchlist();
+    const { getByAssetId: getProjectByAssetId } = useProjectLookup();
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
@@ -212,6 +213,7 @@ const TopTokens: React.FC = () => {
                             const project = getProjectByAssetId(asset.id);
                             const rowDestination = project ? `/project/${project.slug}` : `/asset/${asset.id}`;
                             const actualIndex = startIndex + index;
+                            const projectLogo = project?.logo;
                             return (
                             <tr 
                                 key={asset.id}
@@ -222,9 +224,24 @@ const TopTokens: React.FC = () => {
                                 <td>
                                     <div className={classes.tokenInfo}>
                                         <div className={classes.tokenIconPlaceholder} style={{ 
-                                            background: `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)` 
+                                            background: projectLogo ? 'transparent' : `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)`,
+                                            overflow: 'hidden',
                                         }}>
-                                            {asset.symbol.charAt(0)}
+                                            {projectLogo ? (
+                                                <img
+                                                    src={projectLogo}
+                                                    alt={asset.name}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                                                    onError={(e) => {
+                                                        const el = e.target as HTMLImageElement;
+                                                        el.style.display = 'none';
+                                                        el.parentElement!.style.background = `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)`;
+                                                        el.parentElement!.textContent = asset.symbol.charAt(0);
+                                                    }}
+                                                />
+                                            ) : (
+                                                asset.symbol.charAt(0)
+                                            )}
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

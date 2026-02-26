@@ -4,7 +4,7 @@
  * Falls back to hardcoded KNOWN_PROJECTS when the API is unavailable.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   fetchProjects, fetchProject, createProject, updateProject, deleteProject,
   submitVerification, reviewVerification,
@@ -260,4 +260,27 @@ export function useUserInteractions(address: string | undefined) {
   }, [address]);
 
   return { interactions, loading };
+}
+
+// ─── useProjectLookup: asset-id lookup using API data (with admin logos) ───
+
+export function useProjectLookup() {
+  const { projects, loading } = useProjects();
+
+  const byAssetId = useMemo(() => {
+    const map = new Map<string, KnownProject>();
+    for (const p of projects) {
+      for (const aid of p.assetIds) {
+        map.set(aid, p);
+      }
+    }
+    return map;
+  }, [projects]);
+
+  const getByAssetId = useCallback(
+    (assetId: string): KnownProject | undefined => byAssetId.get(assetId),
+    [byAssetId],
+  );
+
+  return { getByAssetId, projects, loading };
 }

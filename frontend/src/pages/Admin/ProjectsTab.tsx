@@ -68,6 +68,7 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
     tags: (project.tags || []).join(', '),
     tokenSymbol: project.tokenSymbol || '',
     tokenSymbolImage: (project as any).tokenSymbolImage || (project as any).logo || '',
+    bannerImage: (project as any).bannerImage || (project as any).banner || '',
     donationAddress: (project as any).donationAddress || '',
   });
   const [links, setLinks] = useState<{ type: string; url: string; label: string }[]>(
@@ -125,6 +126,7 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
         tokenSymbol: form.tokenSymbol,
         tokenSymbolImage: form.tokenSymbolImage,
+        bannerImage: form.bannerImage,
         donationAddress: form.donationAddress,
         links: links.filter(l => l.url.trim()),
         team: team.filter(t => t.name.trim()),
@@ -210,6 +212,20 @@ function EditProjectModal({ project, onClose, onSaved }: { project: ApiProject; 
             />
             <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
               Upload or paste URL for the token/project logo. Recommended: 200x200px, transparent background.
+            </span>
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+              <ImageIcon size={12} style={{ verticalAlign: -1, marginRight: 4 }} /> Project Banner
+            </label>
+            <ImageUpload
+              value={form.bannerImage}
+              onChange={(url) => handleChange('bannerImage', url)}
+              label="Banner image (PNG, JPG, WebP)"
+              placeholder="https://..."
+            />
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+              Upload or paste URL for the project banner. Recommended: 1200x280px, shown at the top of the project profile.
             </span>
           </div>
           <div>

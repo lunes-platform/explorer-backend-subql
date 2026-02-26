@@ -1,43 +1,16 @@
 import React, { useState } from 'react';
-import { Coins, Search, Loader2, FolderOpen, FileCode, Users, Lock, Unlock } from 'lucide-react';
-import { useQuery } from '@apollo/client/react';
+import { Coins, Search, Loader2, FolderOpen, Users, Lock, Unlock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { LunesLogo } from '../../components/common/LunesLogo';
-import { Link, useNavigate } from 'react-router-dom';
-import { getProjectByAssetId } from '../../data/knownProjects';
+import { useProjectLookup } from '../../hooks/useProjects';
 import EmptyState from '../../components/common/EmptyState';
 import DataSourceBadge from '../../components/common/DataSourceBadge';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';
 import { useTokenPrices } from '../../hooks/useTokenPrices';
-import { WatchlistButton } from '../../components/common/WatchlistButton';
-import { useWatchlist } from '../../hooks/useWatchlist';
-import { GET_TOKEN_MARKET_DATA } from '../../services/graphql/queries';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import styles from './Assets.module.css';
-
-const BADGE_STYLES = {
-  native: { bg: 'rgba(38,208,124,0.15)',  color: '#26D07C', label: 'Native'        },
-  psp22:  { bg: 'rgba(99,102,241,0.15)',  color: '#818cf8', label: 'PSP22'         },
-  pallet: { bg: 'rgba(0,163,255,0.15)',   color: '#00a3ff', label: 'pallet-assets' },
-};
-const TypeBadge: React.FC<{ type: keyof typeof BADGE_STYLES }> = ({ type }) => {
-  const s = BADGE_STYLES[type];
-  return <span style={{ fontSize: 10, padding: '2px 7px', background: s.bg, borderRadius: 4, color: s.color, fontWeight: 600 }}>{s.label}</span>;
-};
-
-interface Psp22TokenNode {
-  id: string;
-  name: string;
-  symbol: string;
-  contractAddress: string;
-  totalSupply: string;
-  decimals: number;
-  verified: boolean;
-}
-interface TokenMarketDataResponse {
-  psp22Tokens: { nodes: Psp22TokenNode[] };
-}
 
 function formatSupply(supply: number, decimals: number = 2): string {
   if (supply >= 1e12) return `${(supply / 1e12).toFixed(decimals)}T`;
@@ -48,33 +21,24 @@ function formatSupply(supply: number, decimals: number = 2): string {
 }
 
 const Assets: React.FC = () => {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: assets, loading, error, refetch } = useAssets();
+  const { data: assets, loading: assetsLoading, error, refetch } = useAssets();
   const { data: chainStats, loading: statsLoading } = useDashboardStats();
-  const { data: psp22Data, loading: psp22Loading } = useQuery<TokenMarketDataResponse>(GET_TOKEN_MARKET_DATA);
   const health = useHealthStatus();
   const { price: lunesPrice } = useLunesPrice();
   const { getByAssetId } = useTokenPrices();
-  const { isWatched, toggleItem } = useWatchlist();
+  const { getByAssetId: getProjectByAssetId } = useProjectLookup();
   const rpcHealth = health.rpc.status === 'connected' ? 'healthy' as const : health.rpc.status === 'connecting' ? 'delayed' as const : 'disconnected' as const;
 
   const totalIssuance = chainStats?.totalIssuanceFormatted || 0;
-  const psp22Tokens = psp22Data?.psp22Tokens?.nodes || [];
 
   let displayAssets = assets || [];
-  let displayPsp22 = psp22Tokens;
   if (searchTerm) {
     const term = searchTerm.toLowerCase();
     displayAssets = displayAssets.filter(a =>
       a.name.toLowerCase().includes(term) ||
       a.symbol.toLowerCase().includes(term) ||
       a.id.includes(term)
-    );
-    displayPsp22 = displayPsp22.filter((t: Psp22TokenNode) =>
-      t.name.toLowerCase().includes(term) ||
-      t.symbol.toLowerCase().includes(term) ||
-      t.contractAddress.toLowerCase().includes(term)
     );
   }
 
@@ -89,7 +53,7 @@ const Assets: React.FC = () => {
         <p className={styles.subtitle}>
           All native and pallet-assets registered on the Lunes blockchain (real-time RPC data)
         </p>
-        <DataSourceBadge source="RPC" updatedAt={!loading && assets ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={loading} health={rpcHealth} />
+        <DataSourceBadge source="RPC" updatedAt={!assetsLoading && assets ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : undefined} loading={assetsLoading} health={rpcHealth} />
       </div>
 
       {/* Stats */}
@@ -105,12 +69,12 @@ const Assets: React.FC = () => {
           <span className={styles.statLabel}>Native Supply</span>
         </div>
         <div className={styles.statCard}>
-          <span className={styles.statValue}>{loading ? '...' : (assets?.length || 0)}</span>
+          <span className={styles.statValue}>{assetsLoading ? '...' : (assets?.length || 0)}</span>
           <span className={styles.statLabel}>Pallet Assets</span>
         </div>
         <div className={styles.statCard}>
           <span className={styles.statValue}>
-            {loading ? '...' : (assets?.reduce((s, a) => s + a.accounts, 0) || 0)}
+            {assetsLoading ? '...' : (assets?.reduce((s, a) => s + a.accounts, 0) || 0)}
           </span>
           <span className={styles.statLabel}>Asset Holders</span>
         </div>
@@ -132,7 +96,7 @@ const Assets: React.FC = () => {
 
       {/* Assets Table */}
       <div className={styles.tableContainer}>
-        <table className={styles.table}>
+        <table className={styles.tokensTable}>
           <thead>
             <tr>
               <th>#</th>
@@ -148,29 +112,26 @@ const Assets: React.FC = () => {
           </thead>
           <tbody>
             {/* LUNES native token - always first */}
-            <tr 
-              className={styles.assetRow} 
-              style={{ cursor: 'pointer' }}
+            <tr
+              className={styles.clickableRow}
               onClick={() => window.location.href = '/project/lunes-network'}
             >
-              <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>1</td>
+              <td className={styles.rankCell}>1</td>
               <td>
-                <div className={styles.assetCell}>
-                  <div className={styles.assetIcon} style={{ backgroundColor: 'rgba(38,208,124,0.12)', color: '#26D07C' }}>
+                <div className={styles.tokenInfo}>
+                  <div className={styles.tokenIcon} style={{ backgroundColor: 'rgba(38,208,124,0.12)', color: '#26D07C' }}>
                     <LunesLogo size={20} />
                   </div>
-                  <div className={styles.assetInfo}>
-                    <span className={styles.assetName}>Lunes</span>
-                    <span className={styles.assetId}>Native Token</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span className={styles.tokenSim}>Lunes</span>
+                    <span className={styles.tokenName}>Native Token</span>
                   </div>
                 </div>
               </td>
-              <td><span className={styles.assetSymbol}>LUNES</span></td>
-              <td style={{ textAlign: 'right' }}><span className={styles.assetDecimals}>8</span></td>
-              <td style={{ textAlign: 'right' }}>
-                <span className={styles.assetSupply}>
-                  {statsLoading ? '...' : formatSupply(totalIssuance)}
-                </span>
+              <td style={{ fontWeight: 500 }}>LUNES</td>
+              <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>8</td>
+              <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>
+                {statsLoading ? '...' : formatSupply(totalIssuance)}
               </td>
               <td style={{ textAlign: 'right' }}>
                 <span style={{ color: lunesPrice > 0 ? 'var(--color-brand-400)' : 'var(--text-muted)', fontWeight: 500 }}>
@@ -184,9 +145,9 @@ const Assets: React.FC = () => {
                 </span>
               </td>
               <td>
-                <Link 
-                  to="/project/lunes-network" 
-                  className={styles.ownerLink}
+                <Link
+                  to="/project/lunes-network"
+                  style={{ color: 'var(--color-brand-400)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   Lunes Network
@@ -195,7 +156,7 @@ const Assets: React.FC = () => {
             </tr>
 
             {/* Chain assets from RPC */}
-            {loading && (
+            {assetsLoading && (
               <tr>
                 <td colSpan={9} style={{ textAlign: 'center', padding: 20 }}>
                   <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-brand-400)' }} />
@@ -214,25 +175,40 @@ const Assets: React.FC = () => {
                 </td>
               </tr>
             )}
-            {!loading && displayAssets.map((asset, index) => {
+            {!assetsLoading && displayAssets.map((asset, index) => {
               const project = getProjectByAssetId(asset.id);
+              const projectLogo = project?.logo;
               return (
-              <tr key={asset.id} className={styles.assetRow} style={{ cursor: project ? 'pointer' : undefined }} onClick={project ? () => window.location.href = `/project/${project.slug}` : undefined}>
-                <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>{index + 2}</td>
+              <tr key={asset.id} className={styles.clickableRow} style={{ cursor: project ? 'pointer' : undefined }} onClick={project ? () => window.location.href = `/project/${project.slug}` : undefined}>
+                <td className={styles.rankCell}>{index + 2}</td>
                 <td>
-                  <div className={styles.assetCell}>
+                  <div className={styles.tokenInfo}>
                     <div
-                      className={styles.assetIcon}
+                      className={styles.tokenIcon}
                       style={{
-                        backgroundColor: `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 15%)`,
-                        color: `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 55%)`,
+                        background: projectLogo ? 'transparent' : `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)`,
+                        overflow: 'hidden',
                       }}
                     >
-                      {asset.symbol.charAt(0)}
+                      {projectLogo ? (
+                        <img
+                          src={projectLogo}
+                          alt={asset.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                          onError={(e) => {
+                            const el = e.target as HTMLImageElement;
+                            el.style.display = 'none';
+                            el.parentElement!.style.background = `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)`;
+                            el.parentElement!.textContent = asset.symbol.charAt(0);
+                          }}
+                        />
+                      ) : (
+                        asset.symbol.charAt(0)
+                      )}
                     </div>
-                    <div className={styles.assetInfo}>
-                      <span className={styles.assetName}>{asset.name}</span>
-                      <span className={styles.assetId}>Asset #{asset.id}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span className={styles.tokenSim}>{asset.name}</span>
+                      <span className={styles.tokenName}>Asset #{asset.id}</span>
                       {project && (
                         <Link
                           to={`/project/${project.slug}`}
@@ -246,11 +222,9 @@ const Assets: React.FC = () => {
                     </div>
                   </div>
                 </td>
-                <td><span className={styles.assetSymbol}>{asset.symbol}</span></td>
-                <td style={{ textAlign: 'right' }}><span className={styles.assetDecimals}>{asset.decimals}</span></td>
-                <td style={{ textAlign: 'right' }}>
-                  <span className={styles.assetSupply}>{formatSupply(asset.supplyFormatted)} {asset.symbol}</span>
-                </td>
+                <td style={{ fontWeight: 500 }}>{asset.symbol}</td>
+                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{asset.decimals}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{formatSupply(asset.supplyFormatted)} {asset.symbol}</td>
                 <td style={{ textAlign: 'right' }}>
                   {(() => {
                     const tp = getByAssetId(asset.id);
@@ -284,13 +258,13 @@ const Assets: React.FC = () => {
                   {asset.owner ? (
                     <CopyToClipboard text={asset.owner} truncate truncateLength={8} />
                   ) : (
-                    <span className={styles.noContract}>—</span>
+                    <span style={{ color: 'var(--text-muted)' }}>—</span>
                   )}
                 </td>
               </tr>
               );
             })}
-            {!loading && !error && displayAssets.length === 0 && searchTerm && (
+            {!assetsLoading && !error && displayAssets.length === 0 && searchTerm && (
               <tr>
                 <td colSpan={9}>
                   <EmptyState type="no-data" message="No assets found matching your search" />
