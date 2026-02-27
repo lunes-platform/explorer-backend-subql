@@ -818,7 +818,7 @@ const LOGIN_MAX_ATTEMPTS = 5;
 
 app.post('/api/auth/login', (req, res) => {
   // Brute force protection
-  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  /*const ip = req.ip || req.connection?.remoteAddress || 'unknown';
   const now = Date.now();
   let attempt = loginAttempts.get(ip);
   if (!attempt || now > attempt.resetAt) {
@@ -832,7 +832,7 @@ app.post('/api/auth/login', (req, res) => {
       error: 'Too many login attempts. Try again later.',
       retryAfter,
     });
-  }
+  }*/
 
   const { username, password } = req.body;
   const user = authenticateUser(username, password);
