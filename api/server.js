@@ -818,7 +818,7 @@ const LOGIN_MAX_ATTEMPTS = 5;
 
 app.post('/api/auth/login', (req, res) => {
   // Brute force protection
-  /*const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+ /* const ip = req.ip || req.connection?.remoteAddress || 'unknown';
   const now = Date.now();
   let attempt = loginAttempts.get(ip);
   if (!attempt || now > attempt.resetAt) {
@@ -840,7 +840,7 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
   // Reset attempts on successful login
-  loginAttempts.delete(ip);
+  //loginAttempts.delete(ip);
   const token = generateToken(user);
   storeToken(token, user.id);
   return res.json({ access_token: token, token_type: 'bearer' });
