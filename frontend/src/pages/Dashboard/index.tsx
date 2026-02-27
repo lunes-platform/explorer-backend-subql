@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, FolderKanban, History, Star, Settings, Wallet, Megaphone } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, History, Star, Settings, Wallet, Megaphone, Coins } from 'lucide-react';
 import { useWalletAuth } from '../../context/WalletAuthContext';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import styles from './Dashboard.module.css';
 
-type DashTab = 'overview' | 'projects' | 'ads' | 'history' | 'watchlist' | 'settings';
+type DashTab = 'overview' | 'projects' | 'create-token' | 'ads' | 'history' | 'watchlist' | 'settings';
 
-const TABS: { key: DashTab; label: string; icon: React.ReactNode }[] = [
+const TABS: { key: DashTab; label: string; icon: React.ReactNode; highlight?: boolean }[] = [
   { key: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
   { key: 'projects', label: 'My Projects', icon: <FolderKanban size={16} /> },
+  { key: 'create-token', label: 'Create Token', icon: <Coins size={16} />, highlight: true },
   { key: 'ads', label: 'My Ads', icon: <Megaphone size={16} /> },
   { key: 'history', label: 'History', icon: <History size={16} /> },
   { key: 'watchlist', label: 'Watchlist', icon: <Star size={16} /> },
@@ -17,6 +18,7 @@ const TABS: { key: DashTab; label: string; icon: React.ReactNode }[] = [
 
 const OverviewTab = React.lazy(() => import('./OverviewTab'));
 const MyProjectsTab = React.lazy(() => import('./MyProjectsTab'));
+const CreateTokenTab = React.lazy(() => import('./CreateTokenTab'));
 const MyAdsTab = React.lazy(() => import('./MyAdsTab'));
 const HistoryTab = React.lazy(() => import('./HistoryTab'));
 const WatchlistTab = React.lazy(() => import('./WatchlistTab'));
@@ -48,10 +50,11 @@ export default function DashboardPage() {
         {TABS.map((tab) => (
           <button
             key={tab.key}
-            className={`${styles.sidebarLink} ${activeTab === tab.key ? styles.active : ''}`}
+            className={`${styles.sidebarLink} ${activeTab === tab.key ? styles.active : ''} ${tab.highlight ? styles.sidebarHighlight : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.icon} {tab.label}
+            {tab.highlight && <span className={styles.sidebarBadgeNew}>NEW</span>}
           </button>
         ))}
       </nav>
@@ -59,6 +62,7 @@ export default function DashboardPage() {
         <React.Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>}>
           {activeTab === 'overview' && <OverviewTab address={address} />}
           {activeTab === 'projects' && <MyProjectsTab address={address} />}
+          {activeTab === 'create-token' && <CreateTokenTab address={address} />}
           {activeTab === 'ads' && <MyAdsTab address={address} />}
           {activeTab === 'history' && <HistoryTab address={address} />}
           {activeTab === 'watchlist' && <WatchlistTab />}

@@ -6,7 +6,7 @@ import {
   submitVerification, reviewVerification,
   getLikes, getFollows, getUserInteractions, toggleInteraction, getProjectStats,
   getComments, addComment, deleteComment, addReaction,
-} from './store.js';
+} from './storePrisma.ts';
 import { generateExplanation } from './aiExplain.js';
 import { getAIConfigSafe, updateAIConfig, testAPIKey, FREE_MODELS } from './aiConfigStore.ts';
 import { detectAnomalies } from './anomalyDetection.ts';
@@ -47,7 +47,7 @@ import {
   changeWalletName,
   toggleWalletActive,
   getWalletChangeLog
-} from './rewardsStore.ts';
+} from './rewardsStorePrisma.ts';
 import { getPrice, getPriceStats } from './priceCache.ts';
 import { getTokenPrices, getTokenPriceStats } from './tokenPriceCache.ts';
 import {
@@ -57,6 +57,11 @@ import {
   getAllWallets, getWalletByPurpose, updateWalletAddress,
   toggleWallet, getAuditLog, isValidSS58Address
 } from './financialStore.ts';
+import {
+  getTokenEmissionConfig, updateTokenEmissionConfig,
+  getRegisteredTokens, getRegisteredTokensByOwner,
+  getRegisteredTokenByAssetId, registerToken, confirmTokenOnChain,
+} from './tokenEmissionStore.ts';
 
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, extname } from 'path';
@@ -184,23 +189,23 @@ app.post('/api/upload', uploadRateLimit, (req, res) => {
 });
 
 // ─── Projects CRUD ───
-app.get('/api/projects', (_req, res) => {
-  const projects = getProjects();
+app.get('/api/projects', async (_req, res) => {
+  const projects = await getProjects();
   // Attach social stats to each project
-  const enriched = projects.map(p => ({
+  const enriched = await Promise.all(projects.map(async p => ({
     ...p,
-    social: getProjectStats(p.slug),
-  }));
+    social: await getProjectStats(p.slug),
+  })));
   res.json(enriched);
 });
 
-app.get('/api/projects/:slug', (req, res) => {
-  const project = getProject(req.params.slug);
+app.get('/api/projects/:slug', async (req, res) => {
+  const project = await getProject(req.params.slug);
   if (!project) return res.status(404).json({ error: 'Project not found' });
-  res.json({ ...project, social: getProjectStats(project.slug) });
+  res.json({ ...project, social: await getProjectStats(project.slug) });
 });
 
-app.post('/api/projects', (req, res) => {
+app.post('/api/projects', async (req, res) => {
   // Require minimum fields to prevent spam
   if (!req.body.name || typeof req.body.name !== 'string' || req.body.name.trim().length < 2) {
     return res.status(400).json({ error: 'Project name is required (min 2 characters)' });
@@ -208,19 +213,19 @@ app.post('/api/projects', (req, res) => {
   if (!req.body.ownerAddress || typeof req.body.ownerAddress !== 'string' || req.body.ownerAddress.length < 10) {
     return res.status(400).json({ error: 'Valid ownerAddress is required' });
   }
-  const result = createProject(req.body);
+  const result = await createProject(req.body);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.status(201).json(result);
 });
 
-app.put('/api/projects/:slug', (req, res) => {
+app.put('/api/projects/:slug', async (req, res) => {
   // Ownership check: admin token OR matching ownerAddress required
-  const existing = getProject(req.params.slug);
+  const existing = await getProject(req.params.slug);
   if (!existing) return res.status(404).json({ error: 'Project not found' });
 
   // Check if caller is authenticated admin
   const authHeader = req.headers.authorization;
-  const isAdmin = authHeader && authHeader.startsWith('Bearer ') && getUserByToken(authHeader.replace('Bearer ', ''));
+  const isAdmin = authHeader && authHeader.startsWith('Bearer ') && await getUserByToken(authHeader.replace('Bearer ', ''));
 
   if (!isAdmin) {
     // Non-admin: require ownerAddress match
@@ -231,18 +236,18 @@ app.put('/api/projects/:slug', (req, res) => {
       return res.status(403).json({ error: 'Not the project owner' });
     }
   }
-  const result = updateProject(req.params.slug, req.body);
+  const result = await updateProject(req.params.slug, req.body);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
 });
 
-app.delete('/api/projects/:slug', (req, res) => {
+app.delete('/api/projects/:slug', async (req, res) => {
   // Ownership check: admin token OR matching ownerAddress required
-  const existing = getProject(req.params.slug);
+  const existing = await getProject(req.params.slug);
   if (!existing) return res.status(404).json({ error: 'Project not found' });
 
   const authHeader = req.headers.authorization;
-  const isAdmin = authHeader && authHeader.startsWith('Bearer ') && getUserByToken(authHeader.replace('Bearer ', ''));
+  const isAdmin = authHeader && authHeader.startsWith('Bearer ') && await getUserByToken(authHeader.replace('Bearer ', ''));
 
   if (!isAdmin) {
     const ownerAddress = req.body.ownerAddress || req.query.ownerAddress;
@@ -253,88 +258,108 @@ app.delete('/api/projects/:slug', (req, res) => {
       return res.status(403).json({ error: 'Not the project owner' });
     }
   }
-  const result = deleteProject(req.params.slug);
+  const result = await deleteProject(req.params.slug);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
 });
 
-// ─── Verification ───
-app.post('/api/projects/:slug/verify', (req, res) => {
-  const result = submitVerification(req.params.slug, req.body);
-  if (result.error) return res.status(result.status).json({ error: result.error });
-  res.json(result);
-});
-
-app.post('/api/projects/:slug/review', requireAuth, (req, res) => {
-  const { decision, reviewedBy, notes } = req.body;
-  if (!['verified', 'rejected', 'pending'].includes(decision)) {
-    return res.status(400).json({ error: 'Invalid decision' });
+// ─── Verification (Project Owners) ───
+app.post('/api/projects/:slug/verify', async (req, res) => {
+  const { payerAddress } = req.body;
+  if (!payerAddress) {
+    return res.status(400).json({ error: 'payerAddress is required' });
   }
-  const result = reviewVerification(req.params.slug, decision, reviewedBy, notes);
+
+  const existing = await getProject(req.params.slug);
+  if (!existing) return res.status(404).json({ error: 'Project not found' });
+
+  if (existing.ownerAddress && existing.ownerAddress !== payerAddress) {
+    return res.status(403).json({ error: 'Only the project owner can submit a verification request' });
+  }
+
+  if (existing.verification?.status === 'pending') {
+    return res.status(409).json({ error: 'A verification request is already pending for this project' });
+  }
+  if (existing.verification?.status === 'verified') {
+    return res.status(409).json({ error: 'Project is already verified' });
+  }
+
+  const result = await submitVerification(req.params.slug, req.body);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  res.json(result);
+});
+
+// ─── Verification (Admin) ───
+app.post('/api/admin/projects/:slug/review', requireAuth, async (req, res) => {
+  const { decision, notes } = req.body;
+  if (!['verified', 'rejected'].includes(decision)) {
+    return res.status(400).json({ error: 'Decision must be verified or rejected' });
+  }
+  const result = await reviewVerification(req.params.slug, decision, req.adminUser.email, notes || '');
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
 });
 
 // ─── Social Interactions ───
-app.post('/api/social/like', (req, res) => {
+app.post('/api/social/like', async (req, res) => {
   const { projectSlug, userAddress } = req.body;
   if (!projectSlug || !userAddress) return res.status(400).json({ error: 'Missing projectSlug or userAddress' });
-  res.json(toggleInteraction('like', projectSlug, userAddress));
+  res.json(await toggleInteraction('like', projectSlug, userAddress));
 });
 
-app.post('/api/social/follow', (req, res) => {
+app.post('/api/social/follow', async (req, res) => {
   const { projectSlug, userAddress } = req.body;
   if (!projectSlug || !userAddress) return res.status(400).json({ error: 'Missing projectSlug or userAddress' });
-  res.json(toggleInteraction('follow', projectSlug, userAddress));
+  res.json(await toggleInteraction('follow', projectSlug, userAddress));
 });
 
-app.get('/api/social/project/:slug', (req, res) => {
+app.get('/api/social/project/:slug', async (req, res) => {
   const slug = req.params.slug;
   res.json({
-    likes: getLikes(slug),
-    follows: getFollows(slug),
-    comments: getComments(slug),
-    stats: getProjectStats(slug),
+    likes: await getLikes(slug),
+    follows: await getFollows(slug),
+    comments: await getComments(slug),
+    stats: await getProjectStats(slug),
   });
 });
 
 // ─── Comments ───
-app.get('/api/comments/:projectSlug', (req, res) => {
-  res.json(getComments(req.params.projectSlug));
+app.get('/api/comments/:projectSlug', async (req, res) => {
+  res.json(await getComments(req.params.projectSlug));
 });
 
-app.post('/api/comments', (req, res) => {
+app.post('/api/comments', async (req, res) => {
   const { projectSlug, userAddress, content, metadata } = req.body;
   if (!projectSlug || !userAddress || !content) {
     return res.status(400).json({ error: 'Missing projectSlug, userAddress, or content' });
   }
   // Sanitize HTML to prevent XSS
   const sanitized = String(content).replace(/[<>]/g, c => c === '<' ? '&lt;' : '&gt;');
-  const result = addComment(projectSlug, userAddress, sanitized, metadata);
+  const result = await addComment(projectSlug, userAddress, sanitized, metadata);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.status(201).json(result);
 });
 
-app.delete('/api/comments/:commentId', (req, res) => {
+app.delete('/api/comments/:commentId', async (req, res) => {
   const { userAddress } = req.body;
   if (!userAddress) return res.status(400).json({ error: 'userAddress required' });
-  const result = deleteComment(req.params.commentId, userAddress);
+  const result = await deleteComment(req.params.commentId, userAddress);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
 });
 
-app.post('/api/comments/:commentId/react', (req, res) => {
+app.post('/api/comments/:commentId/react', async (req, res) => {
   const { userAddress, emoji } = req.body;
   if (!userAddress || !emoji) {
     return res.status(400).json({ error: 'userAddress and emoji required' });
   }
-  const result = addReaction(req.params.commentId, userAddress, emoji);
+  const result = await addReaction(req.params.commentId, userAddress, emoji);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
 });
 
-app.get('/api/social/user/:address', (req, res) => {
-  res.json(getUserInteractions(req.params.address));
+app.get('/api/social/user/:address', async (req, res) => {
+  res.json(await getUserInteractions(req.params.address));
 });
 
 // ─── AI Explanation (Pilar C) ───
@@ -467,63 +492,63 @@ app.post('/api/anomalies/scan', async (req, res) => {
 // ─── Financial Config ───
 
 // Public: get verification wallet + fee
-app.get('/api/config/financial', (_req, res) => {
-  res.json(getFinancialConfig());
+app.get('/api/config/financial', async (_req, res) => {
+  res.json(await getFinancialConfig());
 });
 
 // Admin: update financial config
-app.put('/api/admin/config/financial', requireAuth, (req, res) => {
-  const config = updateFinancialConfig(req.body, req.adminUser?.email || 'admin');
+app.put('/api/admin/config/financial', requireAuth, async (req, res) => {
+  const config = await updateFinancialConfig(req.body, req.adminUser?.email || 'admin');
   res.json({ success: true, config });
 });
 
 // Admin: get financial summary
-app.get('/api/admin/financial/summary', requireAuth, (_req, res) => {
-  res.json(getFinancialSummary());
+app.get('/api/admin/financial/summary', requireAuth, async (_req, res) => {
+  res.json(await getFinancialSummary());
 });
 
 // ─── Unified Wallet Management (Admin) ───
 
-app.get('/api/admin/wallets', requireAuth, (_req, res) => {
-  res.json(getAllWallets());
+app.get('/api/admin/wallets', requireAuth, async (_req, res) => {
+  res.json(await getAllWallets());
 });
 
-app.get('/api/admin/wallets/:purpose', requireAuth, (req, res) => {
-  const wallet = getWalletByPurpose(req.params.purpose);
+app.get('/api/admin/wallets/:purpose', requireAuth, async (req, res) => {
+  const wallet = await getWalletByPurpose(req.params.purpose);
   if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
   res.json(wallet);
 });
 
-app.put('/api/admin/wallets/:purpose/address', requireAuth, (req, res) => {
+app.put('/api/admin/wallets/:purpose/address', requireAuth, async (req, res) => {
   const { address } = req.body;
   if (!address) return res.status(400).json({ error: 'Address is required' });
-  const result = updateWalletAddress(req.params.purpose, address, req.adminUser?.email || 'admin');
+  const result = await updateWalletAddress(req.params.purpose, address, req.adminUser?.email || 'admin');
   if (!result.success) return res.status(400).json({ error: result.error });
   res.json({ success: true, wallet: result.wallet });
 });
 
-app.put('/api/admin/wallets/:purpose/toggle', requireAuth, (req, res) => {
-  const result = toggleWallet(req.params.purpose, req.adminUser?.email || 'admin');
+app.put('/api/admin/wallets/:purpose/toggle', requireAuth, async (req, res) => {
+  const result = await toggleWallet(req.params.purpose, req.adminUser?.email || 'admin');
   if (!result.success) return res.status(404).json({ error: 'Wallet not found' });
   res.json({ success: true, wallet: result.wallet });
 });
 
-app.get('/api/admin/wallets-audit', requireAuth, (req, res) => {
+app.get('/api/admin/wallets-audit', requireAuth, async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const purpose = req.query.purpose || undefined;
-  res.json(getAuditLog(limit, purpose));
+  res.json(await getAuditLog(limit, purpose));
 });
 
 // Admin: get verification payments
-app.get('/api/admin/financial/payments', requireAuth, (req, res) => {
+app.get('/api/admin/financial/payments', requireAuth, async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
-  res.json(getVerificationPayments(limit));
+  res.json(await getVerificationPayments(limit));
 });
 
 // Record a verification payment (called by frontend after tx)
-app.post('/api/financial/verification-payment', (req, res) => {
+app.post('/api/financial/verification-payment', async (req, res) => {
   try {
-    const payment = recordVerificationPayment(req.body);
+    const payment = await recordVerificationPayment(req.body);
     res.json({ success: true, payment });
   } catch (err) {
     res.status(400).json({ error: 'Failed to record payment' });
@@ -531,9 +556,9 @@ app.post('/api/financial/verification-payment', (req, res) => {
 });
 
 // Admin: update payment status
-app.put('/api/admin/financial/payments/:id/status', requireAuth, (req, res) => {
+app.put('/api/admin/financial/payments/:id/status', requireAuth, async (req, res) => {
   const { status } = req.body;
-  const payment = updatePaymentStatus(req.params.id, status);
+  const payment = await updatePaymentStatus(req.params.id, status);
   if (!payment) return res.status(404).json({ error: 'Payment not found' });
   res.json({ success: true, payment });
 });
@@ -612,34 +637,77 @@ app.get('/api/prices/stats', (_req, res) => {
   res.json({ lunes: getPriceStats(), tokens: getTokenPriceStats() });
 });
 
+// ─── Chain: Asset Issuer Lookup ───
+// Returns the owner/issuer of a pallet-assets asset by querying the SubQuery GraphQL
+// Used to validate that only the token issuer can register a project for that asset.
+const INDEXER_URL = process.env.INDEXER_URL || 'http://graphql-engine:3000';
+
+app.get('/api/chain/asset-owner/:assetId', async (req, res) => {
+  const { assetId } = req.params;
+  if (!assetId || isNaN(Number(assetId))) {
+    return res.status(400).json({ error: 'Invalid assetId' });
+  }
+
+  try {
+    // Query SubQuery indexer for asset metadata field which stores issuer info
+    const gql = {
+      query: `{ asset(id: "${assetId}") { id name symbol metadata } }`,
+    };
+    const response = await fetch(`${INDEXER_URL}/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(gql),
+    });
+    if (!response.ok) throw new Error(`Indexer returned ${response.status}`);
+    const data = await response.json();
+    const asset = data?.data?.asset;
+    if (!asset) return res.status(404).json({ error: 'Asset not found in indexer' });
+
+    // Try to extract issuer from metadata JSON if stored
+    let issuer = null;
+    if (asset.metadata) {
+      try {
+        const meta = JSON.parse(asset.metadata);
+        issuer = meta.issuer || meta.owner || null;
+      } catch {}
+    }
+
+    res.json({ assetId, name: asset.name, symbol: asset.symbol, issuer });
+  } catch (err) {
+    console.error('[AssetOwner]', err.message);
+    // Return null issuer — frontend falls back to RPC check
+    res.json({ assetId, issuer: null, error: 'Indexer unavailable' });
+  }
+});
+
 // ─── Rewards System ───
 
 // Get public rewards config (tiers, conversion rates, limits)
-app.get('/api/rewards/config', (_req, res) => {
-  res.json(getConfig());
+app.get('/api/rewards/config', async (_req, res) => {
+  res.json(await getConfig());
 });
 
 // Get leaderboard (MUST be before :address route to avoid shadowing)
 app.get('/api/rewards/leaderboard', async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
-  let leaderboard = getLeaderboard(limit);
+  let leaderboard = await getLeaderboard(limit);
   // Auto-seed from indexer if leaderboard is empty or has no meaningful data
   const hasRealData = leaderboard.some(e => e.totalPoints > 0 || e.transactions > 0);
   if (!hasRealData) {
     await seedFromIndexer();
-    leaderboard = getLeaderboard(limit);
+    leaderboard = await getLeaderboard(limit);
   }
   res.json({ leaderboard, count: leaderboard.length });
 });
 
 // Get user rewards
-app.get('/api/rewards/:address', (req, res) => {
-  const user = getOrCreateUserRewards(req.params.address);
+app.get('/api/rewards/:address', async (req, res) => {
+  const user = await getOrCreateUserRewards(req.params.address);
   res.json(user);
 });
 
 // Add points to user (internal/admin only)
-app.post('/api/rewards/:address/points', requireAuth, (req, res) => {
+app.post('/api/rewards/:address/points', requireAuth, async (req, res) => {
   const { category, basePoints, description, metadata } = req.body;
   
   if (!category || !basePoints) {
@@ -649,7 +717,7 @@ app.post('/api/rewards/:address/points', requireAuth, (req, res) => {
   // Cap basePoints to prevent abuse
   const safePoints = Math.min(Math.max(Number(basePoints) || 0, 0), 10000);
   
-  const user = addPoints(
+  const user = await addPoints(
     req.params.address,
     category,
     safePoints,
@@ -661,116 +729,116 @@ app.post('/api/rewards/:address/points', requireAuth, (req, res) => {
 });
 
 // Update user stats — caller must prove ownership via matching callerAddress
-app.post('/api/rewards/:address/stats', (req, res) => {
+app.post('/api/rewards/:address/stats', async (req, res) => {
   const { transactionCount, stakeAmount, callerAddress } = req.body;
   // Verify the caller claims to be the address owner
   if (!callerAddress || callerAddress !== req.params.address) {
     return res.status(403).json({ error: 'callerAddress must match the target address' });
   }
-  const user = updateUserStats(req.params.address, { transactionCount, stakeAmount });
+  const user = await updateUserStats(req.params.address, { transactionCount, stakeAmount });
   res.json({ success: true, user });
 });
 
 // Claim rewards — caller must prove ownership via matching callerAddress
 // Token is determined by admin config (rewardToken), not by the user
-app.post('/api/rewards/:address/claim', (req, res) => {
+app.post('/api/rewards/:address/claim', async (req, res) => {
   const { callerAddress } = req.body;
 
   if (!callerAddress || callerAddress !== req.params.address) {
     return res.status(403).json({ error: 'callerAddress must match the target address' });
   }
   
-  const result = claimRewards(req.params.address);
+  const result = await claimRewards(req.params.address);
   res.json(result);
 });
 
 // ─── Admin: Rewards Management ───
 
 // Get wallet status
-app.get('/api/admin/rewards/wallet', requireAuth, (req, res) => {
-  const wallet = getWallet();
+app.get('/api/admin/rewards/wallet', requireAuth, async (req, res) => {
+  const wallet = await getWallet();
   res.json(wallet);
 });
 
 // Refill wallet
-app.post('/api/admin/rewards/wallet/refill', requireAuth, (req, res) => {
+app.post('/api/admin/rewards/wallet/refill', requireAuth, async (req, res) => {
   const { tokenId, amount } = req.body;
   
   if (!tokenId || !amount || amount <= 0) {
     return res.status(400).json({ error: 'Missing tokenId or valid amount' });
   }
   
-  const wallet = refillWallet(tokenId, amount);
+  const wallet = await refillWallet(tokenId, amount);
   res.json({ success: true, wallet });
 });
 
 // Update wallet
-app.put('/api/admin/rewards/wallet', requireAuth, (req, res) => {
-  const wallet = updateWallet(req.body);
+app.put('/api/admin/rewards/wallet', requireAuth, async (req, res) => {
+  const wallet = await updateWallet(req.body);
   res.json({ success: true, wallet });
 });
 
 // Get reward stats
-app.get('/api/admin/rewards/stats', requireAuth, (req, res) => {
-  const stats = getStats();
+app.get('/api/admin/rewards/stats', requireAuth, async (req, res) => {
+  const stats = await getStats();
   res.json(stats);
 });
 
 // Update reward config
-app.put('/api/admin/rewards/config', requireAuth, (req, res) => {
-  const config = updateConfig(req.body);
+app.put('/api/admin/rewards/config', requireAuth, async (req, res) => {
+  const config = await updateConfig(req.body);
   res.json({ success: true, config });
 });
 
 // Reset daily counters (admin only)
-app.post('/api/admin/rewards/reset', requireAuth, (req, res) => {
-  resetDailyCounters();
+app.post('/api/admin/rewards/reset', requireAuth, async (req, res) => {
+  await resetDailyCounters();
   res.json({ success: true, message: 'Daily counters reset' });
 });
 
 // ─── Secure Wallet Management (requires auth) ───
-app.post('/api/admin/rewards/wallet/change-address', requireAuth, (req, res) => {
+app.post('/api/admin/rewards/wallet/change-address', requireAuth, async (req, res) => {
   if (req.adminUser.role !== 'owner' && req.adminUser.role !== 'admin') {
     return res.status(403).json({ error: 'Only owners and admins can change the wallet address' });
   }
   const { address, password } = req.body;
   if (!address) return res.status(400).json({ error: 'Address is required' });
-  const result = changeWalletAddress(address, req.adminUser.email, password);
+  const result = await changeWalletAddress(address, req.adminUser.email, password);
   if (!result.success) return res.status(400).json({ error: result.error });
   res.json({ success: true, wallet: result.wallet });
 });
 
-app.post('/api/admin/rewards/wallet/change-name', requireAuth, (req, res) => {
+app.post('/api/admin/rewards/wallet/change-name', requireAuth, async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
-  const result = changeWalletName(name, req.adminUser.email);
+  const result = await changeWalletName(name, req.adminUser.email);
   res.json({ success: true, wallet: result.wallet });
 });
 
-app.post('/api/admin/rewards/wallet/toggle-active', requireAuth, (req, res) => {
+app.post('/api/admin/rewards/wallet/toggle-active', requireAuth, async (req, res) => {
   if (req.adminUser.role !== 'owner' && req.adminUser.role !== 'admin') {
     return res.status(403).json({ error: 'Only owners and admins can toggle wallet status' });
   }
-  const result = toggleWalletActive(req.adminUser.email);
+  const result = await toggleWalletActive(req.adminUser.email);
   res.json({ success: true, wallet: result.wallet });
 });
 
-app.get('/api/admin/rewards/wallet/changelog', requireAuth, (req, res) => {
-  res.json(getWalletChangeLog());
+app.get('/api/admin/rewards/wallet/changelog', requireAuth, async (req, res) => {
+  res.json(await getWalletChangeLog());
 });
 
 // ─── Admin Project Management ───
-app.get('/api/admin/projects', requireAuth, (_req, res) => {
-  const projects = getProjects();
-  const enriched = projects.map(p => ({
+app.get('/api/admin/projects', requireAuth, async (_req, res) => {
+  const projects = await getProjects();
+  const enriched = await Promise.all(projects.map(async p => ({
     ...p,
-    social: getProjectStats(p.slug),
-  }));
+    social: await getProjectStats(p.slug),
+  })));
   res.json(enriched);
 });
 
-app.put('/api/admin/projects/:slug', requireAuth, (req, res) => {
-  const existing = getProject(req.params.slug);
+app.put('/api/admin/projects/:slug', requireAuth, async (req, res) => {
+  const existing = await getProject(req.params.slug);
   if (!existing) return res.status(404).json({ error: 'Project not found' });
   // Admin can edit any project — no ownership check
   const { ownerAddress, ...updates } = req.body;
@@ -784,31 +852,36 @@ app.put('/api/admin/projects/:slug', requireAuth, (req, res) => {
     updates.banner = updates.bannerImage;
     delete updates.bannerImage;
   }
-  const result = updateProject(req.params.slug, updates);
+  const result = await updateProject(req.params.slug, updates);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
 });
 
-app.delete('/api/admin/projects/:slug', requireAuth, (req, res) => {
+app.delete('/api/admin/projects/:slug', requireAuth, async (req, res) => {
   if (req.adminUser.role !== 'owner' && req.adminUser.role !== 'admin') {
     return res.status(403).json({ error: 'Only owners and admins can delete projects' });
   }
-  const result = deleteProject(req.params.slug);
+  const result = await deleteProject(req.params.slug);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
 });
 
 // ─── Auth Middleware ───
-function requireAuth(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+async function requireAuth(req, res, next) {
+  try {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const token = auth.replace('Bearer ', '');
+    const user = await getUserByToken(token);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    req.adminUser = user;
+    next();
+  } catch (err) {
+    console.error('[Auth] Middleware error:', err);
+    return res.status(500).json({ error: 'Authentication failed' });
   }
-  const token = auth.replace('Bearer ', '');
-  const user = getUserByToken(token);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
-  req.adminUser = user;
-  next();
 }
 
 // ─── Admin Auth ───
@@ -816,7 +889,7 @@ const loginAttempts = new Map(); // ip -> { count, resetAt }
 const LOGIN_WINDOW_MS = 15 * 60_000; // 15 minutes
 const LOGIN_MAX_ATTEMPTS = 5;
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   // Brute force protection
  /* const ip = req.ip || req.connection?.remoteAddress || 'unknown';
   const now = Date.now();
@@ -835,14 +908,14 @@ app.post('/api/auth/login', (req, res) => {
   }*/
 
   const { username, password } = req.body;
-  const user = authenticateUser(username, password);
+  const user = await authenticateUser(username, password);
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
   // Reset attempts on successful login
   //loginAttempts.delete(ip);
   const token = generateToken(user);
-  storeToken(token, user.id);
+  await storeToken(token, user.id);
   return res.json({ access_token: token, token_type: 'bearer' });
 });
 
@@ -852,12 +925,12 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 });
 
 // ─── Password Management ───
-app.post('/api/auth/change-password', requireAuth, (req, res) => {
+app.post('/api/auth/change-password', requireAuth, async (req, res) => {
   const { current_password, new_password } = req.body;
   if (!current_password || !new_password) {
     return res.status(400).json({ error: 'Current and new password are required' });
   }
-  const result = changePassword(req.adminUser.id, current_password, new_password);
+  const result = await changePassword(req.adminUser.id, current_password, new_password);
   if (!result.success) {
     return res.status(400).json({ error: result.error });
   }
@@ -865,57 +938,57 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
 });
 
 // ─── Team Management ───
-app.get('/api/admin/team', requireAuth, (req, res) => {
+app.get('/api/admin/team', requireAuth, async (req, res) => {
   if (req.adminUser.role !== 'owner' && req.adminUser.role !== 'admin') {
     return res.status(403).json({ error: 'Only owners and admins can manage team' });
   }
-  res.json(getTeamMembers());
+  res.json(await getTeamMembers());
 });
 
-app.post('/api/admin/team', requireAuth, (req, res) => {
+app.post('/api/admin/team', requireAuth, async (req, res) => {
   if (req.adminUser.role !== 'owner' && req.adminUser.role !== 'admin') {
     return res.status(403).json({ error: 'Only owners and admins can add team members' });
   }
   const { email, full_name, password, role } = req.body;
-  const result = addTeamMember({ email, full_name, password, role: role || 'editor' });
+  const result = await addTeamMember({ email, full_name, password, role: role || 'editor' });
   if (!result.success) {
     return res.status(400).json({ error: result.error });
   }
   res.status(201).json(result.user);
 });
 
-app.put('/api/admin/team/:id', requireAuth, (req, res) => {
+app.put('/api/admin/team/:id', requireAuth, async (req, res) => {
   if (req.adminUser.role !== 'owner' && req.adminUser.role !== 'admin') {
     return res.status(403).json({ error: 'Only owners and admins can update team members' });
   }
   const id = parseInt(req.params.id);
-  const result = updateTeamMember(id, req.body);
+  const result = await updateTeamMember(id, req.body);
   if (!result.success) {
     return res.status(400).json({ error: result.error });
   }
   res.json(result.user);
 });
 
-app.post('/api/admin/team/:id/reset-password', requireAuth, (req, res) => {
+app.post('/api/admin/team/:id/reset-password', requireAuth, async (req, res) => {
   if (req.adminUser.role !== 'owner' && req.adminUser.role !== 'admin') {
     return res.status(403).json({ error: 'Only owners and admins can reset passwords' });
   }
   const id = parseInt(req.params.id);
   const { new_password } = req.body;
   if (!new_password) return res.status(400).json({ error: 'New password is required' });
-  const result = resetTeamMemberPassword(id, new_password);
+  const result = await resetTeamMemberPassword(id, new_password);
   if (!result.success) {
     return res.status(400).json({ error: result.error });
   }
   res.json({ success: true, message: 'Password reset successfully' });
 });
 
-app.delete('/api/admin/team/:id', requireAuth, (req, res) => {
+app.delete('/api/admin/team/:id', requireAuth, async (req, res) => {
   if (req.adminUser.role !== 'owner') {
     return res.status(403).json({ error: 'Only the owner can delete team members' });
   }
   const id = parseInt(req.params.id);
-  const result = deleteTeamMember(id);
+  const result = await deleteTeamMember(id);
   if (!result.success) {
     return res.status(400).json({ error: result.error });
   }
@@ -923,19 +996,19 @@ app.delete('/api/admin/team/:id', requireAuth, (req, res) => {
 });
 
 // ─── Banners (Public) ───
-app.get('/api/banners', (_req, res) => {
-  res.json(getActiveBanners());
+app.get('/api/banners', async (_req, res) => {
+  res.json(await getActiveBanners());
 });
 
 // ─── Banners (Admin) ───
-app.get('/api/admin/banners', requireAuth, (_req, res) => {
-  res.json(getAllBanners());
+app.get('/api/admin/banners', requireAuth, async (_req, res) => {
+  res.json(await getAllBanners());
 });
 
-app.post('/api/admin/banners', requireAuth, (req, res) => {
+app.post('/api/admin/banners', requireAuth, async (req, res) => {
   const { title, subtitle, imageUrl, gradient, linkUrl, linkLabel, isActive, order } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
-  const banner = createBanner({
+  const banner = await createBanner({
     title, subtitle, imageUrl, gradient, linkUrl, linkLabel,
     isActive: isActive !== false,
     order: order ?? 99,
@@ -943,71 +1016,71 @@ app.post('/api/admin/banners', requireAuth, (req, res) => {
   res.status(201).json(banner);
 });
 
-app.put('/api/admin/banners/:id', requireAuth, (req, res) => {
-  const banner = updateBanner(req.params.id, req.body);
+app.put('/api/admin/banners/:id', requireAuth, async (req, res) => {
+  const banner = await updateBanner(req.params.id, req.body);
   if (!banner) return res.status(404).json({ error: 'Banner not found' });
   res.json(banner);
 });
 
-app.delete('/api/admin/banners/:id', requireAuth, (req, res) => {
-  const deleted = deleteBanner(req.params.id);
+app.delete('/api/admin/banners/:id', requireAuth, async (req, res) => {
+  const deleted = await deleteBanner(req.params.id);
   if (!deleted) return res.status(404).json({ error: 'Banner not found' });
   res.json({ success: true });
 });
 
-app.post('/api/admin/banners/reorder', requireAuth, (req, res) => {
+app.post('/api/admin/banners/reorder', requireAuth, async (req, res) => {
   const { orderedIds } = req.body;
   if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds array required' });
-  const banners = reorderBanners(orderedIds);
+  const banners = await reorderBanners(orderedIds);
   res.json(banners);
 });
 
 // ─── Ads (Public) ───
-app.get('/api/ads', (req, res) => {
+app.get('/api/ads', async (req, res) => {
   const placement = req.query.placement || undefined;
-  res.json(getActiveAds(placement));
+  res.json(await getActiveAds(placement));
 });
 
-app.post('/api/ads/:id/impression', (req, res) => {
-  trackImpression(req.params.id);
+app.post('/api/ads/:id/impression', async (req, res) => {
+  await trackImpression(req.params.id);
   res.json({ success: true });
 });
 
-app.post('/api/ads/:id/click', (req, res) => {
-  trackClick(req.params.id);
+app.post('/api/ads/:id/click', async (req, res) => {
+  await trackClick(req.params.id);
   res.json({ success: true });
 });
 
 // ─── Public: Donations Wallet ───
-app.get('/api/wallets/donations', (_req, res) => {
-  const wallet = getWalletByPurpose('donations');
+app.get('/api/wallets/donations', async (_req, res) => {
+  const wallet = await getWalletByPurpose('donations');
   res.json({ address: wallet?.address || '', isActive: wallet?.isActive ?? true });
 });
 
 // ─── Ads Pricing (Public) ───
-app.get('/api/ads/pricing', (_req, res) => {
-  res.json(getAdPricing());
+app.get('/api/ads/pricing', async (_req, res) => {
+  res.json(await getAdPricing());
 });
 
-app.get('/api/ads/calculate', (req, res) => {
+app.get('/api/ads/calculate', async (req, res) => {
   const impressions = parseInt(req.query.impressions) || 1000;
-  const cost = calculateAdCost(impressions);
+  const cost = await calculateAdCost(impressions);
   res.json({ impressions, cost, currency: 'LUNES' });
 });
 
 // ─── Ads Self-Service ───
-app.post('/api/ads/submit', (req, res) => {
+app.post('/api/ads/submit', async (req, res) => {
   try {
     const { title, description, ctaText, ctaUrl, imageUrl, placement,
             advertiserAddress, advertiserName, advertiserEmail, purchasedImpressions } = req.body;
     if (!title || !ctaUrl || !advertiserAddress || !advertiserName || !advertiserEmail || !purchasedImpressions) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    const pricing = getAdPricing();
+    const pricing = await getAdPricing();
     if (purchasedImpressions < pricing.minImpressions || purchasedImpressions > pricing.maxImpressions) {
       return res.status(400).json({ error: `Impressions must be between ${pricing.minImpressions} and ${pricing.maxImpressions}` });
     }
-    const ad = submitAd({ title, description, ctaText, ctaUrl, imageUrl, placement,
+    const ad = await submitAd({ title, description, ctaText, ctaUrl, imageUrl, placement,
                           advertiserAddress, advertiserName, advertiserEmail, purchasedImpressions });
     res.status(201).json(ad);
   } catch (err) {
@@ -1015,44 +1088,44 @@ app.post('/api/ads/submit', (req, res) => {
   }
 });
 
-app.get('/api/ads/my/:address', (req, res) => {
-  res.json(getAdsByAdvertiser(req.params.address));
+app.get('/api/ads/my/:address', async (req, res) => {
+  res.json(await getAdsByAdvertiser(req.params.address));
 });
 
-app.get('/api/ads/advertiser/:address', (req, res) => {
-  const profile = getAdvertiserProfile(req.params.address);
+app.get('/api/ads/advertiser/:address', async (req, res) => {
+  const profile = await getAdvertiserProfile(req.params.address);
   if (!profile) return res.status(404).json({ error: 'Advertiser not found' });
-  const ads = getAdsByAdvertiser(req.params.address);
+  const ads = await getAdsByAdvertiser(req.params.address);
   res.json({ profile, ads });
 });
 
-app.post('/api/ads/:id/pay', (req, res) => {
+app.post('/api/ads/:id/pay', async (req, res) => {
   const { txHash } = req.body;
   if (!txHash) return res.status(400).json({ error: 'txHash is required' });
-  const ad = confirmAdPayment(req.params.id, txHash);
+  const ad = await confirmAdPayment(req.params.id, txHash);
   if (!ad) return res.status(404).json({ error: 'Ad not found or not pending payment' });
   res.json({ success: true, ad });
 });
 
 // ─── Ads (Admin) ───
 // NOTE: Specific routes (/pricing, /review, /advertisers) MUST come before generic /:id routes
-app.get('/api/admin/ads', requireAuth, (_req, res) => {
-  res.json(getAllAds());
+app.get('/api/admin/ads', requireAuth, async (_req, res) => {
+  res.json(await getAllAds());
 });
 
-app.put('/api/admin/ads/pricing', requireAuth, (req, res) => {
-  const pricing = updateAdPricing(req.body);
+app.put('/api/admin/ads/pricing', requireAuth, async (req, res) => {
+  const pricing = await updateAdPricing(req.body);
   res.json({ success: true, pricing });
 });
 
-app.get('/api/admin/advertisers', requireAuth, (_req, res) => {
-  res.json(getAllAdvertisers());
+app.get('/api/admin/advertisers', requireAuth, async (_req, res) => {
+  res.json(await getAllAdvertisers());
 });
 
-app.post('/api/admin/ads', requireAuth, (req, res) => {
+app.post('/api/admin/ads', requireAuth, async (req, res) => {
   const { title, description, ctaText, ctaUrl, imageUrl, placement, isActive, priority, startDate, endDate } = req.body;
   if (!title || !ctaUrl) return res.status(400).json({ error: 'Title and CTA URL are required' });
-  const ad = createAd({
+  const ad = await createAd({
     title, description: description || '', ctaText: ctaText || 'Learn More', ctaUrl,
     imageUrl, placement: placement || 'home_stats',
     isActive: isActive !== false, priority: priority ?? 0,
@@ -1061,35 +1134,35 @@ app.post('/api/admin/ads', requireAuth, (req, res) => {
   res.status(201).json(ad);
 });
 
-app.put('/api/admin/ads/:id/review', requireAuth, (req, res) => {
+app.put('/api/admin/ads/:id/review', requireAuth, async (req, res) => {
   const { decision, notes } = req.body;
   if (!['approved', 'rejected'].includes(decision)) {
     return res.status(400).json({ error: 'Decision must be approved or rejected' });
   }
-  const ad = reviewAd(req.params.id, decision, notes);
+  const ad = await reviewAd(req.params.id, decision, notes);
   if (!ad) return res.status(404).json({ error: 'Ad not found' });
   res.json({ success: true, ad });
 });
 
-app.put('/api/admin/ads/:id', requireAuth, (req, res) => {
-  const ad = updateAd(req.params.id, req.body);
+app.put('/api/admin/ads/:id', requireAuth, async (req, res) => {
+  const ad = await updateAd(req.params.id, req.body);
   if (!ad) return res.status(404).json({ error: 'Ad not found' });
   res.json(ad);
 });
 
-app.delete('/api/admin/ads/:id', requireAuth, (req, res) => {
-  const deleted = deleteAd(req.params.id);
+app.delete('/api/admin/ads/:id', requireAuth, async (req, res) => {
+  const deleted = await deleteAd(req.params.id);
   if (!deleted) return res.status(404).json({ error: 'Ad not found' });
   res.json({ success: true });
 });
 
 // ─── AI Config (Admin) ───
-app.get('/api/admin/ai/config', requireAuth, (_req, res) => {
-  res.json(getAIConfigSafe());
+app.get('/api/admin/ai/config', requireAuth, async (_req, res) => {
+  res.json(await getAIConfigSafe());
 });
 
-app.put('/api/admin/ai/config', requireAuth, (req, res) => {
-  const updated = updateAIConfig(req.body, req.adminUser?.email || 'admin');
+app.put('/api/admin/ai/config', requireAuth, async (req, res) => {
+  const updated = await updateAIConfig(req.body, req.adminUser?.email || 'admin');
   res.json(updated);
 });
 
@@ -1102,6 +1175,103 @@ app.post('/api/admin/ai/test-key', requireAuth, async (req, res) => {
 
 app.get('/api/admin/ai/models', requireAuth, (_req, res) => {
   res.json(FREE_MODELS);
+});
+
+// ─── Token Emission (Public) ───
+app.get('/api/token-emission/config', async (_req, res) => {
+  const config = await getTokenEmissionConfig();
+  res.json({
+    emissionFee: config.emissionFee,
+    receiverAddress: config.receiverAddress,
+    minSupply: config.minSupply,
+    maxSupply: config.maxSupply,
+    isEnabled: config.isEnabled,
+  });
+});
+
+app.get('/api/tokens', async (_req, res) => {
+  res.json(await getRegisteredTokens());
+});
+
+app.get('/api/tokens/owner/:address', async (req, res) => {
+  res.json(await getRegisteredTokensByOwner(req.params.address));
+});
+
+app.get('/api/tokens/asset/:assetId', async (req, res) => {
+  const token = await getRegisteredTokenByAssetId(req.params.assetId);
+  if (!token) return res.status(404).json({ error: 'Token not found' });
+  res.json(token);
+});
+
+app.post('/api/tokens/register', writeRateLimit, async (req, res) => {
+  const {
+    assetId, name, symbol, decimals, totalSupply,
+    ownerAddress, adminAddress, paymentTxHash,
+    logoUrl, description, website,
+  } = req.body;
+
+  if (!assetId || !name || !symbol || !ownerAddress || !paymentTxHash) {
+    return res.status(400).json({ error: 'assetId, name, symbol, ownerAddress and paymentTxHash are required' });
+  }
+  if (!adminAddress) {
+    return res.status(400).json({ error: 'adminAddress is required' });
+  }
+
+  const config = await getTokenEmissionConfig();
+  if (!config.isEnabled) {
+    return res.status(503).json({ error: 'Token emission is currently disabled' });
+  }
+
+  // Check for duplicate assetId
+  const existing = await getRegisteredTokenByAssetId(assetId);
+  if (existing) {
+    return res.status(409).json({ error: 'This asset ID is already registered' });
+  }
+
+  const token = await registerToken({
+    assetId: String(assetId),
+    name: String(name).trim(),
+    symbol: String(symbol).trim().toUpperCase(),
+    decimals: parseInt(decimals) || 8,
+    totalSupply: String(totalSupply || '0'),
+    ownerAddress: String(ownerAddress),
+    adminAddress: String(adminAddress),
+    paymentTxHash: String(paymentTxHash),
+    feePaid: config.emissionFee,
+    logoUrl: logoUrl || '',
+    description: description || '',
+    website: website || '',
+    onChainConfirmed: false,
+  });
+
+  res.status(201).json(token);
+});
+
+app.post('/api/tokens/:assetId/confirm', async (req, res) => {
+  const token = await confirmTokenOnChain(req.params.assetId);
+  if (!token) return res.status(404).json({ error: 'Token not found' });
+  res.json(token);
+});
+
+// ─── Token Emission (Admin) ───
+app.get('/api/admin/token-emission/config', requireAuth, async (_req, res) => {
+  res.json(await getTokenEmissionConfig());
+});
+
+app.put('/api/admin/token-emission/config', requireAuth, async (req, res) => {
+  const { emissionFee, receiverAddress, minSupply, maxSupply, isEnabled } = req.body;
+  const updates = {};
+  if (emissionFee !== undefined) updates.emissionFee = Number(emissionFee);
+  if (receiverAddress !== undefined) updates.receiverAddress = String(receiverAddress);
+  if (minSupply !== undefined) updates.minSupply = Number(minSupply);
+  if (maxSupply !== undefined) updates.maxSupply = Number(maxSupply);
+  if (isEnabled !== undefined) updates.isEnabled = Boolean(isEnabled);
+  const config = await updateTokenEmissionConfig(updates);
+  res.json(config);
+});
+
+app.get('/api/admin/tokens', requireAuth, async (_req, res) => {
+  res.json(await getRegisteredTokens());
 });
 
 // ─── Start ───

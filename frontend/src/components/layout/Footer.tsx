@@ -21,6 +21,8 @@ const Footer = () => {
         ],
         ecosystem: [
             { label: 'Projects', href: '/projects' },
+            { label: 'Build on Lunes', href: '/ecosystem' },
+            { label: 'Create Token', href: '/dashboard' },
             { label: 'Register Project', href: '/project/register' },
             { label: 'Verify Project', href: '/project/verify' },
             { label: 'Advertise', href: '/advertise' },

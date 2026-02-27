@@ -37,6 +37,7 @@ const AdminRewardsPage = React.lazy(() => import('./pages/AdminRewards'));
 const AnomalyRadarPage = React.lazy(() => import('./pages/AnomalyRadar'));
 const AdvertisePage = React.lazy(() => import('./pages/Advertise'));
 const AdPoliciesPage = React.lazy(() => import('./pages/Advertise/Policies'));
+const EcosystemPage = React.lazy(() => import('./pages/Ecosystem'));
 
 const LazyFallback = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
@@ -102,6 +103,7 @@ function App() {
                       <Route path="/anomalies" element={<PageWrapper><AnomalyRadarPage /></PageWrapper>} />
                       <Route path="/advertise" element={<PageWrapper><AdvertisePage /></PageWrapper>} />
                       <Route path="/advertise/policies" element={<PageWrapper><AdPoliciesPage /></PageWrapper>} />
+                      <Route path="/ecosystem" element={<PageWrapper><EcosystemPage /></PageWrapper>} />
                     </Routes>
                   </Layout>
                 )}

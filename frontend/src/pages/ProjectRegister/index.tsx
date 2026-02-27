@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -17,6 +17,7 @@ import Card from '../../components/common/Card';
 import ImageUpload from '../../components/common/ImageUpload';
 import { useWalletAuth } from '../../context/WalletAuthContext';
 import { useProjectMutations } from '../../hooks/useProjects';
+import { WS_ENDPOINTS } from '../../config';
 import type { ProjectLink, ProjectMilestone } from '../../data/knownProjects';
 import styles from './ProjectRegister.module.css';
 
@@ -63,6 +64,36 @@ const ProjectRegister: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Asset issuer validation when assetId is provided in URL
+  const [assetOwner, setAssetOwner] = useState<string | null>(null);
+  const [assetOwnerChecked, setAssetOwnerChecked] = useState(false);
+
+  useEffect(() => {
+    if (!assetId) { setAssetOwnerChecked(true); return; }
+    (async () => {
+      try {
+        const { ApiPromise, WsProvider } = await import('@polkadot/api');
+        const wsProvider = new WsProvider(WS_ENDPOINTS);
+        const api = await ApiPromise.create({ provider: wsProvider });
+        const assetInfo = await (api.query.assets as any).asset(assetId);
+        await api.disconnect();
+        if (assetInfo.isSome) {
+          const info = assetInfo.unwrap();
+          setAssetOwner(info.admin?.toString() || info.owner?.toString() || null);
+        } else {
+          setAssetOwner(null);
+        }
+      } catch (err) {
+        console.warn('[AssetOwner] RPC check failed:', err);
+        setAssetOwner(null);
+      } finally {
+        setAssetOwnerChecked(true);
+      }
+    })();
+  }, [assetId]);
+
+  const connectedAddress = wallet?.account?.address;
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -103,6 +134,15 @@ const ProjectRegister: React.FC = () => {
     if (!isConnected || !wallet?.account?.address) {
       setSubmitError('Please connect your wallet first.');
       return;
+    }
+
+    if (assetId && assetOwnerChecked && assetOwner !== null) {
+      if (assetOwner.toLowerCase() !== wallet.account.address.toLowerCase()) {
+        setSubmitError(
+          `Only the asset issuer (${assetOwner.slice(0, 8)}...${assetOwner.slice(-6)}) can register a project for asset #${assetId}.`
+        );
+        return;
+      }
     }
 
     const links: ProjectLink[] = [];
@@ -500,6 +540,19 @@ const ProjectRegister: React.FC = () => {
           </div>
         </Card>
 
+        {/* Asset issuer warning */}
+        {assetId && assetOwnerChecked && assetOwner !== null && connectedAddress &&
+          assetOwner.toLowerCase() !== connectedAddress.toLowerCase() && (
+          <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(255,165,0,0.08)', border: '1px solid rgba(255,165,0,0.3)', color: '#ffa500', fontSize: 13, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>
+              <strong>Asset ownership mismatch:</strong> Asset #{assetId} was issued by{' '}
+              <code style={{ fontFamily: 'monospace', fontSize: 12 }}>{assetOwner.slice(0, 10)}...{assetOwner.slice(-8)}</code>.
+              {' '}Only the asset issuer can register a project for this token. Connect the correct wallet to proceed.
+            </span>
+          </div>
+        )}
+
         {/* Submit */}
         <div className={styles.submitSection}>
           <div className={styles.verificationNotice}>
@@ -529,7 +582,10 @@ const ProjectRegister: React.FC = () => {
           ) : (
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (
+                assetId !== null && assetOwnerChecked && assetOwner !== null && connectedAddress != null &&
+                assetOwner.toLowerCase() !== connectedAddress.toLowerCase()
+              )}
               className={styles.submitButton}
             >
               {isSubmitting ? (

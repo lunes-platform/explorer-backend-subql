@@ -1,14 +1,6 @@
 // Ads Store - Manages promotional ads displayed across the explorer
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import prisma from './prismaClient.ts';
 import { getWalletByPurpose } from './financialStore.ts';
-
-const DATA_DIR = './data';
-const ADS_FILE = join(DATA_DIR, 'ads.json');
-
-if (!existsSync(DATA_DIR)) {
-  mkdirSync(DATA_DIR, { recursive: true });
-}
 
 export interface Ad {
   id: string;
@@ -67,6 +59,8 @@ interface AdsData {
   lastUpdated: string;
 }
 
+const ADS_STATE_KEY = 'ads';
+
 const DEFAULT_PRICING: AdPricingConfig = {
   costPer1000Impressions: 50,
   minImpressions: 1000,
@@ -94,40 +88,55 @@ const DEFAULT_ADS: Ad[] = [
   },
 ];
 
-let adsData: AdsData = {
-  ads: DEFAULT_ADS,
-  pricing: DEFAULT_PRICING,
-  advertisers: [],
-  lastUpdated: new Date().toISOString(),
-};
-
-function loadData() {
-  try {
-    if (existsSync(ADS_FILE)) {
-      const raw = JSON.parse(readFileSync(ADS_FILE, 'utf-8'));
-      adsData = { ...adsData, ...raw };
-      if (raw.pricing) adsData.pricing = { ...DEFAULT_PRICING, ...raw.pricing };
-      // Migrate old ads without status
-      adsData.ads = adsData.ads.map(a => ({ ...a, status: a.status || 'active' }));
-    }
-  } catch (err) {
-    console.error('[Ads] Error loading data:', err);
-  }
+function createDefaultState(): AdsData {
+  return {
+    ads: JSON.parse(JSON.stringify(DEFAULT_ADS)),
+    pricing: { ...DEFAULT_PRICING },
+    advertisers: [],
+    lastUpdated: new Date().toISOString(),
+  };
 }
 
-function saveData() {
-  try {
-    writeFileSync(ADS_FILE, JSON.stringify(adsData, null, 2));
-  } catch (err) {
-    console.error('[Ads] Error saving data:', err);
-  }
+function normalizeState(data: Partial<AdsData>): AdsData {
+  const ads = (Array.isArray(data.ads) ? data.ads : DEFAULT_ADS).map((a) => ({
+    ...a,
+    status: a.status || 'active',
+  }));
+
+  return {
+    ads,
+    pricing: { ...DEFAULT_PRICING, ...(data.pricing || {}) },
+    advertisers: Array.isArray(data.advertisers) ? data.advertisers : [],
+    lastUpdated: data.lastUpdated || new Date().toISOString(),
+  };
 }
 
-loadData();
+async function loadState(): Promise<AdsData> {
+  const row = await prisma.adminDataState.findUnique({ where: { key: ADS_STATE_KEY } });
+  if (!row) {
+    const initial = createDefaultState();
+    await prisma.adminDataState.create({
+      data: { key: ADS_STATE_KEY, data: initial },
+    });
+    return initial;
+  }
+
+  return normalizeState((row.data as Partial<AdsData>) || {});
+}
+
+async function saveState(state: AdsData): Promise<void> {
+  state.lastUpdated = new Date().toISOString();
+  await prisma.adminDataState.upsert({
+    where: { key: ADS_STATE_KEY },
+    update: { data: state },
+    create: { key: ADS_STATE_KEY, data: state },
+  });
+}
 
 // ─── Public API ───
 
-export function getActiveAds(placement?: string): Ad[] {
+export async function getActiveAds(placement?: string): Promise<Ad[]> {
+  const adsData = await loadState();
   const now = new Date().toISOString();
   return adsData.ads
     .filter(a => {
@@ -140,15 +149,18 @@ export function getActiveAds(placement?: string): Ad[] {
     .sort((a, b) => a.priority - b.priority);
 }
 
-export function getAllAds(): Ad[] {
+export async function getAllAds(): Promise<Ad[]> {
+  const adsData = await loadState();
   return adsData.ads.sort((a, b) => a.priority - b.priority);
 }
 
-export function getAd(id: string): Ad | undefined {
+export async function getAd(id: string): Promise<Ad | undefined> {
+  const adsData = await loadState();
   return adsData.ads.find(a => a.id === id);
 }
 
-export function createAd(data: Omit<Ad, 'id' | 'createdAt' | 'updatedAt' | 'impressions' | 'clicks'>): Ad {
+export async function createAd(data: Omit<Ad, 'id' | 'createdAt' | 'updatedAt' | 'impressions' | 'clicks'>): Promise<Ad> {
+  const adsData = await loadState();
   const ad: Ad = {
     ...data,
     id: `ad_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -159,12 +171,12 @@ export function createAd(data: Omit<Ad, 'id' | 'createdAt' | 'updatedAt' | 'impr
     updatedAt: new Date().toISOString(),
   };
   adsData.ads.push(ad);
-  adsData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(adsData);
   return ad;
 }
 
-export function updateAd(id: string, updates: Partial<Ad>): Ad | null {
+export async function updateAd(id: string, updates: Partial<Ad>): Promise<Ad | null> {
+  const adsData = await loadState();
   const idx = adsData.ads.findIndex(a => a.id === id);
   if (idx === -1) return null;
   adsData.ads[idx] = {
@@ -173,51 +185,54 @@ export function updateAd(id: string, updates: Partial<Ad>): Ad | null {
     id, // prevent id overwrite
     updatedAt: new Date().toISOString(),
   };
-  adsData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(adsData);
   return adsData.ads[idx];
 }
 
-export function deleteAd(id: string): boolean {
+export async function deleteAd(id: string): Promise<boolean> {
+  const adsData = await loadState();
   const idx = adsData.ads.findIndex(a => a.id === id);
   if (idx === -1) return false;
   adsData.ads.splice(idx, 1);
-  adsData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(adsData);
   return true;
 }
 
-export function trackImpression(id: string): void {
+export async function trackImpression(id: string): Promise<void> {
+  const adsData = await loadState();
   const ad = adsData.ads.find(a => a.id === id);
   if (ad) {
     ad.impressions++;
-    saveData();
+    await saveState(adsData);
   }
 }
 
-export function trackClick(id: string): void {
+export async function trackClick(id: string): Promise<void> {
+  const adsData = await loadState();
   const ad = adsData.ads.find(a => a.id === id);
   if (ad) {
     ad.clicks++;
-    saveData();
+    await saveState(adsData);
   }
 }
 
 // ─── Pricing Config ───
 
-export function getAdPricing(): AdPricingConfig {
+export async function getAdPricing(): Promise<AdPricingConfig> {
+  const adsData = await loadState();
   // Always use centralized wallet from financialStore
-  const centralWallet = getWalletByPurpose('ads');
+  const centralWallet = await getWalletByPurpose('ads');
   if (centralWallet) {
     adsData.pricing.paymentWallet = centralWallet.address;
+    await saveState(adsData);
   }
   return adsData.pricing;
 }
 
-export function updateAdPricing(updates: Partial<AdPricingConfig>): AdPricingConfig {
+export async function updateAdPricing(updates: Partial<AdPricingConfig>): Promise<AdPricingConfig> {
+  const adsData = await loadState();
   adsData.pricing = { ...adsData.pricing, ...updates };
-  adsData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(adsData);
   return adsData.pricing;
 }
 
@@ -236,7 +251,8 @@ export interface AdSubmission {
   purchasedImpressions: number;
 }
 
-export function submitAd(data: AdSubmission): Ad {
+export async function submitAd(data: AdSubmission): Promise<Ad> {
+  const adsData = await loadState();
   const cost = Math.ceil((data.purchasedImpressions / 1000) * adsData.pricing.costPer1000Impressions);
   const ad: Ad = {
     id: `ad_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -281,12 +297,12 @@ export function submitAd(data: AdSubmission): Ad {
   profile.totalAds++;
   profile.updatedAt = new Date().toISOString();
 
-  adsData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(adsData);
   return ad;
 }
 
-export function confirmAdPayment(adId: string, txHash: string): Ad | null {
+export async function confirmAdPayment(adId: string, txHash: string): Promise<Ad | null> {
+  const adsData = await loadState();
   const ad = adsData.ads.find(a => a.id === adId);
   if (!ad || ad.status !== 'pending_payment') return null;
   ad.paymentTxHash = txHash;
@@ -301,12 +317,12 @@ export function confirmAdPayment(adId: string, txHash: string): Ad | null {
     profile.updatedAt = new Date().toISOString();
   }
 
-  adsData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(adsData);
   return ad;
 }
 
-export function reviewAd(adId: string, decision: 'approved' | 'rejected', notes?: string): Ad | null {
+export async function reviewAd(adId: string, decision: 'approved' | 'rejected', notes?: string): Promise<Ad | null> {
+  const adsData = await loadState();
   const ad = adsData.ads.find(a => a.id === adId);
   if (!ad) return null;
   ad.status = decision;
@@ -317,24 +333,27 @@ export function reviewAd(adId: string, decision: 'approved' | 'rejected', notes?
   }
   ad.reviewNotes = notes;
   ad.updatedAt = new Date().toISOString();
-  adsData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(adsData);
   return ad;
 }
 
-export function getAdsByAdvertiser(address: string): Ad[] {
+export async function getAdsByAdvertiser(address: string): Promise<Ad[]> {
+  const adsData = await loadState();
   return adsData.ads.filter(a => a.advertiserAddress === address)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-export function getAdvertiserProfile(address: string): AdvertiserProfile | undefined {
+export async function getAdvertiserProfile(address: string): Promise<AdvertiserProfile | undefined> {
+  const adsData = await loadState();
   return adsData.advertisers.find(a => a.address === address);
 }
 
-export function getAllAdvertisers(): AdvertiserProfile[] {
+export async function getAllAdvertisers(): Promise<AdvertiserProfile[]> {
+  const adsData = await loadState();
   return adsData.advertisers.sort((a, b) => b.totalSpent - a.totalSpent);
 }
 
-export function calculateAdCost(impressions: number): number {
-  return Math.ceil((impressions / 1000) * adsData.pricing.costPer1000Impressions);
+export async function calculateAdCost(impressions: number): Promise<number> {
+  const pricing = await getAdPricing();
+  return Math.ceil((impressions / 1000) * pricing.costPer1000Impressions);
 }

@@ -21,9 +21,8 @@ import { useWalletAuth } from '../../context/WalletAuthContext';
 import {
   VERIFICATION_FEE_LUNES as DEFAULT_FEE,
   VERIFICATION_RECEIVER as DEFAULT_RECEIVER,
-  getAllProjects,
-  type KnownProject,
 } from '../../data/knownProjects';
+import { fetchProjects, submitVerification, type ApiProject } from '../../services/projectsApi';
 import styles from './ProjectVerify.module.css';
 
 type Step = 'select' | 'form' | 'payment' | 'success';
@@ -55,14 +54,20 @@ const ProjectVerify: React.FC = () => {
   const { isConnected, wallet } = useWalletAuth();
   const [step, setStep] = useState<Step>('select');
   const [form, setForm] = useState<KycFormData>(INITIAL_FORM);
-  const [selectedProject, setSelectedProject] = useState<KnownProject | null>(null);
+  const [selectedProject, setSelectedProject] = useState<ApiProject | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [paymentError, setPaymentError] = useState('');
   const [txHash, setTxHash] = useState('');
 
+  // Projects from API
+  const [ownedProjects, setOwnedProjects] = useState<ApiProject[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
   // Dynamic config from admin
   const [verificationFee, setVerificationFee] = useState(DEFAULT_FEE);
   const [verificationReceiver, setVerificationReceiver] = useState(DEFAULT_RECEIVER);
+
+  const connectedAddress = wallet?.account?.address;
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/config/financial`)
@@ -74,13 +79,24 @@ const ProjectVerify: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  const projects = getAllProjects();
-  const ownedUnverifiedProjects = projects.filter(
-    p => p.verification.status === 'unverified' && 
-    p.ownerAddress?.toLowerCase() === wallet?.account?.address?.toLowerCase()
-  );
+  // Load projects owned by connected wallet from API
+  useEffect(() => {
+    if (!connectedAddress) { setOwnedProjects([]); return; }
+    setLoadingProjects(true);
+    fetchProjects()
+      .then(all => {
+        const owned = all.filter(
+          p =>
+            p.ownerAddress?.toLowerCase() === connectedAddress.toLowerCase() &&
+            p.verification?.status !== 'verified'
+        );
+        setOwnedProjects(owned);
+      })
+      .catch(() => setOwnedProjects([]))
+      .finally(() => setLoadingProjects(false));
+  }, [connectedAddress]);
 
-  const handleProjectSelect = (project: KnownProject) => {
+  const handleProjectSelect = (project: ApiProject) => {
     setSelectedProject(project);
     setForm(prev => ({ ...prev, projectSlug: project.slug }));
     setStep('form');
@@ -94,7 +110,7 @@ const ProjectVerify: React.FC = () => {
   };
 
   const handlePayment = async () => {
-    if (!wallet || !isConnected) {
+    if (!wallet || !isConnected || !connectedAddress) {
       setPaymentError('Connect your wallet first');
       return;
     }
@@ -103,7 +119,6 @@ const ProjectVerify: React.FC = () => {
     setPaymentError('');
 
     try {
-      // Dynamic import to avoid loading @polkadot/api at top level
       const { ApiPromise, WsProvider } = await import('@polkadot/api');
       const { web3FromSource } = await import('@polkadot/extension-dapp');
 
@@ -118,36 +133,37 @@ const ProjectVerify: React.FC = () => {
       );
 
       const hash = await transfer.signAndSend(
-        wallet.account.address,
+        connectedAddress,
         { signer: injector.signer }
       );
 
-      setTxHash(hash.toString());
+      const txHashStr = hash.toString();
+      setTxHash(txHashStr);
 
-      // Save verification request to localStorage
-      const verificationRequest = {
-        ...form,
-        payerAddress: wallet.account.address,
-        paymentTxHash: hash.toString(),
-        submittedAt: new Date().toISOString(),
-        status: 'pending',
-      };
+      await api.disconnect();
 
-      const existing = JSON.parse(localStorage.getItem('lunes-verification-requests') || '[]');
-      existing.push(verificationRequest);
-      localStorage.setItem('lunes-verification-requests', JSON.stringify(existing));
+      // Submit verification to API — backend validates ownerAddress
+      await submitVerification(form.projectSlug, {
+        payerAddress: connectedAddress,
+        paymentTxHash: txHashStr,
+        responsibleName: form.responsibleName,
+        responsibleEmail: form.responsibleEmail,
+        responsibleDocument: form.responsibleDocument,
+        proofOfOwnership: form.proofOfOwnership,
+        projectWebsite: form.projectWebsite,
+      });
 
-      // Record payment to backend
+      // Also record payment in financial system
       fetch(`${API_BASE_URL}/financial/verification-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectSlug: form.projectSlug,
           projectName: selectedProject?.name || form.projectSlug,
-          payerAddress: wallet.account.address,
+          payerAddress: connectedAddress,
           receiverAddress: verificationReceiver,
           amount: verificationFee,
-          txHash: hash.toString(),
+          txHash: txHashStr,
           status: 'pending',
           submittedAt: new Date().toISOString(),
         }),
@@ -155,8 +171,6 @@ const ProjectVerify: React.FC = () => {
 
       setPaymentStatus('sent');
       setStep('success');
-
-      await api.disconnect();
     } catch (err: any) {
       console.error('Payment error:', err);
       setPaymentError(err.message || 'Payment failed. Please try again.');
@@ -226,17 +240,25 @@ const ProjectVerify: React.FC = () => {
               <AlertCircle size={32} color="var(--color-warning)" style={{ marginBottom: '8px' }} />
               <p>Connect your wallet to see your projects</p>
             </div>
-          ) : ownedUnverifiedProjects.length === 0 ? (
+          ) : loadingProjects ? (
+            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+              <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+              <p style={{ marginTop: '8px' }}>Loading your projects...</p>
+            </div>
+          ) : ownedProjects.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
               <ShieldCheck size={32} color="#26d07c" style={{ marginBottom: '8px' }} />
-              <p>You have no unverified projects to verify.</p>
+              <p>You have no unverified projects eligible for verification.</p>
               <p style={{ fontSize: '12px', marginTop: '8px' }}>
-                Only the project owner can submit verification.
+                Only the wallet that registered the project can submit a verification request.
               </p>
+              <Link to="/project/register" style={{ color: 'var(--color-brand-400)', fontSize: '13px', marginTop: '8px', display: 'inline-block' }}>
+                Register a new project →
+              </Link>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {ownedUnverifiedProjects.map(project => (
+              {ownedProjects.map(project => (
                 <button
                   key={project.id}
                   onClick={() => handleProjectSelect(project)}
@@ -268,7 +290,7 @@ const ProjectVerify: React.FC = () => {
                     <div style={{ fontWeight: 600 }}>{project.name}</div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{project.description.slice(0, 80)}...</div>
                   </div>
-                  <VerifiedBadge status={project.verification.status} size="sm" />
+                  <VerifiedBadge status={project.verification?.status ?? 'unverified'} size="sm" />
                 </button>
               ))}
             </div>

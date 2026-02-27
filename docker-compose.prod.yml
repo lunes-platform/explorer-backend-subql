@@ -77,29 +77,6 @@ services:
     networks:
       - explorer-network
 
-  # ── Backend Python (Production) ──
-  backend-py:
-    build:
-      context: ./backend-py
-      target: production
-    restart: always
-    ports:
-      - "127.0.0.1:8000:8000"
-    env_file:
-      - ./backend-py/.env
-    environment:
-      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@postgres:5432/postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')\" || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - explorer-network
-
   # ── API Express (Node.js) ──
   api:
     build: ./api
@@ -114,6 +91,7 @@ services:
       - INDEXER_URL=http://graphql-engine:3000
       - NODE_ENV=production
       - API_PUBLIC_URL=${API_PUBLIC_URL:-https://api.explorer.lunes.io}
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@postgres:5432/postgres?schema=public
     depends_on:
       - postgres
       - graphql-engine

@@ -1,11 +1,7 @@
 // Financial Configuration Store
 // Centralized wallet management for all modules: Verification, Ads, Rewards
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
-
-const DATA_DIR = './data';
-const FINANCIAL_FILE = join(DATA_DIR, 'financial.json');
+import prisma from './prismaClient.ts';
 
 // ─── Wallet Types ───
 
@@ -19,6 +15,8 @@ export interface ManagedWallet {
   createdAt: string;
   updatedAt: string;
 }
+
+const FINANCIAL_STATE_KEY = 'financial';
 
 export interface WalletAuditEntry {
   id: string;
@@ -89,53 +87,71 @@ const DEFAULT_WALLETS: ManagedWallet[] = [
   { purpose: 'donations', label: 'Lunes Network Donations', address: DEFAULT_WALLET_ADDRESS, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
-let financialData: FinancialData = {
-  config: DEFAULT_CONFIG,
-  wallets: DEFAULT_WALLETS,
-  auditLog: [],
-  verificationPayments: [],
-  lastUpdated: new Date().toISOString(),
-};
-
-function loadData() {
-  try {
-    if (existsSync(FINANCIAL_FILE)) {
-      const data = JSON.parse(readFileSync(FINANCIAL_FILE, 'utf-8'));
-      financialData = { ...financialData, ...data };
-      if (data.config) {
-        financialData.config = { ...DEFAULT_CONFIG, ...data.config };
-      }
-      // Migrate: ensure wallets array exists
-      if (!Array.isArray(financialData.wallets) || financialData.wallets.length === 0) {
-        financialData.wallets = DEFAULT_WALLETS.map(w => {
-          if (w.purpose === 'verification') return { ...w, address: financialData.config.verificationWallet || w.address };
-          if (w.purpose === 'ads') return { ...w, address: financialData.config.adsWallet || w.address };
-          if (w.purpose === 'rewards') return { ...w, address: financialData.config.rewardsWallet || w.address };
-          if (w.purpose === 'donations') return { ...w, address: financialData.config.donationsWallet || w.address };
-          return w;
-        });
-      }
-      // Migrate: add donations wallet if missing
-      if (!financialData.wallets.find(w => w.purpose === 'donations')) {
-        financialData.wallets.push({ purpose: 'donations', label: 'Lunes Network Donations', address: financialData.config.donationsWallet || DEFAULT_WALLET_ADDRESS, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-      }
-      if (!Array.isArray(financialData.auditLog)) financialData.auditLog = [];
-    }
-  } catch (err) {
-    console.error('[Financial] Error loading data:', err);
-  }
+function createDefaultState(): FinancialData {
+  return {
+    config: { ...DEFAULT_CONFIG },
+    wallets: JSON.parse(JSON.stringify(DEFAULT_WALLETS)),
+    auditLog: [],
+    verificationPayments: [],
+    lastUpdated: new Date().toISOString(),
+  };
 }
 
-function saveData() {
-  try {
-    financialData.lastUpdated = new Date().toISOString();
-    writeFileSync(FINANCIAL_FILE, JSON.stringify(financialData, null, 2));
-  } catch (err) {
-    console.error('[Financial] Error saving data:', err);
+function normalizeState(data: Partial<FinancialData>): FinancialData {
+  const config: FinancialConfig = { ...DEFAULT_CONFIG, ...(data.config || {}) };
+  let wallets = Array.isArray(data.wallets) ? data.wallets : [];
+
+  if (wallets.length === 0) {
+    wallets = DEFAULT_WALLETS.map((w) => {
+      if (w.purpose === 'verification') return { ...w, address: config.verificationWallet || w.address };
+      if (w.purpose === 'ads') return { ...w, address: config.adsWallet || w.address };
+      if (w.purpose === 'rewards') return { ...w, address: config.rewardsWallet || w.address };
+      if (w.purpose === 'donations') return { ...w, address: config.donationsWallet || w.address };
+      return w;
+    });
   }
+
+  if (!wallets.find((w) => w.purpose === 'donations')) {
+    wallets.push({
+      purpose: 'donations',
+      label: 'Lunes Network Donations',
+      address: config.donationsWallet || DEFAULT_WALLET_ADDRESS,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  return {
+    config,
+    wallets,
+    auditLog: Array.isArray(data.auditLog) ? data.auditLog : [],
+    verificationPayments: Array.isArray(data.verificationPayments) ? data.verificationPayments : [],
+    lastUpdated: data.lastUpdated || new Date().toISOString(),
+  };
 }
 
-loadData();
+async function loadState(): Promise<FinancialData> {
+  const row = await prisma.adminDataState.findUnique({ where: { key: FINANCIAL_STATE_KEY } });
+  if (!row) {
+    const initial = createDefaultState();
+    await prisma.adminDataState.create({
+      data: { key: FINANCIAL_STATE_KEY, data: initial },
+    });
+    return initial;
+  }
+
+  return normalizeState((row.data as Partial<FinancialData>) || {});
+}
+
+async function saveState(state: FinancialData): Promise<void> {
+  state.lastUpdated = new Date().toISOString();
+  await prisma.adminDataState.upsert({
+    where: { key: FINANCIAL_STATE_KEY },
+    update: { data: state },
+    create: { key: FINANCIAL_STATE_KEY, data: state },
+  });
+}
 
 // ─── Public API ───
 
@@ -151,71 +167,82 @@ export function isValidSS58Address(address: string): boolean {
 
 // ─── Audit Log ───
 
-function addAuditEntry(entry: Omit<WalletAuditEntry, 'id' | 'timestamp'>): WalletAuditEntry {
+async function addAuditEntry(
+  state: FinancialData,
+  entry: Omit<WalletAuditEntry, 'id' | 'timestamp'>,
+): Promise<WalletAuditEntry> {
   const record: WalletAuditEntry = {
     ...entry,
     id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
     timestamp: new Date().toISOString(),
   };
-  financialData.auditLog.unshift(record);
-  if (financialData.auditLog.length > 200) {
-    financialData.auditLog = financialData.auditLog.slice(0, 200);
+  state.auditLog.unshift(record);
+  if (state.auditLog.length > 200) {
+    state.auditLog = state.auditLog.slice(0, 200);
   }
-  saveData();
+  await saveState(state);
   return record;
 }
 
-export function getAuditLog(limit: number = 50, purpose?: WalletPurpose): WalletAuditEntry[] {
-  let log = financialData.auditLog;
+export async function getAuditLog(limit: number = 50, purpose?: WalletPurpose): Promise<WalletAuditEntry[]> {
+  const state = await loadState();
+  let log = state.auditLog;
   if (purpose) log = log.filter(e => e.purpose === purpose);
   return log.slice(0, limit);
 }
 
 // ─── Config API ───
 
-export function getFinancialConfig(): FinancialConfig {
-  return financialData.config;
+export async function getFinancialConfig(): Promise<FinancialConfig> {
+  return (await loadState()).config;
 }
 
-export function updateFinancialConfig(updates: Partial<FinancialConfig>, changedBy: string = 'admin'): FinancialConfig {
-  const prev = { ...financialData.config };
-  financialData.config = { ...financialData.config, ...updates };
+export async function updateFinancialConfig(updates: Partial<FinancialConfig>, changedBy: string = 'admin'): Promise<FinancialConfig> {
+  const state = await loadState();
+  const prev = { ...state.config };
+  state.config = { ...state.config, ...updates };
 
   // Sync wallet addresses if changed via config
   if (updates.verificationWallet && updates.verificationWallet !== prev.verificationWallet) {
-    syncWalletAddress('verification', updates.verificationWallet, changedBy, prev.verificationWallet);
+    await syncWalletAddress(state, 'verification', updates.verificationWallet, changedBy, prev.verificationWallet);
   }
   if (updates.adsWallet && updates.adsWallet !== prev.adsWallet) {
-    syncWalletAddress('ads', updates.adsWallet, changedBy, prev.adsWallet);
+    await syncWalletAddress(state, 'ads', updates.adsWallet, changedBy, prev.adsWallet);
   }
   if (updates.rewardsWallet && updates.rewardsWallet !== prev.rewardsWallet) {
-    syncWalletAddress('rewards', updates.rewardsWallet, changedBy, prev.rewardsWallet);
+    await syncWalletAddress(state, 'rewards', updates.rewardsWallet, changedBy, prev.rewardsWallet);
   }
   if (updates.donationsWallet && updates.donationsWallet !== prev.donationsWallet) {
-    syncWalletAddress('donations', updates.donationsWallet, changedBy, prev.donationsWallet);
+    await syncWalletAddress(state, 'donations', updates.donationsWallet, changedBy, prev.donationsWallet);
   }
 
-  saveData();
-  return financialData.config;
+  await saveState(state);
+  return state.config;
 }
 
 // ─── Unified Wallet Management ───
 
-export function getAllWallets(): ManagedWallet[] {
-  return financialData.wallets;
+export async function getAllWallets(): Promise<ManagedWallet[]> {
+  return (await loadState()).wallets;
 }
 
-export function getWalletByPurpose(purpose: WalletPurpose): ManagedWallet | undefined {
-  return financialData.wallets.find(w => w.purpose === purpose);
+export async function getWalletByPurpose(purpose: WalletPurpose): Promise<ManagedWallet | undefined> {
+  return (await loadState()).wallets.find(w => w.purpose === purpose);
 }
 
-function syncWalletAddress(purpose: WalletPurpose, newAddress: string, changedBy: string, previousAddress?: string) {
-  const wallet = financialData.wallets.find(w => w.purpose === purpose);
+async function syncWalletAddress(
+  state: FinancialData,
+  purpose: WalletPurpose,
+  newAddress: string,
+  changedBy: string,
+  previousAddress?: string,
+) {
+  const wallet = state.wallets.find(w => w.purpose === purpose);
   if (wallet) {
     const prev = previousAddress || wallet.address;
     wallet.address = newAddress;
     wallet.updatedAt = new Date().toISOString();
-    addAuditEntry({
+    await addAuditEntry(state, {
       purpose,
       action: 'address_changed',
       previousValue: prev,
@@ -230,12 +257,21 @@ export function updateWalletAddress(
   purpose: WalletPurpose,
   newAddress: string,
   changedBy: string
-): { success: boolean; error?: string; wallet?: ManagedWallet } {
+): Promise<{ success: boolean; error?: string; wallet?: ManagedWallet }> {
+  return updateWalletAddressInternal(purpose, newAddress, changedBy);
+}
+
+async function updateWalletAddressInternal(
+  purpose: WalletPurpose,
+  newAddress: string,
+  changedBy: string,
+): Promise<{ success: boolean; error?: string; wallet?: ManagedWallet }> {
   if (!isValidSS58Address(newAddress)) {
     return { success: false, error: 'Invalid SS58 wallet address format' };
   }
 
-  const wallet = financialData.wallets.find(w => w.purpose === purpose);
+  const state = await loadState();
+  const wallet = state.wallets.find(w => w.purpose === purpose);
   if (!wallet) {
     return { success: false, error: `Wallet purpose '${purpose}' not found` };
   }
@@ -249,12 +285,12 @@ export function updateWalletAddress(
   wallet.updatedAt = new Date().toISOString();
 
   // Sync to config
-  if (purpose === 'verification') financialData.config.verificationWallet = newAddress;
-  if (purpose === 'ads') financialData.config.adsWallet = newAddress;
-  if (purpose === 'rewards') financialData.config.rewardsWallet = newAddress;
-  if (purpose === 'donations') financialData.config.donationsWallet = newAddress;
+  if (purpose === 'verification') state.config.verificationWallet = newAddress;
+  if (purpose === 'ads') state.config.adsWallet = newAddress;
+  if (purpose === 'rewards') state.config.rewardsWallet = newAddress;
+  if (purpose === 'donations') state.config.donationsWallet = newAddress;
 
-  addAuditEntry({
+  await addAuditEntry(state, {
     purpose,
     action: 'address_changed',
     previousValue: previousAddress,
@@ -263,21 +299,29 @@ export function updateWalletAddress(
     details: `${purpose} wallet changed from ${previousAddress.slice(0,8)}... to ${newAddress.slice(0,8)}...`,
   });
 
-  saveData();
+  await saveState(state);
   return { success: true, wallet };
 }
 
 export function toggleWallet(
   purpose: WalletPurpose,
   changedBy: string
-): { success: boolean; wallet?: ManagedWallet } {
-  const wallet = financialData.wallets.find(w => w.purpose === purpose);
+): Promise<{ success: boolean; wallet?: ManagedWallet }> {
+  return toggleWalletInternal(purpose, changedBy);
+}
+
+async function toggleWalletInternal(
+  purpose: WalletPurpose,
+  changedBy: string,
+): Promise<{ success: boolean; wallet?: ManagedWallet }> {
+  const state = await loadState();
+  const wallet = state.wallets.find(w => w.purpose === purpose);
   if (!wallet) return { success: false };
 
   wallet.isActive = !wallet.isActive;
   wallet.updatedAt = new Date().toISOString();
 
-  addAuditEntry({
+  await addAuditEntry(state, {
     purpose,
     action: 'wallet_toggled',
     previousValue: String(!wallet.isActive),
@@ -286,40 +330,42 @@ export function toggleWallet(
     details: `${purpose} wallet ${wallet.isActive ? 'activated' : 'paused'}`,
   });
 
-  saveData();
+  await saveState(state);
   return { success: true, wallet };
 }
 
 // ─── Verification Payments ───
 
-export function recordVerificationPayment(payment: Omit<VerificationPayment, 'id'>): VerificationPayment {
+export async function recordVerificationPayment(payment: Omit<VerificationPayment, 'id'>): Promise<VerificationPayment> {
+  const state = await loadState();
   const record: VerificationPayment = {
     id: `vp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
     ...payment,
   };
-  financialData.verificationPayments.unshift(record);
-  if (financialData.verificationPayments.length > 200) {
-    financialData.verificationPayments = financialData.verificationPayments.slice(0, 200);
+  state.verificationPayments.unshift(record);
+  if (state.verificationPayments.length > 200) {
+    state.verificationPayments = state.verificationPayments.slice(0, 200);
   }
-  saveData();
+  await saveState(state);
   return record;
 }
 
-export function updatePaymentStatus(id: string, status: 'confirmed' | 'failed'): VerificationPayment | null {
-  const payment = financialData.verificationPayments.find(p => p.id === id);
+export async function updatePaymentStatus(id: string, status: 'confirmed' | 'failed'): Promise<VerificationPayment | null> {
+  const state = await loadState();
+  const payment = state.verificationPayments.find(p => p.id === id);
   if (!payment) return null;
   payment.status = status;
   if (status === 'confirmed') payment.confirmedAt = new Date().toISOString();
-  saveData();
+  await saveState(state);
   return payment;
 }
 
-export function getVerificationPayments(limit: number = 50): VerificationPayment[] {
-  return financialData.verificationPayments.slice(0, limit);
+export async function getVerificationPayments(limit: number = 50): Promise<VerificationPayment[]> {
+  return (await loadState()).verificationPayments.slice(0, limit);
 }
 
-export function getFinancialSummary(): FinancialSummary {
-  const payments = financialData.verificationPayments;
+export async function getFinancialSummary(): Promise<FinancialSummary> {
+  const payments = (await loadState()).verificationPayments;
   const confirmed = payments.filter(p => p.status === 'confirmed');
   const pending = payments.filter(p => p.status === 'pending');
 

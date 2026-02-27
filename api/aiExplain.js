@@ -4,7 +4,7 @@
 import { getAIConfig } from './aiConfigStore.ts';
 
 export async function generateExplanation(type, data) {
-  const config = getAIConfig();
+  const config = await getAIConfig();
 
   // Try LLM if enabled and configured
   if (config.enabled && config.apiKey && config.provider === 'openrouter') {

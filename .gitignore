@@ -63,16 +63,16 @@ backend-py/.env
 frontend/.env
 frontend/.env.local
 
-# API data (contains admin credentials, configs)
-/data/
-/data/uploads/
+# API data (contains admin credentials, configs — persisted in Postgres)
+api/data/
+api/data/uploads/
 
 # Frontend build
 frontend/dist/
 
-# Backend Python
-backend-py/__pycache__/
-backend-py/.venv/
+# Backend Python (removed — functionality migrated to api/)
+backend-py/
+
 
 # Playwright
 frontend/e2e/
@@ -82,7 +82,7 @@ frontend/test-results/
 # Temp/analysis files
 REQUIREMENTS_GAP_ANALYSIS.md
 api/.env
-api/data
+test_market_service.py
 src/types
 yarn.lock
 dist

@@ -23,12 +23,13 @@ import { useAdminAuth } from '../../context/AdminAuthContext';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import styles from './Admin.module.css';
 
-type AdminTab = 'overview' | 'projects' | 'token' | 'financial' | 'banners' | 'ads' | 'announcements' | 'rewards' | 'ai' | 'settings';
+type AdminTab = 'overview' | 'projects' | 'token' | 'token-emission' | 'financial' | 'banners' | 'ads' | 'announcements' | 'rewards' | 'ai' | 'settings';
 
 const TABS: { key: AdminTab; label: string; icon: React.ReactNode; description: string }[] = [
   { key: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} />, description: 'System overview' },
   { key: 'projects', label: 'Projects', icon: <FolderCheck size={18} />, description: 'Manage projects' },
   { key: 'token', label: 'Tokens', icon: <Coins size={18} />, description: 'Token information' },
+  { key: 'token-emission', label: 'Token Emission', icon: <Coins size={18} />, description: 'Emission fees & config' },
   { key: 'financial', label: 'Financial', icon: <Wallet size={18} />, description: 'Financial management' },
   { key: 'banners', label: 'Banners', icon: <Image size={18} />, description: 'Manage banners' },
   { key: 'ads', label: 'Ads', icon: <MonitorPlay size={18} />, description: 'Manage advertisements' },
@@ -41,6 +42,7 @@ const TABS: { key: AdminTab; label: string; icon: React.ReactNode; description: 
 const OverviewTab = React.lazy(() => import('./OverviewTab'));
 const ProjectsTab = React.lazy(() => import('./ProjectsTab'));
 const TokenInfoTab = React.lazy(() => import('./TokenInfoTab'));
+const TokenEmissionTab = React.lazy(() => import('./TokenEmissionTab'));
 const BannersTab = React.lazy(() => import('./BannersTab'));
 const AdsTab = React.lazy(() => import('./AdsTab'));
 const AnnouncementsTab = React.lazy(() => import('./AnnouncementsTab'));
@@ -205,6 +207,7 @@ export default function AdminPage() {
                 {activeTab === 'overview' && <OverviewTab />}
                 {activeTab === 'projects' && <ProjectsTab adminAddress={user?.email || ''} />}
                 {activeTab === 'token' && <TokenInfoTab adminAddress={user?.email || ''} />}
+                {activeTab === 'token-emission' && <TokenEmissionTab />}
                 {activeTab === 'financial' && <FinancialTab />}
                 {activeTab === 'banners' && <BannersTab />}
                 {activeTab === 'ads' && <AdsTab />}

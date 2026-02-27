@@ -1,13 +1,5 @@
 // Banner Store - Manages promotional banners for the home page slider
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
-
-const DATA_DIR = './data';
-const BANNERS_FILE = join(DATA_DIR, 'banners.json');
-
-if (!existsSync(DATA_DIR)) {
-  mkdirSync(DATA_DIR, { recursive: true });
-}
+import prisma from './prismaClient.ts';
 
 export interface Banner {
   id: string;
@@ -27,6 +19,8 @@ interface BannerData {
   banners: Banner[];
   lastUpdated: string;
 }
+
+const BANNERS_STATE_KEY = 'banners';
 
 const DEFAULT_BANNERS: Banner[] = [
   {
@@ -91,49 +85,62 @@ const DEFAULT_BANNERS: Banner[] = [
   },
 ];
 
-let bannerData: BannerData = {
-  banners: DEFAULT_BANNERS,
-  lastUpdated: new Date().toISOString(),
-};
-
-function loadData() {
-  try {
-    if (existsSync(BANNERS_FILE)) {
-      const raw = JSON.parse(readFileSync(BANNERS_FILE, 'utf-8'));
-      bannerData = { ...bannerData, ...raw };
-    }
-  } catch (err) {
-    console.error('[Banners] Error loading data:', err);
-  }
+function createDefaultState(): BannerData {
+  return {
+    banners: JSON.parse(JSON.stringify(DEFAULT_BANNERS)),
+    lastUpdated: new Date().toISOString(),
+  };
 }
 
-function saveData() {
-  try {
-    writeFileSync(BANNERS_FILE, JSON.stringify(bannerData, null, 2));
-  } catch (err) {
-    console.error('[Banners] Error saving data:', err);
+async function loadState(): Promise<BannerData> {
+  const row = await prisma.adminDataState.findUnique({ where: { key: BANNERS_STATE_KEY } });
+  if (!row) {
+    const initial = createDefaultState();
+    await prisma.adminDataState.create({
+      data: {
+        key: BANNERS_STATE_KEY,
+        data: initial,
+      },
+    });
+    return initial;
   }
+
+  const data = row.data as BannerData;
+  return {
+    banners: Array.isArray(data?.banners) ? data.banners : JSON.parse(JSON.stringify(DEFAULT_BANNERS)),
+    lastUpdated: data?.lastUpdated || new Date().toISOString(),
+  };
 }
 
-loadData();
+async function saveState(state: BannerData): Promise<void> {
+  await prisma.adminDataState.upsert({
+    where: { key: BANNERS_STATE_KEY },
+    update: { data: state },
+    create: { key: BANNERS_STATE_KEY, data: state },
+  });
+}
 
 // ─── Public API ───
 
-export function getActiveBanners(): Banner[] {
+export async function getActiveBanners(): Promise<Banner[]> {
+  const bannerData = await loadState();
   return bannerData.banners
     .filter(b => b.isActive)
     .sort((a, b) => a.order - b.order);
 }
 
-export function getAllBanners(): Banner[] {
+export async function getAllBanners(): Promise<Banner[]> {
+  const bannerData = await loadState();
   return bannerData.banners.sort((a, b) => a.order - b.order);
 }
 
-export function getBanner(id: string): Banner | undefined {
+export async function getBanner(id: string): Promise<Banner | undefined> {
+  const bannerData = await loadState();
   return bannerData.banners.find(b => b.id === id);
 }
 
-export function createBanner(data: Omit<Banner, 'id' | 'createdAt' | 'updatedAt'>): Banner {
+export async function createBanner(data: Omit<Banner, 'id' | 'createdAt' | 'updatedAt'>): Promise<Banner> {
+  const bannerData = await loadState();
   const banner: Banner = {
     ...data,
     id: `banner_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -142,11 +149,12 @@ export function createBanner(data: Omit<Banner, 'id' | 'createdAt' | 'updatedAt'
   };
   bannerData.banners.push(banner);
   bannerData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(bannerData);
   return banner;
 }
 
-export function updateBanner(id: string, updates: Partial<Banner>): Banner | null {
+export async function updateBanner(id: string, updates: Partial<Banner>): Promise<Banner | null> {
+  const bannerData = await loadState();
   const idx = bannerData.banners.findIndex(b => b.id === id);
   if (idx === -1) return null;
   bannerData.banners[idx] = {
@@ -156,25 +164,27 @@ export function updateBanner(id: string, updates: Partial<Banner>): Banner | nul
     updatedAt: new Date().toISOString(),
   };
   bannerData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(bannerData);
   return bannerData.banners[idx];
 }
 
-export function deleteBanner(id: string): boolean {
+export async function deleteBanner(id: string): Promise<boolean> {
+  const bannerData = await loadState();
   const idx = bannerData.banners.findIndex(b => b.id === id);
   if (idx === -1) return false;
   bannerData.banners.splice(idx, 1);
   bannerData.lastUpdated = new Date().toISOString();
-  saveData();
+  await saveState(bannerData);
   return true;
 }
 
-export function reorderBanners(orderedIds: string[]): Banner[] {
+export async function reorderBanners(orderedIds: string[]): Promise<Banner[]> {
+  const bannerData = await loadState();
   orderedIds.forEach((id, index) => {
     const banner = bannerData.banners.find(b => b.id === id);
     if (banner) banner.order = index;
   });
   bannerData.lastUpdated = new Date().toISOString();
-  saveData();
-  return getAllBanners();
+  await saveState(bannerData);
+  return bannerData.banners.sort((a, b) => a.order - b.order);
 }
