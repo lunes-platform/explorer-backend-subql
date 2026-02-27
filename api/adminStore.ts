@@ -42,12 +42,7 @@ function hashPasswordLegacy(password: string): string {
 }
 
 export function verifyPassword(password: string, hash: string): boolean {
-  // Try bcrypt first (new format)
-  if (hash.startsWith('$2a$') || hash.startsWith('$2b$')) {
-    return bcrypt.compareSync(password, hash);
-  }
-  // Fall back to legacy HMAC-SHA256 and plain SHA-256 for migration
-  return hashPasswordHmac(password) === hash || hashPasswordLegacy(password) === hash;
+  return bcrypt.compareSync(password, hash);
 }
 
 // Auto-upgrade legacy hash to bcrypt on successful login
@@ -99,7 +94,7 @@ export function authenticateUser(email: string, password: string): AdminUser | n
   if (!user) return null;
   if (!verifyPassword(password, user.password)) return null;
   // Auto-upgrade legacy hash to bcrypt
-  upgradeHashIfNeeded(user, password);
+  //upgradeHashIfNeeded(user, password);
   user.last_login = new Date().toISOString();
   saveData(adminData);
   return user;
