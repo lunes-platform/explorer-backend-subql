@@ -7,7 +7,6 @@ import {
   Layers,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   AlertCircle,
   CheckCircle,
   XCircle,

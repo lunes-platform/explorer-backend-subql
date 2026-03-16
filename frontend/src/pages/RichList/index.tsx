@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   Trophy,
   Loader2,
-  AlertCircle,
   Search,
   ChevronLeft,
   ChevronRight,

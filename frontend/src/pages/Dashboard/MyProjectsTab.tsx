@@ -274,7 +274,14 @@ export default function MyProjectsTab({ address }: Props) {
       {/* Edit Project Modal — full editor identical to admin, authenticated by ownerAddress */}
       {editingProject && (
         <EditProjectModal
-          project={editingProject}
+          project={{
+            ...editingProject,
+            links: (editingProject.links || []).map((link) => ({
+              type: link.type,
+              url: link.url,
+              label: link.label || '',
+            })),
+          }}
           onClose={() => setEditingProject(null)}
           onSaved={() => {
             setEditingProject(null);

@@ -4,22 +4,14 @@ import { useQuery } from '@apollo/client/react';
 import { 
   ArrowLeft, 
   Image, 
-  Database,
   Globe,
-  FileText,
-  Github,
   Twitter,
   MessageCircle,
-  Send,
-  CheckCircle,
-  AlertCircle,
-  Users,
   Layers
 } from 'lucide-react';
 import { GET_NFT_COLLECTION, GET_PROJECT } from '../../services/graphql/queries';
 import Card from '../../components/common/Card';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
-import { StatusBadge } from '../../components/common/StatusBadge';
 import { ExportButton } from '../../components/common/ExportButton';
 import { Skeleton } from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';

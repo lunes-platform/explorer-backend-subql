@@ -12,8 +12,9 @@ const retryLink = new RetryLink({
   attempts: { max: 5, retryIf: (error) => !!error },
 });
 
-const errorLink = onError(({ networkError }) => {
-  if (networkError) {
+const errorLink = onError((error) => {
+  const networkError = (error as { networkError?: { message?: string } }).networkError;
+  if (networkError?.message) {
     console.warn(`[GraphQL] Network error — retrying: ${networkError.message}`);
   }
 });

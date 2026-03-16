@@ -103,7 +103,16 @@ export function useTokenEmission() {
       const provider = new WsProvider(WS_ENDPOINTS);
       const api = await ApiPromise.create({ provider });
 
-      // ── Step 1: Pay emission fee ──
+      const getDispatchErrorMessage = (dispatchError: any) => {
+        if (dispatchError?.isModule) {
+          const decoded = api.registry.findMetaError(dispatchError.asModule);
+          const docs = (decoded as { docs?: string[] }).docs;
+          if (Array.isArray(docs) && docs.length > 0) return docs.join(' ');
+          return decoded.toString();
+        }
+        return dispatchError?.toString?.() || 'Unknown error';
+      };
+
       setState(s => ({ ...s, step: 'fee_payment', progress: 10 }));
 
       let feePaymentTxHash = '';
@@ -119,10 +128,7 @@ export function useTokenEmission() {
             { signer: injector.signer },
             ({ status, dispatchError }: any) => {
               if (dispatchError) {
-                const err = dispatchError.isModule
-                  ? api.registry.findMetaError(dispatchError.asModule)
-                  : { documentation: [dispatchError.toString()] };
-                reject(new Error(`Fee payment failed: ${err.documentation?.join(', ')}`));
+                reject(new Error(`Fee payment failed: ${getDispatchErrorMessage(dispatchError)}`));
               }
               if (status.isInBlock || status.isFinalized) {
                 resolve(status.asInBlock?.toString() || status.asFinalized?.toString() || '');
@@ -146,10 +152,7 @@ export function useTokenEmission() {
           { signer: injector.signer },
           ({ status, dispatchError }: any) => {
             if (dispatchError) {
-              const err = dispatchError.isModule
-                ? api.registry.findMetaError(dispatchError.asModule)
-                : { documentation: [dispatchError.toString()] };
-              reject(new Error(`Asset creation failed: ${err.documentation?.join(', ')}`));
+              reject(new Error(`Asset creation failed: ${getDispatchErrorMessage(dispatchError)}`));
             }
             if (status.isInBlock || status.isFinalized) resolve();
           }
@@ -172,10 +175,7 @@ export function useTokenEmission() {
           { signer: injector.signer },
           ({ status, dispatchError }: any) => {
             if (dispatchError) {
-              const err = dispatchError.isModule
-                ? api.registry.findMetaError(dispatchError.asModule)
-                : { documentation: [dispatchError.toString()] };
-              reject(new Error(`Set metadata failed: ${err.documentation?.join(', ')}`));
+              reject(new Error(`Set metadata failed: ${getDispatchErrorMessage(dispatchError)}`));
             }
             if (status.isInBlock || status.isFinalized) resolve();
           }
@@ -195,10 +195,7 @@ export function useTokenEmission() {
             { signer: injector.signer },
             ({ status, dispatchError }: any) => {
               if (dispatchError) {
-                const err = dispatchError.isModule
-                  ? api.registry.findMetaError(dispatchError.asModule)
-                  : { documentation: [dispatchError.toString()] };
-                reject(new Error(`Minting failed: ${err.documentation?.join(', ')}`));
+                reject(new Error(`Minting failed: ${getDispatchErrorMessage(dispatchError)}`));
               }
               if (status.isInBlock || status.isFinalized) resolve();
             }

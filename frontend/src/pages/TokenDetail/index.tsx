@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  ArrowLeft, Coins, Users, Database, TrendingUp, TrendingDown,
-  Shield, Hash, Snowflake, Loader2, BarChart3, ExternalLink,
+  ArrowLeft, Database, TrendingUp, TrendingDown,
+  Loader2, ExternalLink,
 } from 'lucide-react';
 import { useAssets, useDashboardStats } from '../../hooks/useChainData';
 import { useLunesPrice, formatPrice } from '../../hooks/useLunesPrice';

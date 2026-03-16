@@ -51,52 +51,57 @@ const Projects: React.FC = () => {
 
       {/* Projects Grid */}
       <div className={styles.projectsGrid}>
-        {projects.map((project) => (
-          <div key={project.slug} className={styles.projectCard}>
-            <div className={styles.projectHeader}>
-              <div className={styles.projectIcon}>
-                {project.name.charAt(0)}
+        {projects.map((project) => {
+          const websiteLink = project.links.find((link) => link.type === 'website');
+          const xLink = project.links.find((link) => link.type === 'x');
+
+          return (
+            <div key={project.slug} className={styles.projectCard}>
+              <div className={styles.projectHeader}>
+                <div className={styles.projectIcon}>
+                  {project.name.charAt(0)}
+                </div>
+                <div className={styles.projectInfo}>
+                  <h3 className={styles.projectName}>{project.name}</h3>
+                  <span className={styles.verifiedBadge}>
+                    <Shield size={12} /> Verified
+                  </span>
+                </div>
               </div>
-              <div className={styles.projectInfo}>
-                <h3 className={styles.projectName}>{project.name}</h3>
-                <span className={styles.verifiedBadge}>
-                  <Shield size={12} /> Verified
-                </span>
-              </div>
-            </div>
-            
-            <p className={styles.projectDescription}>{project.description}</p>
-            
-            <div className={styles.projectLinks}>
-              {project.website && (
+              
+              <p className={styles.projectDescription}>{project.description}</p>
+              
+              <div className={styles.projectLinks}>
+                {websiteLink && (
+                  <a 
+                    href={websiteLink.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={styles.link}
+                  >
+                    <Globe size={14} /> {websiteLink.label || 'Website'}
+                  </a>
+                )}
+                {xLink && (
+                  <a 
+                    href={xLink.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={styles.link}
+                  >
+                    <MessageCircle size={14} /> {xLink.label || 'X'}
+                  </a>
+                )}
                 <a 
-                  href={project.website} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                  href={`/project/${project.slug}`}
                   className={styles.link}
                 >
-                  <Globe size={14} /> Website
+                  <ExternalLink size={14} /> Details
                 </a>
-              )}
-              {project.twitter && (
-                <a 
-                  href={`https://twitter.com/${project.twitter}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={styles.link}
-                >
-                  <MessageCircle size={14} /> @{project.twitter}
-                </a>
-              )}
-              <a 
-                href={`/project/${project.slug}`}
-                className={styles.link}
-              >
-                <ExternalLink size={14} /> Details
-              </a>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {projects.length === 0 && (

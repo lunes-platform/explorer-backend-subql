@@ -14,9 +14,6 @@ import {
   Send,
   CheckCircle,
   AlertCircle,
-  Users,
-  Clock,
-  Target
 } from 'lucide-react';
 import { GET_ASSET_DETAIL, GET_PROJECT } from '../../services/graphql/queries';
 import Card from '../../components/common/Card';
@@ -30,7 +27,7 @@ import { WatchlistButton } from '../../components/common/WatchlistButton';
 import { useHealthStatus } from '../../hooks/useHealthStatus';
 import { useWatchlist } from '../../hooks/useWatchlist';
 import { getIndexerDegradedLevel, degradedToHealth } from '../../utils/indexerHealth';
-import type { GetAssetDetailResponse, GetProjectResponse, Asset } from '../../types';
+import type { GetAssetDetailResponse, GetProjectResponse } from '../../types';
 import styles from './AssetDetail.module.css';
 
 const AssetDetail: React.FC = () => {
@@ -44,7 +41,7 @@ const AssetDetail: React.FC = () => {
       skip: !id
     });
 
-  const { data: projectData, loading: projectLoading } = 
+  const { data: projectData } = 
     useQuery<GetProjectResponse>(GET_PROJECT, {
       variables: { id },
       skip: !id
@@ -164,7 +161,7 @@ const AssetDetail: React.FC = () => {
             )}
           </div>
           <span className={styles.assetSymbol}>{asset.symbol || '???'}</span>
-          <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={degradedToHealth(getIndexerDegradedLevel(health.rpc.latestBlock, indexerBlock, !!assetError))} />
+          <DataSourceBadge source="INDEXER" updatedAt={`Updated ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} health={degradedToHealth(degradedLevel)} />
           <span 
             className={styles.assetType}
             style={{ 

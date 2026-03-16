@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import { 
@@ -83,7 +83,9 @@ const AccountDetail: React.FC = () => {
   const { data: rpcTransfers, loading: transfersLoading } = useAccountTransfers(id || null);
   const { price } = useLunesPrice();
   const { explanation, loading: aiLoading, explain, clear } = useAIExplanation();
-
+  useEffect(() => {
+    console.log('rpcAssetBalances', rpcAssetBalances);
+  }, [activeTab]);
   // SubQuery data for tokens/nfts
   const { data: tokensData, loading: tokensLoading } = 
     useQuery<GetAccountTokensResponse>(GET_ACCOUNT_TOKENS, {
@@ -153,9 +155,7 @@ const AccountDetail: React.FC = () => {
   const tokenAccounts = tokensData?.psp22Accounts?.nodes || [];
   const indexerAssetAccounts = assetsData?.assetAccounts?.nodes || [];
   // Merge: use indexer data if available, otherwise build from RPC
-  const nativeAssetAccounts: AssetAccountWithAsset[] = indexerAssetAccounts.length > 0
-    ? indexerAssetAccounts
-    : (rpcAssetBalances || []).map(a => ({
+  const nativeAssetAccounts: AssetAccountWithAsset[] =  (rpcAssetBalances || []).map(a => ({
         id: `${id}-${a.assetId}`,
         balance: a.balance,
         asset: {
@@ -169,7 +169,7 @@ const AccountDetail: React.FC = () => {
         },
       }));
   const nftAccounts = nftsData?.nftAccounts?.nodes || [];
-
+      
   // Handle AI explain for a transfer
   const handleExplainTransfer = (tx: typeof transfers[0]) => {
     explain('transaction', {
@@ -248,7 +248,7 @@ const AccountDetail: React.FC = () => {
             fontWeight: 600, fontSize: '14px',
             color: isSent ? '#ff6464' : '#26d07c'
           }}>
-            {isSent ? '-' : '+'}{tx.amountFormatted.toFixed(4)} LUNES
+            {isSent ? '-' : '+'}{tx.amountFormatted.toFixed(8)} LUNES
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             ${(tx.amountFormatted * price).toFixed(2)}
@@ -290,7 +290,7 @@ const AccountDetail: React.FC = () => {
       sources: [`Balance: ${totalBalance.toFixed(4)} LUNES`, `Nonce: ${nonce}`, `${transfers.length} recent transfers`],
     });
   };
-
+ 
   const degradedLevel = getIndexerDegradedLevel(health.rpc.latestBlock, health.indexer.latestBlock, false);
 
   return (

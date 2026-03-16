@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Coins, Save, CheckCircle } from 'lucide-react';
 import { useAdminTokenInfo } from '../../hooks/useAdminData';
 import ImageUpload from '../../components/common/ImageUpload';

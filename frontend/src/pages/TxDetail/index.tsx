@@ -20,7 +20,7 @@ function formatLunes(raw: string): string {
     const n = Number(BigInt(raw)) / 1e8;
     if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
     if (n >= 1e3) return `${(n / 1e3).toFixed(2)}K`;
-    return n.toFixed(4);
+    return n.toFixed(8);
 }
 
 function CopyBtn({ text }: { text: string }) {
@@ -52,7 +52,7 @@ const TxDetail = () => {
         setLoading(true);
         setError(null);
         getExtrinsicByHash(id)
-            .then(result => {
+            .then(result => {                
                 setTx(result);
                 if (!result) setError('Transaction not found. If this is an extrinsic hash, only the last ~50 blocks are scanned. Try searching by block number (e.g. "9446650-4") or block hash instead.');
             })
@@ -97,7 +97,7 @@ const TxDetail = () => {
             explainData.to = transfer.to;
             explainData.amount = transfer.amount;
             explainData.amountFormatted = transfer.amountFormatted;
-            sources.push(`Transfer: ${transfer.amountFormatted.toFixed(4)} LUNES`);
+            sources.push(`Transfer: ${transfer.amountFormatted.toFixed(8)} LUNES`);
         }
         
         explain(tx.transfers.length > 0 ? 'transaction' : 'extrinsic', explainData);

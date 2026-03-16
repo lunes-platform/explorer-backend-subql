@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Bell, Eye, Moon, Globe, Save, CheckCircle, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Bell, Eye, Globe, CheckCircle, LogOut } from 'lucide-react';
 import { useWalletAuth } from '../../context/WalletAuthContext';
 import { CopyToClipboard } from '../../components/common/CopyToClipboard';
 import styles from './Dashboard.module.css';

@@ -99,7 +99,7 @@ const SwapPage: React.FC = () => {
                 )}
 
                 {!isConnected ? (
-                    <button className={classes.swapButton} onClick={connect}>
+                    <button className={classes.swapButton} onClick={() => connect()}>
                         <Wallet size={18} style={{ marginRight: 8, verticalAlign: -3 }} />
                         Connect Wallet
                     </button>

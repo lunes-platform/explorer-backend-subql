@@ -59,7 +59,6 @@ export default function AdsTab() {
   const { token } = useAdminAuth();
   const [subTab, setSubTab] = useState<SubTab>('ads');
   const [ads, setAds] = useState<Ad[]>([]);
-  const [pricing, setPricing] = useState<Pricing | null>(null);
   const [advertisers, setAdvertisers] = useState<Advertiser[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Ad | null>(null);
@@ -80,7 +79,7 @@ export default function AdsTab() {
         fetch(`${API}/admin/advertisers`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const adsD = await adsR.json(); if (Array.isArray(adsD)) setAds(adsD);
-      const pD = await pricingR.json(); setPricing(pD); setPricingForm(pD);
+      const pD = await pricingR.json(); setPricingForm(pD);
       const aD = await advR.json(); if (Array.isArray(aD)) setAdvertisers(aD);
     } catch { /* */ } finally { setLoading(false); }
   }, [token]);

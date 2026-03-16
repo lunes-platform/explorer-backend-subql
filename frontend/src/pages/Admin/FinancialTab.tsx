@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wallet, Save, Coins, CheckCircle, AlertTriangle,
   Loader2, Lock, Eye, EyeOff, Copy, Check, Edit3, X,
-  DollarSign, ArrowDownRight, Clock, ShieldCheck,
+  DollarSign, Clock, ShieldCheck,
   Power, History, Megaphone, Gift, Heart
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';

@@ -33,7 +33,7 @@ export const GET_LATEST_EXTRINSICS = gql`
 
 export const GET_LATEST_TRANSFERS = gql`
   query GetLatestTransfers($first: Int = 8) {
-    transfers(first: $first, orderBy: TIMESTAMP_DESC) {
+    transfers(first: $first, orderBy: ID_DESC) {
       nodes {
         id
         fromId
@@ -549,6 +549,27 @@ export const GET_NFT_COLLECTION = gql`
       contractAddress
       createdAt
       createdBy
+    }
+  }
+`;
+export const GET_LATEST_TRANSFERS_ASSETS = gql`
+  query GetLatestAssetTransfers($first: Int = 50) {
+    assetTransfers(first: $first, orderBy: ID_DESC) {
+      nodes {
+        id
+        assetId
+        fromId
+        toId
+        amount
+        blockNumber
+        timestamp,
+        asset {
+          id
+          name
+          symbol
+          decimals
+        }
+      }
     }
   }
 `;

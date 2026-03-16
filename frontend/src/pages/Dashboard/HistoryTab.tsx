@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { History, ArrowUpRight, ArrowDownLeft, Loader2, ExternalLink } from 'lucide-react';
 import { useAccountTransfers } from '../../hooks/useChainData';

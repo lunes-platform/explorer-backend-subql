@@ -258,8 +258,11 @@ export async function getAccountAssetBalances(address: string): Promise<AccountA
     try {
       const assetId = key.args[0].toString();
       const balanceOpt = await api.query.assets.account(assetId, address);
+      
       if (!(balanceOpt as any).isSome) continue;
+     
       const bal = (balanceOpt as any).unwrap().balance.toString();
+       
       if (bal === '0') continue;
 
       const [assetOpt, metadataRaw] = await Promise.all([
@@ -270,8 +273,7 @@ export async function getAccountAssetBalances(address: string): Promise<AccountA
       const metadata: any = metadataRaw;
       const name = (metadata.name?.toHuman?.() as string) || `Asset #${assetId}`;
       const symbol = (metadata.symbol?.toHuman?.() as string) || assetId;
-      const decimals = metadata.decimals?.toNumber?.() ?? 0;
-
+      const decimals = metadata.decimals?.toNumber?.() ?? 0;     
       results.push({
         assetId,
         name,
@@ -921,7 +923,7 @@ export async function getAccountTransfers(address: string, count: number = 50): 
   const MAX_BLOCKS = 3000;
 
   async function scanBlock(blockNum: number): Promise<RecentTransfer[]> {
-    try {
+    try {     
       const blockHash = await api.rpc.chain.getBlockHash(blockNum);
       const [signedBlock, events] = await Promise.all([
         api.rpc.chain.getBlock(blockHash),
@@ -1188,13 +1190,14 @@ export async function getExtrinsicByHash(hashOrId: string): Promise<ExtrinsicDet
 
 async function fetchExtrinsicFromBlock(api: ApiPromise, blockNum: number, extIdx: number): Promise<ExtrinsicDetail | null> {
   try {
+    
     const blockHash = await api.rpc.chain.getBlockHash(blockNum);
     const [signedBlock, allEvents] = await Promise.all([
       api.rpc.chain.getBlock(blockHash),
       api.query.system.events.at(blockHash),
     ]);
-
-    const ext = signedBlock.block.extrinsics[extIdx] as any;
+    
+    const ext = signedBlock.block.extrinsics[extIdx-1] as any;
     if (!ext) return null;
 
     const timestampExt = signedBlock.block.extrinsics.find(
@@ -1213,7 +1216,7 @@ async function fetchExtrinsicFromBlock(api: ApiPromise, blockNum: number, extIdx
     const transfers: ExtrinsicDetail['transfers'] = [];
     const events: ExtrinsicDetail['events'] = [];
 
-    for (const record of extEvents) {
+    for (const record of allEvents) {
       const { event } = record;
       events.push({
         section: event.section,
@@ -1231,18 +1234,27 @@ async function fetchExtrinsicFromBlock(api: ApiPromise, blockNum: number, extIdx
         });
       }
     }
+    for (const record of allEvents) {
+      const { event } = record;
+      if (event.section === 'system' && event.method === 'ExtrinsicFailed') {
+        events.push({
+          section: event.section,
+          method: event.method,
+          data: event.data.map((d: any) => d.toString()),
+        });
+      }
+    }
 
     // Try to extract fee from TransactionPayment event
     let fee = '0';
     let tip = '0';
-    const feeEvent = extEvents.find(
+    const feeEvent = allEvents.find(
       (e: any) => e.event.section === 'transactionPayment' && e.event.method === 'TransactionFeePaid'
     );
     if (feeEvent) {
       fee = feeEvent.event.data[1]?.toString() || '0';
       tip = feeEvent.event.data[2]?.toString() || '0';
     }
-
     return {
       hash: ext.hash.toHex(),
       blockNumber: blockNum,

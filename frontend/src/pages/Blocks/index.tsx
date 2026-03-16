@@ -65,9 +65,7 @@ const Blocks: React.FC = () => {
     extrinsicCount: 0,
     eventCount: 0,
   }));
-  const totalCount = gqlData?.blocks?.totalCount || 0;
   const latestBlock = blocks.length > 0 ? blocks[0].number : 0;
-  const estimatedTotalPages = totalCount > 0 ? Math.ceil(totalCount / PAGE_SIZE) : 1;
 
   return (
     <div className={classes.container}>

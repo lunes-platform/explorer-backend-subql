@@ -51,7 +51,6 @@ const Staking: React.FC = () => {
   const [showStakingModal, setShowStakingModal] = useState(false);
 
   const validators = stakingData?.validators || [];
-  const totalStaked = stakingData?.totalStakedFormatted || 0;
   const currentEra = stakingData?.currentEra || 0;
   const validatorCount = stakingData?.activeValidatorCount || 0;
   const totalNominators = validators.reduce((acc, v) => acc + v.nominatorCount, 0);

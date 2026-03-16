@@ -1,4 +1,4 @@
-import React, { ButtonHTMLAttributes } from 'react';
+import React, { type ButtonHTMLAttributes } from 'react';
 import { Loader2 } from 'lucide-react'; // Using Lucide for icons
 import classes from './Button.module.css';
 

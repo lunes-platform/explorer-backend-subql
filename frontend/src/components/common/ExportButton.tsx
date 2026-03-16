@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet, FileJson } from 'lucide-react';
+import {  FileSpreadsheet, FileJson } from 'lucide-react';
 import styles from './ExportButton.module.css';
 
 export interface ExportColumn<T> {
@@ -7,7 +7,7 @@ export interface ExportColumn<T> {
   formatter?: (value: any, row: T) => string;
 }
 
-interface ExportButtonProps<T> {
+type ExportButtonProps<T> = {
   data: T[];
   columns: ExportColumn<T>[];
   filename: string;

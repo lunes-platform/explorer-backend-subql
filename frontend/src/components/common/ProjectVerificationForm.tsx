@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Send, Loader2, X, Upload, Globe, MessageCircle, Github, Mail } from 'lucide-react';
+import { CheckCircle, Send, Loader2, Globe, Github, Mail } from 'lucide-react';
 import { useProjectVerification } from '../../hooks/useProjectVerification';
 import styles from './ProjectVerificationForm.module.css';
 

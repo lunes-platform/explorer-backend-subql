@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Megaphone, Plus, Trash2, ToggleLeft, ToggleRight, CheckCircle } from 'lucide-react';
 import { useAdminAnnouncements, type Announcement } from '../../hooks/useAdminData';
 import styles from './Admin.module.css';

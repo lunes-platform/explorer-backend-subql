@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Image, Search, Grid3X3, List, Loader2, Layers, User } from 'lucide-react';
+import { Image, Search, Grid3X3, List, Loader2 } from 'lucide-react';
 import { useNftCollections } from '../../hooks/useChainData';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useHealthStatus } from '../../hooks/useHealthStatus';

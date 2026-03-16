@@ -219,7 +219,12 @@ export async function getStakingInfo(address: string): Promise<{
 export async function getActiveEra(): Promise<number> {
   const api = await getApi();
   const era = await api.query.staking.activeEra();
-  return era.toJSON()?.index || 0;
+  const eraJson = era.toJSON();
+  if (typeof eraJson === 'number') return eraJson;
+  if (eraJson && typeof eraJson === 'object' && 'index' in eraJson) {
+    return Number((eraJson as { index?: number | string }).index || 0);
+  }
+  return 0;
 }
 
 export async function getErasRewardPoints(era: number): Promise<any> {
