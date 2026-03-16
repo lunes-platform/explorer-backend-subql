@@ -97,7 +97,16 @@ const TxDetail = () => {
             explainData.to = transfer.to;
             explainData.amount = transfer.amount;
             explainData.amountFormatted = transfer.amountFormatted;
-            sources.push(`Transfer: ${transfer.amountFormatted.toFixed(8)} LUNES`);
+            sources.push(`Transfer: ${transfer.amountFormatted.toFixed(8)} ${transfer.symbol}`);
+        }
+        // Add asset transfer details if available
+        if (tx.transfersAssets.length > 0) {
+            const transferAsset = tx.transfersAssets[0];
+            explainData.from = transferAsset.from;
+            explainData.to = transferAsset.to;
+            explainData.amount = transferAsset.amount;
+            explainData.amountFormatted = transferAsset.amountFormatted;
+            sources.push(`Transfer: ${transferAsset.amountFormatted.toFixed(8)} ${transferAsset.symbol}`);
         }
         
         explain(tx.transfers.length > 0 ? 'transaction' : 'extrinsic', explainData);
@@ -176,7 +185,7 @@ const TxDetail = () => {
             />
 
             {/* Transfer Summary — the main from/to/amount card */}
-            {tx.transfers.length > 0 && (
+            {(tx.transfers.length > 0  && tx.transfersAssets.length ==0) && (
                 <Card title="Transfer Details" icon={<Send size={18} />}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {tx.transfers.map((tr, i) => (
@@ -228,7 +237,60 @@ const TxDetail = () => {
                 </Card>
             )}
 
-            {tx.transfers.length > 0 && <div style={{ height: '1rem' }} />}
+            {(tx.transfers.length > 0  && tx.transfersAssets.length ==0)  && <div style={{ height: '1rem' }} />}
+             {tx.transfersAssets.length > 0 && (
+                <Card title="Transfer Details" icon={<Send size={18} />}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {tx.transfersAssets.map((tr, i) => (
+                            <div key={i} style={{
+                                display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+                                borderRadius: 12, background: 'rgba(38, 208, 124, 0.04)',
+                                border: '1px solid rgba(38, 208, 124, 0.12)', flexWrap: 'wrap',
+                            }}>
+                                {/* From */}
+                                <div style={{ flex: 1, minWidth: 200 }}>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>From</div>
+                                    <Link to={`/account/${tr.from}`} style={{ ...MONO, color: 'var(--color-brand-400)', textDecoration: 'none' }}>
+                                        {shortAddr(tr.from)}
+                                    </Link>
+                                    <CopyBtn text={tr.from} />
+                                </div>
+
+                                {/* Arrow */}
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: '50%', display: 'flex',
+                                    alignItems: 'center', justifyContent: 'center',
+                                    background: 'rgba(38, 208, 124, 0.12)', flexShrink: 0,
+                                }}>
+                                    <ArrowRight size={18} color="#26d07c" />
+                                </div>
+
+                                {/* To */}
+                                <div style={{ flex: 1, minWidth: 200 }}>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>To</div>
+                                    <Link to={`/account/${tr.to}`} style={{ ...MONO, color: 'var(--color-brand-400)', textDecoration: 'none' }}>
+                                        {shortAddr(tr.to)}
+                                    </Link>
+                                    <CopyBtn text={tr.to} />
+                                </div>
+
+                                {/* Amount */}
+                                <div style={{
+                                    padding: '10px 18px', borderRadius: 10,
+                                    background: 'rgba(38, 208, 124, 0.08)', textAlign: 'center', flexShrink: 0,
+                                }}>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Amount</div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: '#26d07c' }}>
+                                        {formatLunes(tr.amount)} <span style={{ fontSize: 12, fontWeight: 400 }}>{tr.symbol}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+             {tx.transfersAssets.length > 0 && <div style={{ height: '1rem' }} />}
+
 
             {/* Overview */}
             <Card title="Overview">

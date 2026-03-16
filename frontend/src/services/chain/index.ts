@@ -1052,6 +1052,14 @@ export interface ExtrinsicDetail {
     from: string;
     to: string;
     amount: string;
+    symbol: string;
+    amountFormatted: number;
+  }>;
+  transfersAssets: Array<{
+    from: string;
+    to: string;
+    symbol: string;
+    amount: string;
     amountFormatted: number;
   }>;
   events: Array<{
@@ -1214,6 +1222,7 @@ async function fetchExtrinsicFromBlock(api: ApiPromise, blockNum: number, extIdx
     );
 
     const transfers: ExtrinsicDetail['transfers'] = [];
+    const transfersAssets: ExtrinsicDetail['transfersAssets'] = [];
     const events: ExtrinsicDetail['events'] = [];
 
     for (const record of allEvents) {
@@ -1230,10 +1239,25 @@ async function fetchExtrinsicFromBlock(api: ApiPromise, blockNum: number, extIdx
           from: from.toString(),
           to: to.toString(),
           amount: amount.toString(),
+          symbol: 'LUNES',
+          amountFormatted: Number(BigInt(amount.toString())) / 1e8,
+        });
+      }
+      if (event.section === 'assets' && event.method === 'Transferred') {
+        const [assetId, from, to, amount] = event.data;
+        const asset = await  api.query.assets.metadata(assetId);
+        const assetSymbol = asset.toHuman().symbol;
+        console.log(assetSymbol);
+        transfersAssets.push({
+          from: from.toString(),
+          to: to.toString(),
+          amount: amount.toString(),
+          symbol: assetSymbol,
           amountFormatted: Number(BigInt(amount.toString())) / 1e8,
         });
       }
     }
+    
     for (const record of allEvents) {
       const { event } = record;
       if (event.section === 'system' && event.method === 'ExtrinsicFailed') {
@@ -1270,6 +1294,7 @@ async function fetchExtrinsicFromBlock(api: ApiPromise, blockNum: number, extIdx
       fee,
       tip,
       transfers,
+      transfersAssets,
       events,
     };
   } catch (err) {

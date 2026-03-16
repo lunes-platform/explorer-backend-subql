@@ -21,6 +21,7 @@ const AccountDetail = React.lazy(() => import('./pages/AccountDetail'));
 const Staking = React.lazy(() => import('./pages/Staking'));
 const Assets = React.lazy(() => import('./pages/Assets'));
 const AssetDetail = React.lazy(() => import('./pages/AssetDetail'));
+const AssetTransfers = React.lazy(() => import('./pages/AssetTransfers'));
 const NFTDetail = React.lazy(() => import('./pages/NFTDetail'));
 const ProjectRegister = React.lazy(() => import('./pages/ProjectRegister'));
 const ProjectDetail = React.lazy(() => import('./pages/ProjectDetail'));
@@ -89,6 +90,7 @@ function App() {
                       <Route path="/analytics" element={<PageWrapper><Analytics /></PageWrapper>} />
                       <Route path="/rich-list" element={<PageWrapper><RichList /></PageWrapper>} />
                       <Route path="/assets" element={<PageWrapper><Assets /></PageWrapper>} />
+                      <Route path="/assets/transfers" element={<PageWrapper><AssetTransfers /></PageWrapper>} />
                       <Route path="/asset/:id" element={<PageWrapper><AssetDetail /></PageWrapper>} />
                       <Route path="/nft/:id" element={<PageWrapper><NFTDetail /></PageWrapper>} />
                       <Route path="/projects" element={<PageWrapper><ProjectDetail /></PageWrapper>} />

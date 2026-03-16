@@ -441,6 +441,114 @@ export const GET_ASSET_DETAIL = gql`
   }
 `;
 
+export const GET_ASSET_TRANSFERS = gql`
+  query GetAssetTransfers(
+    $first: Int!,
+    $offset: Int!,
+    $assetId: String,
+    $address: String,
+    $useAssetAndWallet: Boolean!,
+    $useAssetOnly: Boolean!,
+    $useWalletOnly: Boolean!,
+    $useAll: Boolean!
+  ) {
+    assetTransfersAssetAndWallet: assetTransfers(
+      filter: { and: [
+        { assetId: { equalTo: $assetId } },
+        { or: [{ fromId: { equalTo: $address } }, { toId: { equalTo: $address } }] }
+      ] },
+      first: $first,
+      offset: $offset,
+      orderBy: BLOCK_NUMBER_DESC
+    ) @include(if: $useAssetAndWallet) {
+      nodes {
+        id
+        assetId
+        fromId
+        toId
+        amount
+        blockNumber
+        timestamp
+        asset {
+          id
+          name
+          symbol
+          decimals
+        }
+      }
+      totalCount
+    }
+    assetTransfersAssetOnly: assetTransfers(
+      filter: { assetId: { equalTo: $assetId } },
+      first: $first,
+      offset: $offset,
+      orderBy: BLOCK_NUMBER_DESC
+    ) @include(if: $useAssetOnly) {
+      nodes {
+        id
+        assetId
+        fromId
+        toId
+        amount
+        blockNumber
+        timestamp
+        asset {
+          id
+          name
+          symbol
+          decimals
+        }
+      }
+      totalCount
+    }
+    assetTransfersWalletOnly: assetTransfers(
+      filter: { or: [{ fromId: { equalTo: $address } }, { toId: { equalTo: $address } }] },
+      first: $first,
+      offset: $offset,
+      orderBy: BLOCK_NUMBER_DESC
+    ) @include(if: $useWalletOnly) {
+      nodes {
+        id
+        assetId
+        fromId
+        toId
+        amount
+        blockNumber
+        timestamp
+        asset {
+          id
+          name
+          symbol
+          decimals
+        }
+      }
+      totalCount
+    }
+    assetTransfersAll: assetTransfers(
+      first: $first,
+      offset: $offset,
+      orderBy: BLOCK_NUMBER_DESC
+    ) @include(if: $useAll) {
+      nodes {
+        id
+        assetId
+        fromId
+        toId
+        amount
+        blockNumber
+        timestamp
+        asset {
+          id
+          name
+          symbol
+          decimals
+        }
+      }
+      totalCount
+    }
+  }
+`;
+
 export const GET_STAKING_POSITIONS = gql`
   query GetStakingPositions($first: Int!, $offset: Int!) {
     stakingPositions(first: $first, offset: $offset, orderBy: STAKED_AT_DESC) {

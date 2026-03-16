@@ -109,6 +109,7 @@ const Header: React.FC = () => {
                         <div className={classes.dropdownMenu}>
                             <Link to="/tokens" className={`${classes.dropdownItem} ${location.pathname === '/tokens' ? classes.active : ''}`}>Tokens</Link>
                             <Link to="/assets" className={`${classes.dropdownItem} ${location.pathname === '/assets' ? classes.active : ''}`}>Assets</Link>
+                            <Link to="/assets/transfers" className={`${classes.dropdownItem} ${location.pathname === '/assets/transfers' ? classes.active : ''}`}>Asset Transfers</Link>
                             <Link to="/nfts" className={`${classes.dropdownItem} ${location.pathname === '/nfts' ? classes.active : ''}`}>NFTs</Link>
                         </div>
                     </div>

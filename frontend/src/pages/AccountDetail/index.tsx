@@ -93,7 +93,7 @@ const AccountDetail: React.FC = () => {
       skip: !id || activeTab !== 'tokens'
     });
 
-  const { data: assetsData, loading: assetsLoading } =
+  const { loading: assetsLoading } =
     useQuery<GetAccountAssetsResponse>(GET_ACCOUNT_ASSETS, {
       variables: { accountId: id },
       skip: !id || activeTab !== 'tokens'
@@ -153,7 +153,6 @@ const AccountDetail: React.FC = () => {
 
   const transfers = rpcTransfers || [];
   const tokenAccounts = tokensData?.psp22Accounts?.nodes || [];
-  const indexerAssetAccounts = assetsData?.assetAccounts?.nodes || [];
   // Merge: use indexer data if available, otherwise build from RPC
   const nativeAssetAccounts: AssetAccountWithAsset[] =  (rpcAssetBalances || []).map(a => ({
         id: `${id}-${a.assetId}`,
@@ -512,7 +511,7 @@ const AccountDetail: React.FC = () => {
               <div className={styles.tokensList}>
                 {/* pallet-assets (LUSDT, etc.) */}
                 {nativeAssetAccounts.map((aa: AssetAccountWithAsset) => (
-                  <div key={aa.id} className={styles.tokenItem}>
+                  <div key={aa.id} className={styles.tokenItem} onClick={() => window.location.href = `/assets/transfers?assetId=${aa.asset.id}&address=${chainAccount?.address}`}>
                     <div className={styles.tokenIcon} style={{ background: 'rgba(38,208,124,0.15)', color: '#26d07c' }}>
                       {aa.asset.symbol?.slice(0, 1) || '#'}
                     </div>

@@ -98,7 +98,7 @@ const TopTokens: React.FC = () => {
                     </thead>
                     <tbody>
                         {/* LUNES native token - always first */}
-                        <tr 
+                        <tr
                             className={classes.clickableRow}
                             onClick={() => navigate('/token/lunes')}
                         >
@@ -111,10 +111,10 @@ const TopTokens: React.FC = () => {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <span className={classes.tokenSim}>Lunes</span>
                                         <span className={classes.tokenName}>LUNES</span>
-                                        <span style={{ 
-                                            fontSize: '10px', 
-                                            padding: '2px 6px', 
-                                            background: 'rgba(108, 56, 255, 0.2)', 
+                                        <span style={{
+                                            fontSize: '10px',
+                                            padding: '2px 6px',
+                                            background: 'rgba(108, 56, 255, 0.2)',
                                             borderRadius: '4px',
                                             color: 'var(--color-brand-400)'
                                         }}>Native</span>
@@ -139,10 +139,10 @@ const TopTokens: React.FC = () => {
                                 </div>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                                <span style={{ 
-                                    fontSize: '11px', 
-                                    padding: '3px 8px', 
-                                    background: 'rgba(38, 208, 124, 0.15)', 
+                                <span style={{
+                                    fontSize: '11px',
+                                    padding: '3px 8px',
+                                    background: 'rgba(38, 208, 124, 0.15)',
                                     borderRadius: '4px',
                                     color: 'var(--color-success)'
                                 }}>Substrate</span>
@@ -215,22 +215,21 @@ const TopTokens: React.FC = () => {
                             const actualIndex = startIndex + index;
                             const projectLogo = project?.logo;
                             return (
-                            <tr 
-                                key={asset.id}
-                                className={classes.clickableRow}
-                                onClick={() => navigate(rowDestination)}
-                            >
-                                <td className={classes.rankCell}>{actualIndex + 2}</td>
-                                <td>
-                                    <div className={classes.tokenInfo}>
-                                        <div className={classes.tokenIconPlaceholder} style={{ 
-                                            background: projectLogo ? 'transparent' : `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)`,
-                                            overflow: 'hidden',
-                                        }}>
-                                            {projectLogo ? (
+                                <tr
+                                    key={asset.id}
+                                    className={classes.clickableRow}
+                                    onClick={() => navigate(rowDestination)}
+                                >
+                                    <td className={classes.rankCell}>{actualIndex + 2}</td>
+                                    <td>
+                                        <div className={classes.tokenInfo}>
+                                            <div className={classes.tokenIconPlaceholder} style={{
+                                                background: projectLogo ? 'transparent' : `hsl(${(parseInt(asset.id) * 137) % 360}, 60%, 45%)`,
+                                                overflow: 'hidden',
+                                            }}>
                                                 <img
-                                                    src={projectLogo}
-                                                    alt={asset.name}
+                                                    src={projectLogo || asset.symbol.toLocaleLowerCase()+".png"}
+                                                    alt={asset.name.toUpperCase()}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
                                                     onError={(e) => {
                                                         const el = e.target as HTMLImageElement;
@@ -239,73 +238,70 @@ const TopTokens: React.FC = () => {
                                                         el.parentElement!.textContent = asset.symbol.charAt(0);
                                                     }}
                                                 />
-                                            ) : (
-                                                asset.symbol.charAt(0)
-                                            )}
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span className={classes.tokenSim}>{asset.name}</span>
-                                                <span className={classes.tokenName}>{asset.symbol}</span>
-                                                <span style={{ 
-                                                    fontSize: '10px', 
-                                                    padding: '2px 6px', 
-                                                    background: 'rgba(0, 163, 255, 0.15)', 
-                                                    borderRadius: '4px',
-                                                    color: '#00a3ff'
-                                                }}>Asset #{asset.id}</span>
                                             </div>
-                                            {project && (
-                                                <Link
-                                                    to={`/project/${project.slug}`}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    style={{ fontSize: '11px', color: 'var(--color-brand-400)', display: 'inline-flex', alignItems: 'center', gap: '3px', textDecoration: 'none' }}
-                                                >
-                                                    <FolderOpen size={10} />
-                                                    {project.name}
-                                                </Link>
-                                            )}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span className={classes.tokenSim}>{asset.name}</span>
+                                                    <span className={classes.tokenName}>{asset.symbol}</span>
+                                                    <span style={{
+                                                        fontSize: '10px',
+                                                        padding: '2px 6px',
+                                                        background: 'rgba(0, 163, 255, 0.15)',
+                                                        borderRadius: '4px',
+                                                        color: '#00a3ff'
+                                                    }}>Asset #{asset.id}</span>
+                                                </div>
+                                                {project && (
+                                                    <Link
+                                                        to={`/project/${project.slug}`}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{ fontSize: '11px', color: 'var(--color-brand-400)', display: 'inline-flex', alignItems: 'center', gap: '3px', textDecoration: 'none' }}
+                                                    >
+                                                        <FolderOpen size={10} />
+                                                        {project.name}
+                                                    </Link>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
-                                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
-                                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
-                                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
-                                <td style={{ textAlign: 'right' }}>
-                                    <div className={classes.supplyContainer} style={{ marginLeft: 'auto' }}>
-                                        <span>{formatSupply(asset.supplyFormatted)} {asset.symbol}</span>
-                                    </div>
-                                </td>
-                                <td style={{ textAlign: 'right' }}>
-                                    <span style={{ 
-                                        fontSize: '11px', 
-                                        padding: '3px 8px', 
-                                        background: 'rgba(0, 163, 255, 0.15)', 
-                                        borderRadius: '4px',
-                                        color: '#00a3ff'
-                                    }}>pallet-assets</span>
-                                </td>
-                                <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                                    <WatchlistButton
-                                        isWatched={isWatched(asset.id, 'token')}
-                                        onToggle={() => toggleItem({ id: asset.id, type: 'token', symbol: asset.symbol, name: asset.name })}
-                                        size="sm"
-                                    />
-                                </td>
-                            </tr>
+                                    </td>
+                                    <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                                    <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                                    <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                                    <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div className={classes.supplyContainer} style={{ marginLeft: 'auto' }}>
+                                            <span>{formatSupply(asset.supplyFormatted)} {asset.symbol}</span>
+                                        </div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <span style={{
+                                            fontSize: '11px',
+                                            padding: '3px 8px',
+                                            background: 'rgba(0, 163, 255, 0.15)',
+                                            borderRadius: '4px',
+                                            color: '#00a3ff'
+                                        }}>pallet-assets</span>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                        <WatchlistButton
+                                            isWatched={isWatched(asset.id, 'token')}
+                                            onToggle={() => toggleItem({ id: asset.id, type: 'token', symbol: asset.symbol, name: asset.name })}
+                                            size="sm"
+                                        />
+                                    </td>
+                                </tr>
                             );
                         })}
                     </tbody>
                 </table>
-                
+
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center', 
-                        gap: '12px', 
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '12px',
                         marginTop: '20px',
                         padding: '16px 0'
                     }}>
@@ -325,8 +321,8 @@ const TopTokens: React.FC = () => {
                         >
                             ← Anterior
                         </button>
-                        <span style={{ 
-                            fontSize: '14px', 
+                        <span style={{
+                            fontSize: '14px',
                             color: 'var(--text-muted)',
                             fontWeight: 500
                         }}>

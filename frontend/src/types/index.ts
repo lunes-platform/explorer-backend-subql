@@ -293,11 +293,18 @@ export interface GetAccountAssetsResponse {
 
 export interface AssetTransfer {
     id: string;
+    assetId?: string;
     fromId: string;
     toId: string;
     amount: string;
     blockNumber: number;
     timestamp: string;
+    asset?: {
+        id: string;
+        name?: string | null;
+        symbol?: string | null;
+        decimals?: number | null;
+    };
 }
 
 export interface AssetsConnection {
@@ -312,6 +319,7 @@ export interface AssetAccountsConnection {
 
 export interface AssetTransfersConnection {
     nodes: AssetTransfer[];
+    totalCount?: number;
 }
 
 export interface GetAssetsResponse {
@@ -322,6 +330,12 @@ export interface GetAssetDetailResponse {
     asset: Asset | null;
     assetAccounts: AssetAccountsConnection;
     assetTransfers: AssetTransfersConnection;
+}
+export interface GetAssetTransfersResponse {
+    assetTransfersAssetAndWallet?: AssetTransfersConnection;
+    assetTransfersAssetOnly?: AssetTransfersConnection;
+    assetTransfersWalletOnly?: AssetTransfersConnection;
+    assetTransfersAll?: AssetTransfersConnection;
 }
 
 // Project Types

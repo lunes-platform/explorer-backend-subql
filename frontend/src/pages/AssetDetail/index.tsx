@@ -286,7 +286,7 @@ const AssetDetail: React.FC = () => {
           />
         </Card>
       )}
-
+    
       {/* Asset Details */}
       <div className={styles.detailsGrid}>
         <Card title="Token Details" icon={<Coins size={18} />}>
@@ -323,7 +323,7 @@ const AssetDetail: React.FC = () => {
               </div>
             )}
           </div>
-        </Card>
+        </Card>      
 
         <Card title="Verification" icon={<CheckCircle size={18} />}>
           <div className={styles.verificationInfo}>

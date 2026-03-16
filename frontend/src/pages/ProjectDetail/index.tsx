@@ -138,7 +138,7 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
               <LunesLogo size={32} />
             ) : project.logo ? (
               <img
-                src={project.logo}
+                src={project.logo || ("/"+project.id.toLocaleLowerCase()+".png")}
                 alt={project.name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.textContent = project.name.charAt(0); }}
@@ -330,6 +330,11 @@ const ProjectDetailView: React.FC<{ project: KnownProject }> = ({ project }) => 
           </div>
         </Card>
       )}
+       <Card title="Transaction History" icon={<Globe size={18} />}>
+          <Link to={`/assets/transfers?assetId=${project.assetIds[0]}`} className={styles.linkBtn}>
+            View Transactions
+          </Link>
+        </Card>
 
       {/* Similar Projects */}
       <SimilarProjects currentProject={project} />
