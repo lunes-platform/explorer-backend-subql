@@ -33,6 +33,7 @@ jobs:
           echo "Deploying"
           echo "Building Frontend"
           cd "$TARGET_DIR/frontend"
+          ls
           npm i
           npm run build
           echo "Deploying Backend"
