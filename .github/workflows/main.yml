@@ -28,17 +28,12 @@ jobs:
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USER }}
           script: |
-            TARGET_DIR="/root/explorer-backend-subql"
-            if docker compose version >/dev/null 2>&1; then
-              DOCKER_COMPOSE="docker compose"
-            else
-              DOCKER_COMPOSE="docker-compose"
-            fi
+            TARGET_DIR="/root/explorer-backend-subql"           
 
             cd "$TARGET_DIR/frontend"
             npm i
             npm run build
 
             cd "$TARGET_DIR"
-            $DOCKER_COMPOSE -f docker-compose.prod.yml down --remove-orphans || true
-            $DOCKER_COMPOSE -f docker-compose.prod.yml up -d --build --remove-orphans
+            docker compose -f docker-compose.prod.yml down --remove-orphans || true
+            docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
