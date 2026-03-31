@@ -1,0 +1,44 @@
+name: Deploy on Prod and Dev
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: copy files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          source: "."
+          target: /root/explorer-backend-subql
+      - name: Executing remote SSH commands using key
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.HOST }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT }}
+          username: ${{ secrets.USER }}
+          script: |
+            TARGET_DIR="/root/explorer-backend-subql"
+            if docker compose version >/dev/null 2>&1; then
+              DOCKER_COMPOSE="docker compose"
+            else
+              DOCKER_COMPOSE="docker-compose"
+            fi
+
+            cd "$TARGET_DIR/frontend"
+            npm i
+            npm run build
+
+            cd "$TARGET_DIR"
+            $DOCKER_COMPOSE -f docker-compose.prod.yml down --remove-orphans || true
+            $DOCKER_COMPOSE -f docker-compose.prod.yml up -d --build --remove-orphans

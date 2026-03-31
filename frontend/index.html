@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Primary Meta Tags -->
+  <title>Lunes Explorer — Blockchain Explorer for Lunes Network</title>
+  <meta name="title" content="Lunes Explorer — Blockchain Explorer for Lunes Network" />
+  <meta name="description" content="Explore the Lunes blockchain in real-time. View blocks, transactions, accounts, tokens, NFTs, staking, validators, smart contracts, and analytics. Built for developers, validators, and explorers." />
+  <meta name="keywords" content="Lunes, blockchain, explorer, blocks, transactions, tokens, NFTs, staking, validators, smart contracts, crypto, LUNES token, Substrate, Web3" />
+  <meta name="author" content="Lunes Platform" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://explorer.lunes.io/" />
+
+  <!-- Favicon & Icons -->
+  <link rel="icon" type="image/svg+xml" href="/lunes-favicon.svg" />
+  <link rel="apple-touch-icon" href="/lunes-favicon.svg" />
+  <meta name="theme-color" content="#6C38FF" />
+  <meta name="msapplication-TileColor" content="#0a0a0f" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://explorer.lunes.io/" />
+  <meta property="og:title" content="Lunes Explorer — Blockchain Explorer for Lunes Network" />
+  <meta property="og:description" content="Explore the Lunes blockchain in real-time. View blocks, transactions, accounts, tokens, NFTs, staking, validators, smart contracts, and analytics." />
+  <meta property="og:image" content="https://explorer.lunes.io/lunes-og-image.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="Lunes Explorer" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://explorer.lunes.io/" />
+  <meta name="twitter:title" content="Lunes Explorer — Blockchain Explorer for Lunes Network" />
+  <meta name="twitter:description" content="Explore the Lunes blockchain in real-time. View blocks, transactions, accounts, tokens, NFTs, staking, validators, smart contracts, and analytics." />
+  <meta name="twitter:image" content="https://explorer.lunes.io/lunes-og-image.svg" />
+  <meta name="twitter:site" content="@LunesPlatform" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Lunes Explorer",
+    "url": "https://explorer.lunes.io",
+    "description": "Blockchain explorer for the Lunes network. View blocks, transactions, accounts, tokens, NFTs, staking, validators, and smart contracts in real-time.",
+    "applicationCategory": "Blockchain Explorer",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "creator": {
+      "@type": "Organization",
+      "name": "Lunes Platform",
+      "url": "https://lunes.io",
+      "sameAs": [
+        "https://twitter.com/LunesPlatform",
+        "https://github.com/lunes-platform"
+      ]
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://explorer.lunes.io/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- Fonts (preconnect for performance) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- DNS Prefetch for external resources -->
+  <link rel="dns-prefetch" href="https://api.coingecko.com" />
+  <link rel="dns-prefetch" href="https://ws-archive.lunes.io" />
+</head>
+
+<body>
+  <!-- Noscript fallback for SEO crawlers -->
+  <noscript>
+    <div style="padding:2rem;text-align:center;font-family:sans-serif;color:#fff;background:#0a0a0f">
+      <h1>Lunes Explorer</h1>
+      <p>Blockchain explorer for the Lunes network. View blocks, transactions, accounts, tokens, NFTs, staking, validators, and smart contracts.</p>
+      <p>Please enable JavaScript to use Lunes Explorer.</p>
+      <a href="https://lunes.io" style="color:#6C38FF">Visit lunes.io</a>
+    </div>
+  </noscript>
+  <div id="root"></div>
+  <!-- DIAGNOSTIC_ID: LUNES_EXPLORER_V1 -->
+  <div id="lunes-diagnostic" style="display:none">AUTO_NIVEL_ACTIVE</div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

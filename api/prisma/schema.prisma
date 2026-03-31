@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id        Int            @id @default(autoincrement())
+  email     String         @unique
+  password  String
+  fullName  String         @map("full_name")
+  role      String         @default("editor")
+  isActive  Boolean        @default(true) @map("is_active")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  lastLogin DateTime?      @map("last_login")
+  sessions  AdminSession[]
+
+  @@map("admin_users")
+}
+
+model AdminSession {
+  token     String    @id
+  userId    Int       @map("user_id")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("admin_sessions")
+}
+
+model AIConfig {
+  id          Int      @id @default(1)
+  provider    String   @default("none")
+  apiKey      String   @default("") @map("api_key")
+  model       String
+  systemPrompt String  @map("system_prompt")
+  maxTokens   Int      @default(300) @map("max_tokens")
+  temperature Float    @default(0.3)
+  enabled     Boolean  @default(false)
+  lastUpdated DateTime @default(now()) @map("last_updated")
+  updatedBy   String   @default("system") @map("updated_by")
+
+  @@map("ai_config")
+}
+
+model AdminDataState {
+  key       String   @id
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_data_state")
+}

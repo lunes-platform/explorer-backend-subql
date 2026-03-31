@@ -1,0 +1,197 @@
+/* RichList page styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.header {
+    margin-bottom: 24px;
+}
+
+.title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+/* Summary stats row */
+.statsRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.statCard {
+    background: var(--bg-surface, rgba(255,255,255,0.03));
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.statLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+}
+
+.statValue {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary, white);
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Table card */
+.card {
+    background: var(--color-surface, rgba(255,255,255,0.03));
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.tableContainer {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.table th {
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 12px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    white-space: nowrap;
+}
+
+.table tr:hover td {
+    background: rgba(108, 56, 255, 0.05);
+}
+
+/* Rank column */
+.rank {
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 13px;
+    width: 50px;
+    text-align: center;
+}
+
+.rankTop {
+    color: var(--color-brand-400);
+    font-size: 14px;
+}
+
+/* Address */
+.address {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.addressLink {
+    font-family: 'monospace';
+    font-size: 13px;
+    color: var(--color-brand-400);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.addressLink:hover {
+    color: var(--color-brand-300);
+    text-decoration: underline;
+}
+
+/* Balance */
+.balance {
+    font-weight: 600;
+    font-family: 'Space Grotesk', sans-serif;
+    text-align: right;
+}
+
+.balanceMuted {
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: right;
+}
+
+/* Percent bar */
+.percentBar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.percentTrack {
+    width: 60px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.percentFill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--color-brand-600), var(--color-brand-400));
+    min-width: 1px;
+}
+
+.percentLabel {
+    font-size: 12px;
+    color: var(--text-muted);
+    min-width: 48px;
+    text-align: right;
+}
+
+/* Loading */
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 80px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

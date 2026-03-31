@@ -13,40 +13,31 @@ export async function createAssetTransfer(
       data: [assetId, from, to, amount],
     },
   } = event;
-  logger.info(
-    `AssetTransfer ${amount} }`,
-  );
-  await ensureAsset(assetId.toString());
-  let entity = AssetTransfer.create({
-    id: `${blockNumber.toString()}-${index.toString()}`,
-    assetId: assetId.toString(),
-    fromId: from.toString(),
-    toId: to.toString(),
-    amount: (amount as Balance).toBigInt(),
-    blockNumber: blockNumber,
+
+  const assetIdStr = assetId.toString();
+  const fromStr = from.toString();
+  const toStr = to.toString();
+  const transferAmount = (amount as Balance).toBigInt();
+
+  await ensureAsset(assetIdStr);
+
+  const entity = AssetTransfer.create({
+    id: `${blockNumber}-${index}`,
+    assetId: assetIdStr,
+    fromId: fromStr,
+    toId: toStr,
+    amount: transferAmount,
+    blockNumber,
     eventIndex: index,
   });
   entity.save();
-  try {
-    const data_from = await api.query.assets.account(assetId, from.toString());
-    let data_: any = data_from.toHuman();
-    logger.info(
-      `AssetAccount ${data_}}`,
-    );
-    logger.info(
-      `AssetAccount ${BigInt(data_.balance.toString().replace(/,/g, ''))} }`,
-    );
-    const balanceFrom = BigInt(data_.balance.toString().replace(/,/g, ''))
-    ensureAccountAsset(from.toString(), balanceFrom, assetId.toString());
-    const data_to = await api.query.assets.account(assetId, to.toString());
-    data_ = data_to.toHuman();
-    const balanceTo = BigInt(data_.balance.toString().replace(/,/g, ''))
-    ensureAccountAsset(to.toString(), balanceTo, assetId.toString());
 
-  } catch (error) {
-    logger.info(
-      `AssetTransfer ${error} }`,
-    );
-  }
+  // Register from/to as AssetAccount holders with placeholder balance (0).
+  // The actual balance is unknown without an RPC call — which we avoid here
+  // to prevent timeouts. The balance gets corrected by assets.Issued events.
+  // We use fire-and-forget (no await) so this never blocks block processing.
+  ensureAccountAsset(fromStr, BigInt(0), assetIdStr);
+  ensureAccountAsset(toStr, BigInt(0), assetIdStr);
+
   return entity;
 }

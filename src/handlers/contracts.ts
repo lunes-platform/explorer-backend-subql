@@ -1,6 +1,15 @@
-import { SmartContract, ContractCall, ContractEvent } from "../types";
+import { SmartContract, ContractCall, ContractEvent, Account } from "../types";
 import { SubstrateEvent, SubstrateExtrinsic } from "@subql/types";
 import { EventRecord } from "@polkadot/types/interfaces";
+
+async function ensureAccountExists(address: string): Promise<void> {
+  if (!address || address === 'Unknown') return;
+  let account = await Account.get(address);
+  if (!account) {
+    account = new Account(address, BigInt(0), 0, 0);
+    await account.save();
+  }
+}
 
 // Handler para chamadas de contratos
 export async function handleContractCall(
@@ -43,10 +52,16 @@ export async function handleContractCall(
     logger.warn(`Error parsing contract call: ${error}`);
   }
 
-  // Ensure contract exists (for known contracts)
-  if (contractAddress !== "Unknown" && contractAddress !== "new_contract") {
-    await ensureSmartContract(contractAddress, "Unknown", blockNumber);
+  // Ensure caller Account exists (FK: caller: Account!)
+  await ensureAccountExists(callerId);
+
+  // Ensure contract exists (FK: contract: SmartContract!)
+  // Skip saving ContractCall if we can't resolve a valid contract address
+  if (contractAddress === "Unknown" || contractAddress === "new_contract") {
+    return;
   }
+
+  await ensureSmartContract(contractAddress, "Unknown", blockNumber, callerId);
 
   // Create contract call record
   const contractCall = ContractCall.create({
@@ -65,9 +80,7 @@ export async function handleContractCall(
   await contractCall.save();
 
   // Update contract interaction count
-  if (contractAddress !== "Unknown" && contractAddress !== "new_contract") {
-    await updateContractInteractionCount(contractAddress);
-  }
+  await updateContractInteractionCount(contractAddress);
 }
 
 export async function handleContractEvent(
@@ -111,6 +124,52 @@ export async function handleContractEvent(
   await contractEvent.save();
 }
 
+// ink! selectors = blake2_256("Trait::method")[0..4]
+// PSP22Metadata::token_name   = 0x3d261bd4
+// PSP22Metadata::token_symbol = 0x34205be5
+// PSP22Metadata::token_decimals = 0x7271b782
+// PSP22::total_supply         = 0x162df8c2
+// PSP34::collection_id        = 0xffa27a5f
+const PSP22_TOKEN_NAME_SELECTOR = '0x3d261bd4';   // PSP22Metadata::token_name
+const PSP22_TOTAL_SUPPLY_SELECTOR = '0x162df8c2'; // PSP22::total_supply (fallback)
+const PSP34_COLLECTION_ID_SELECTOR = '0xffa27a5f'; // PSP34::collection_id
+
+async function tryContractCall(contractAddress: string, selector: string): Promise<boolean> {
+  try {
+    const result = await (api as any).rpc.contracts.call({
+      origin: contractAddress,
+      dest: contractAddress,
+      value: 0,
+      gasLimit: { refTime: 5_000_000_000, proofSize: 131_072 },
+      storageDepositLimit: null,
+      inputData: selector,
+    });
+    const res = result.toHuman ? result.toHuman() : result;
+    return res?.result?.Ok !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+async function detectInkStandard(contractAddress: string): Promise<string> {
+  // Try PSP22Metadata::token_name first, then PSP22::total_supply as fallback
+  const isPsp22 = await tryContractCall(contractAddress, PSP22_TOKEN_NAME_SELECTOR)
+    || await tryContractCall(contractAddress, PSP22_TOTAL_SUPPLY_SELECTOR);
+
+  if (isPsp22) {
+    logger.info(`[Instantiated] Detected PSP22 for ${contractAddress.slice(0, 10)}...`);
+    return 'PSP22';
+  }
+
+  const isPsp34 = await tryContractCall(contractAddress, PSP34_COLLECTION_ID_SELECTOR);
+  if (isPsp34) {
+    logger.info(`[Instantiated] Detected PSP34 for ${contractAddress.slice(0, 10)}...`);
+    return 'PSP34';
+  }
+
+  return 'Unknown';
+}
+
 export async function handleContractInstantiated(
   blockNumber: bigint,
   index: number,
@@ -126,35 +185,46 @@ export async function handleContractInstantiated(
     const deployerAddress = deployer.toString();
     const newContractAddress = contractAddress.toString();
 
-    logger.info(`Contract instantiated: ${newContractAddress} by ${deployerAddress}`);
+    logger.info(`[Instantiated] Contract ${newContractAddress.slice(0, 10)}... by ${deployerAddress.slice(0, 10)}...`);
 
-    // Create smart contract record
-    const contract = SmartContract.create({
-      id: newContractAddress,
-      contractAddress: newContractAddress,
-      deployerId: deployerAddress,
-      standard: "Unknown",
-      deployedAt: BigInt(Date.now()),
-      deployedAtBlock: blockNumber,
-      isVerified: false,
-      callCount: 0,
-    });
+    await ensureAccountExists(deployerAddress);
 
-    await contract.save();
+    let contract = await SmartContract.get(newContractAddress);
+    if (!contract) {
+      // Auto-detect PSP standard via dry-run calls
+      const standard = await detectInkStandard(newContractAddress);
+
+      contract = SmartContract.create({
+        id: newContractAddress,
+        contractAddress: newContractAddress,
+        deployerId: deployerAddress,
+        standard,
+        deployedAt: BigInt(Date.now()),
+        deployedAtBlock: blockNumber,
+        isVerified: false,
+        callCount: 0,
+      });
+      await contract.save();
+      logger.info(`[Instantiated] Registered ${newContractAddress.slice(0, 10)}... as ${standard}`);
+    }
 
   } catch (error) {
-    logger.warn(`Error handling contract instantiation: ${error}`);
+    logger.warn(`[Instantiated] Error: ${error}`);
   }
 }
 
-async function ensureSmartContract(contractAddress: string, standard: string, blockNumber: bigint): Promise<SmartContract> {
+async function ensureSmartContract(contractAddress: string, standard: string, blockNumber: bigint, deployerAddress?: string): Promise<SmartContract> {
   let contract = await SmartContract.get(contractAddress);
   
   if (!contract) {
+    // Use provided deployer or create a placeholder account for the contract itself
+    const deployerId = deployerAddress || contractAddress;
+    await ensureAccountExists(deployerId);
+
     contract = SmartContract.create({
       id: contractAddress,
       contractAddress: contractAddress,
-      deployerId: "Unknown",
+      deployerId: deployerId,
       standard: standard,
       deployedAt: BigInt(Date.now()),
       deployedAtBlock: blockNumber,

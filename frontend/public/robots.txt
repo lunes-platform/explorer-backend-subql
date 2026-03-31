@@ -1,0 +1,12 @@
+# Lunes Explorer - robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://explorer.lunes.io/sitemap.xml
+
+# Crawl-delay (be gentle)
+Crawl-delay: 2

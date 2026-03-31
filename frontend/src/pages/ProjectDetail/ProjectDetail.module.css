@@ -1,0 +1,419 @@
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.projectBanner {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  max-height: 280px;
+}
+
+.projectBannerImg {
+  width: 100%;
+  height: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  display: block;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.2s;
+}
+.backLink:hover {
+  color: var(--color-brand-400);
+}
+
+.projectHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.projectLogo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.projectTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.projectName {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.projectMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.categoryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.categoryBadge[data-category="defi"] {
+  background: rgba(38, 208, 124, 0.12);
+  color: #26d07c;
+}
+.categoryBadge[data-category="nft"] {
+  background: rgba(168, 85, 247, 0.12);
+  color: #a855f7;
+}
+.categoryBadge[data-category="social"] {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+.categoryBadge[data-category="infrastructure"] {
+  background: rgba(251, 146, 60, 0.12);
+  color: #fb923c;
+}
+.categoryBadge[data-category="gaming"] {
+  background: rgba(236, 72, 153, 0.12);
+  color: #ec4899;
+}
+.categoryBadge[data-category="dao"] {
+  background: rgba(234, 179, 8, 0.12);
+  color: #eab308;
+}
+.categoryBadge[data-category="token"] {
+  background: rgba(108, 56, 255, 0.12);
+  color: var(--color-brand-400);
+}
+.categoryBadge[data-category="other"] {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.statusDot[data-status="active"] { background: #26d07c; }
+.statusDot[data-status="development"] { background: #eab308; }
+.statusDot[data-status="beta"] { background: #3b82f6; }
+.statusDot[data-status="deprecated"] { background: #ef4444; }
+
+.description {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+
+.linksGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.linkBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(108, 56, 255, 0.08);
+  border: 1px solid rgba(108, 56, 255, 0.15);
+  color: var(--color-brand-400);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.linkBtn:hover {
+  background: rgba(108, 56, 255, 0.16);
+  border-color: rgba(108, 56, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.tagsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Team */
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.teamCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.teamAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-brand-500), #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.teamInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teamName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.teamRole {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Timeline / Roadmap */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 28px;
+}
+
+.timelineItem {
+  position: relative;
+  padding: 12px 0 24px 20px;
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
+}
+.timelineItem:last-child {
+  border-left-color: transparent;
+  padding-bottom: 0;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -8px;
+  top: 14px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+.timelineDot[data-status="completed"] {
+  background: #26d07c;
+  border-color: #26d07c;
+}
+.timelineDot[data-status="in-progress"] {
+  background: var(--color-brand-400);
+  border-color: var(--color-brand-400);
+  box-shadow: 0 0 8px rgba(108, 56, 255, 0.4);
+}
+.timelineDot[data-status="planned"] {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.timelineTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timelineDate {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.timelineDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* On-Chain References */
+.refGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.refItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+.refItem:hover {
+  background: rgba(108, 56, 255, 0.06);
+  border-color: rgba(108, 56, 255, 0.15);
+}
+
+.refIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.refInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.refLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.refValue {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-brand-400);
+  font-family: var(--font-mono, monospace);
+}
+
+/* Projects List */
+.projectsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.projectCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.25s;
+}
+.projectCard:hover {
+  background: rgba(108, 56, 255, 0.06);
+  border-color: rgba(108, 56, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.projectCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.projectCardLogo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.projectCardTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.projectCardDesc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.projectCardFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}

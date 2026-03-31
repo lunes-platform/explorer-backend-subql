@@ -1,0 +1,19 @@
+{
+  "ads": [
+    {
+      "id": "ad_default_1",
+      "title": "Launch Your Token on Lunes",
+      "description": "Deploy smart contracts, create tokens & NFTs on a fast, low-fee blockchain",
+      "ctaText": "Get Started →",
+      "ctaUrl": "https://launchpad.lunes.io",
+      "placement": "home_stats",
+      "isActive": true,
+      "priority": 0,
+      "impressions": 38,
+      "clicks": 0,
+      "createdAt": "2026-02-16T00:22:52.811Z",
+      "updatedAt": "2026-02-16T00:22:52.811Z"
+    }
+  ],
+  "lastUpdated": "2026-02-16T00:30:13.664Z"
+}

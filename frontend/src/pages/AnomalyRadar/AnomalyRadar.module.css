@@ -1,0 +1,202 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.7));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.statsRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.statPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.statPill strong {
+  color: white;
+  font-weight: 600;
+}
+
+.anomalyList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.anomalyCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 20px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.anomalyCard:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.anomalyCard.critical {
+  border-left: 3px solid var(--color-critical, #ff284c);
+}
+
+.anomalyCard.warning {
+  border-left: 3px solid var(--color-warning, #fe9f00);
+}
+
+.anomalyCard.info {
+  border-left: 3px solid var(--color-brand-400, #6c38ff);
+}
+
+.anomalyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.anomalyTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.severityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.severityBadge.critical {
+  background: rgba(255, 40, 76, 0.12);
+  color: var(--color-critical, #ff284c);
+}
+
+.severityBadge.warning {
+  background: rgba(254, 159, 0, 0.12);
+  color: var(--color-warning, #fe9f00);
+}
+
+.severityBadge.info {
+  background: rgba(108, 56, 255, 0.12);
+  color: var(--color-brand-400, #6c38ff);
+}
+
+.anomalyDescription {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.anomalyMeta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.anomalyMeta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.recommendations span {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.scanButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--color-brand-600, #6c38ff);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.scanButton:hover {
+  background: var(--color-brand-500, #7c4dff);
+  transform: translateY(-1px);
+}
+
+.scanButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.emptyState h3 {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.emptyState p {
+  font-size: 13px;
+  max-width: 400px;
+  margin: 0 auto;
+}

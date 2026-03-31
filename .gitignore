@@ -5,11 +5,9 @@
 
 # Node artifact files
 node_modules/
-dist/
 
-# lock files
+# Lock files — keep root package-lock for reproducible SubQuery builds
 yarn.lock
-package-lock.json
 
 # Compiled Java class files
 *.class
@@ -25,9 +23,10 @@ package-lock.json
 
 # Generated files
 target/
-dist/
-src/types
-project.yaml
+# dist/ and src/types are committed — SubQuery needs them in production
+# dist/
+# src/types
+# project.yaml is committed — SubQuery needs it to start
 
 # JetBrains IDE
 .idea/
@@ -56,3 +55,34 @@ Thumbs.db
 
 .data
 .eslintcache
+
+# Environment variables (contain secrets - NEVER commit)
+.env
+api/.env
+backend-py/.env
+frontend/.env
+frontend/.env.local
+
+# API data (contains admin credentials, configs — persisted in Postgres)
+api/data/
+api/data/uploads/
+
+# Frontend build
+frontend/dist/
+
+# Backend Python (removed — functionality migrated to api/)
+backend-py/
+
+
+# Playwright
+frontend/e2e/
+frontend/playwright.config.ts
+frontend/test-results/
+
+# Temp/analysis files
+REQUIREMENTS_GAP_ANALYSIS.md
+api/.env
+test_market_service.py
+src/types
+yarn.lock
+dist

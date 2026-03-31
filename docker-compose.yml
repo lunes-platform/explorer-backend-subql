@@ -1,6 +1,5 @@
-version: "3"
-
 services:
+  # ── PostgreSQL ──
   postgres:
     image: postgres:16-alpine
     ports:
@@ -8,22 +7,55 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - explorer-network
 
+  # ── API Express (Node.js) ──
+  api:
+    build: ./api
+    ports:
+      - 4000:4000
+    volumes:
+      - ./api/data:/app/data
+    env_file:
+      - ./api/.env
+    environment:
+      - INDEXER_URL=http://graphql-engine:3000
+      - API_PUBLIC_URL=${API_PUBLIC_URL:-http://localhost:4000}
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-postgres}@postgres:5432/postgres?schema=public
+    depends_on:
+      - postgres
+    restart: always
+    networks:
+      - explorer-network
+
+  # ── SubQuery Build (compiles TypeScript → dist/) ──
+  # Run manually before first deploy: docker compose run --rm subquery-build
+  subquery-build:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: sh -c "npm ci --legacy-peer-deps && npm run build"
+    profiles:
+      - build
+
+  # ── SubQuery Node (Indexer) ──
   subquery-node:
     image: onfinality/subql-node:latest
     depends_on:
-      "postgres":
+      postgres:
         condition: service_healthy
     restart: always
     environment:
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${DB_PASSWORD:-postgres}
       DB_DATABASE: postgres
       DB_HOST: postgres
       DB_PORT: 5432
@@ -32,25 +64,29 @@ services:
     command:
       - -f=/app
       - --db-schema=app
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://subquery-node:3000/ready"]
-      interval: 3s
-      timeout: 5s
-      retries: 10
+      - --disable-historical
+      - --batch-size=300
+      - --timeout=180000
+      - --store-cache-threshold=5000
+      - --store-flush-interval=15
+      - --store-get-cache-size=1000
+      - --scale-batch-size
+      - --store-cache-async
+    networks:
+      - explorer-network
 
+  # ── GraphQL Engine (SubQuery Query) ──
   graphql-engine:
     image: onfinality/subql-query:latest
     ports:
       - 3000:3000
     depends_on:
-      "postgres":
-        condition: service_healthy
-      "subquery-node":
-        condition: service_healthy
+      - postgres
+      - subquery-node
     restart: always
     environment:
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${DB_PASSWORD:-postgres}
       DB_DATABASE: postgres
       DB_HOST: postgres
       DB_PORT: 5432
@@ -58,6 +94,36 @@ services:
       - --name=app
       - --playground
       - --indexer=http://subquery-node:3000
+    networks:
+      - explorer-network
+
+  # ── Frontend (React/Vite) ──
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    ports:
+      - 5175:5175
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm ci && npm run build && npm run preview"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:4000}
+      - VITE_GRAPHQL_URL=${VITE_GRAPHQL_URL:-http://localhost:3000}
+      - VITE_WS_ENDPOINTS=${VITE_WS_ENDPOINTS:-wss://ws-archive.lunes.io,wss://ws-lunes-main-02.lunes.io}
+      - HOST=0.0.0.0
+    depends_on:
+      - api
+      - graphql-engine
+    networks:
+      - explorer-network
 
 volumes:
   postgres_data:
+  frontend_node_modules:
+
+
+networks:
+  explorer-network:
+    driver: bridge

@@ -1,0 +1,11 @@
+{
+  "provider": "none",
+  "apiKey": "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",
+  "model": "google/gemma-3-4b-it:free",
+  "systemPrompt": "Provide clear and concise explanations in the language in which the question was asked about blockchain data.\nFocus on: what happened, who is involved, amounts, and any relevant patterns.\nKeep responses under 60 words. Be factual and precise.",
+  "maxTokens": 300,
+  "temperature": 0.3,
+  "enabled": false,
+  "lastUpdated": "2026-02-16T01:38:52.870Z",
+  "updatedBy": "admin@lunes.io"
+}
