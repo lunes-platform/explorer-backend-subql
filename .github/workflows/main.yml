@@ -4,38 +4,39 @@ on:
   push:
     branches:
       - master
-
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: copy files
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
-          source: "."
-          target: /root/explorer-backend-subql
-      - name: Executing remote SSH commands using key
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.HOST }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.PORT }}
-          username: ${{ secrets.USER }}
-          script: |
-            TARGET_DIR="/root/explorer-backend-subql"           
-            echo "Deploying"
-            echo "Building Frontend"
-            cd "$TARGET_DIR/frontend"
-            npm i
-            npm run build
-            echo "Deploying Backend"
-            cd "$TARGET_DIR"
-            docker compose -f docker-compose.prod.yml down --remove-orphans || true
-            docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
-            echo "End"
+    - uses: actions/checkout@v2
+    - name: copy files
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USER }}
+        password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PORT }}
+        source: "."
+        target: /root/backend-zacksys
+
+    - name: SSH into remote server and run commands
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USER }}
+        port: ${{ secrets.PORT }}
+        password: ${{ secrets.PASSWORD }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          TARGET_DIR="/root/explorer-backend-subql"           
+          echo "Deploying"
+          echo "Building Frontend"
+          cd "$TARGET_DIR/frontend"
+          npm i
+          npm run build
+          echo "Deploying Backend"
+          cd "$TARGET_DIR"
+          docker compose -f docker-compose.prod.yml down --remove-orphans || true
+          docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+          echo "End"
