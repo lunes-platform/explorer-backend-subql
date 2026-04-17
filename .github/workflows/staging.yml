@@ -1,0 +1,77 @@
+name: Staging Validate and Deploy
+
+on:
+  push:
+    branches:
+      - dev/safe-baseline-2026-02-14
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Build SubQuery project
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Test API
+        working-directory: ./api
+        run: |
+          npm ci
+          npm test
+
+  deploy-staging:
+    name: Deploy Staging
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: staging
+    if: ${{ secrets.HOST_STAGING != '' && secrets.USER_STAGING != '' && secrets.PORT_STAGING != '' && secrets.SSH_PRIVATE_KEY_STAGING != '' }}
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy files to staging server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_STAGING }}
+          username: ${{ secrets.USER_STAGING }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_STAGING }}
+          port: ${{ secrets.PORT_STAGING }}
+          source: "."
+          target: /root/explorer-backend-subql-staging
+
+      - name: Deploy on staging server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST_STAGING }}
+          username: ${{ secrets.USER_STAGING }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_STAGING }}
+          port: ${{ secrets.PORT_STAGING }}
+          script: |
+            set -e
+            TARGET_DIR="/root/explorer-backend-subql-staging"
+            cd "$TARGET_DIR/frontend"
+            export NVM_DIR="$HOME/.nvm"
+            source "$NVM_DIR/nvm.sh"
+            npm ci
+            npm run build
+            cd "$TARGET_DIR"
+            docker compose -f docker-compose.prod.yml up -d --build --no-deps api frontend
+            curl -fsS http://127.0.0.1:4000/api/health || curl -fsS http://127.0.0.1:4000/health

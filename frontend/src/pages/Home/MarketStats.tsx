@@ -62,18 +62,35 @@ const StatCard: React.FC<StatProps> = ({ label, value, change, isPositive, icon,
 );
 
 const MarketStats: React.FC = () => {
-    const [ad, setAd] = useState<{ id: string; title: string; description: string; ctaText: string; ctaUrl: string } | null>(null);
+    const [ads, setAds] = useState<{ id: string; title: string; description: string; ctaText: string; ctaUrl: string }[]>([]);
+    const [adIndex, setAdIndex] = useState(0);
+
+    const ad = ads.length > 0 ? ads[adIndex] : null;
+
     useEffect(() => {
         fetch(`${API_BASE_URL}/ads?placement=home_stats`)
             .then(r => r.json())
             .then((data: any[]) => {
                 if (Array.isArray(data) && data.length > 0) {
-                    setAd(data[0]);
-                    fetch(`${API_BASE_URL}/ads/${data[0].id}/impression`, { method: 'POST' }).catch(() => {});
+                    setAds(data);
+                    setAdIndex(0);
                 }
             })
             .catch(() => {});
     }, []);
+
+    useEffect(() => {
+        if (ads.length <= 1) return;
+        const interval = window.setInterval(() => {
+            setAdIndex((prev) => (prev + 1) % ads.length);
+        }, 10000);
+        return () => window.clearInterval(interval);
+    }, [ads]);
+
+    useEffect(() => {
+        if (!ad) return;
+        fetch(`${API_BASE_URL}/ads/${ad.id}/impression`, { method: 'POST' }).catch(() => {});
+    }, [ad]);
 
     const { price, change24h, marketCap: apiMarketCap, source: priceSource, loading: priceLoading } = useLunesPrice();
     const { data: chainStats, loading: chainLoading } = useDashboardStats();
@@ -107,9 +124,8 @@ const MarketStats: React.FC = () => {
         }
     }, [sanity]);
 
-    // Use API-provided market cap (from CoinGecko enrichment) if available,
-    // otherwise fall back to local calculation (price × supply)
-    const rawMarketCap = apiMarketCap > 0 ? apiMarketCap : (price * currentSupply);
+    // Market cap should follow real-time price updates; use price × current supply first.
+    const rawMarketCap = (price > 0 && currentSupply > 0) ? (price * currentSupply) : apiMarketCap;
     const marketCap = rawMarketCap > 0
         ? rawMarketCap.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
         : '$0';

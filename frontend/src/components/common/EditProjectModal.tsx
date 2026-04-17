@@ -140,6 +140,7 @@ export function EditProjectModal({ project, onClose, onSaved, ownerAddress, admi
         // Admin edit via admin endpoint
         url = `${API_BASE}/admin/projects/${project.slug}`;
         headers['Authorization'] = `Bearer ${adminToken}`;
+        payload['allowCreateIfMissing'] = true;
       } else if (ownerAddress) {
         // Owner edit via public endpoint with ownerAddress
         url = `${API_BASE}/projects/${project.slug}`;

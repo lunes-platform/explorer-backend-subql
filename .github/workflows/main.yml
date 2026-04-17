@@ -4,12 +4,19 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 jobs:
   deploy:
-    name: Deploy
+    name: Deploy Production
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
+    env:
+      TARGET_DIR: /root/explorer-backend-subql
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: copy files
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -18,7 +25,7 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         port: ${{ secrets.PORT }}
         source: "."
-        target: /root/backend-zacksys
+        target: ${{ env.TARGET_DIR }}
 
     - name: SSH into remote server and run commands
       uses: appleboy/ssh-action@v1.2.0
@@ -29,7 +36,7 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          TARGET_DIR="/root/explorer-backend-subql"           
+          TARGET_DIR="/root/explorer-backend-subql"
           echo "Deploying"
           echo "Building Frontend"
           cd "$TARGET_DIR/frontend"
@@ -44,6 +51,5 @@ jobs:
           npm run build
           echo "Deploying Backend"
           cd "$TARGET_DIR"
-          docker compose -f docker-compose.prod.yml down --remove-orphans || true
-          docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+          docker compose -f docker-compose.prod.yml up -d --build --no-deps api frontend
           echo "End"

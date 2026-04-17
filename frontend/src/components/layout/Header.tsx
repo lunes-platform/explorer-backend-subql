@@ -44,7 +44,9 @@ const Header: React.FC = () => {
     const rpcStatusColor = health.rpc.status === 'connected' ? 'var(--color-success)'
         : health.rpc.status === 'connecting' ? 'var(--color-warning)'
         : 'var(--color-critical)';
-    const rawMarketCap = apiMarketCap > 0 ? apiMarketCap : (price > 0 && currentSupply > 0 ? price * currentSupply : 0);
+    const rawMarketCap = (price > 0 && currentSupply > 0)
+        ? (price * currentSupply)
+        : (apiMarketCap > 0 ? apiMarketCap : 0);
     const marketCap = rawMarketCap > 0
         ? rawMarketCap.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
         : '—';

@@ -838,10 +838,8 @@ app.get('/api/admin/projects', requireAuth, async (_req, res) => {
 });
 
 app.put('/api/admin/projects/:slug', requireAuth, async (req, res) => {
-  const existing = await getProject(req.params.slug);
-  if (!existing) return res.status(404).json({ error: 'Project not found' });
-  // Admin can edit any project — no ownership check
-  const { ownerAddress, ...updates } = req.body;
+  const { ownerAddress, allowCreateIfMissing, ...updates } = req.body;
+
   // Normalize tokenSymbolImage -> logo so the frontend can read project.logo
   if (updates.tokenSymbolImage !== undefined) {
     updates.logo = updates.tokenSymbolImage;
@@ -852,6 +850,25 @@ app.put('/api/admin/projects/:slug', requireAuth, async (req, res) => {
     updates.banner = updates.bannerImage;
     delete updates.bannerImage;
   }
+
+  const existing = await getProject(req.params.slug);
+  if (!existing) {
+    if (!allowCreateIfMissing) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const created = await createProject({
+      slug: req.params.slug,
+      name: updates.name || req.params.slug,
+      ...updates,
+      ownerAddress: ownerAddress || '',
+    });
+
+    if (created.error) return res.status(created.status).json({ error: created.error });
+    return res.status(201).json(created);
+  }
+
+  // Admin can edit any project — no ownership check
   const result = await updateProject(req.params.slug, updates);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
