@@ -36,6 +36,7 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          set -e
           TARGET_DIR="/root/explorer-backend-subql"
           echo "Deploying"
           echo "Building Frontend"
@@ -51,5 +52,7 @@ jobs:
           npm run build
           echo "Deploying Backend"
           cd "$TARGET_DIR"
-          docker compose -f docker-compose.prod.yml up -d --build --no-deps api frontend
+          docker compose -f docker-compose.prod.yml up -d --build api frontend
+          docker compose -f docker-compose.prod.yml ps
+          curl -fsS http://127.0.0.1:4000/api/health || curl -fsS http://127.0.0.1:4000/health
           echo "End"
